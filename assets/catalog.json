@@ -1,0 +1,31 @@
+{
+  "models": [
+    {
+      "id": "sofa",
+      "name": "Sofá 2 plazas",
+      "file": "models/sofa.glb",
+      "width": 1.6,
+      "depth": 0.85,
+      "height": 0.85,
+      "rotation": 0
+    },
+    {
+      "id": "lampara-pie",
+      "name": "Lámpara de pie",
+      "file": "models/lampara-pie.glb",
+      "width": 0.4,
+      "depth": 0.4,
+      "height": 1.6,
+      "rotation": 0
+    },
+    {
+      "id": "planta",
+      "name": "Planta",
+      "file": "models/planta.glb",
+      "width": 0.6,
+      "depth": 0.6,
+      "height": 1.2,
+      "rotation": 0
+    }
+  ]
+}

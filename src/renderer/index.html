@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      Política de seguridad: solo se ejecuta código propio.
+      amob: es el protocolo con el que se cargan los modelos 3D del catálogo;
+      blob:/data: los usa GLTFLoader para las texturas incrustadas.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: amob:; connect-src 'self' ws: amob: blob: data:"
+    />
+    <title>Amoblador3D</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <aside id="sidebar">
+      <h1>Amoblador3D</h1>
+
+      <section class="panel">
+        <h2>Habitación</h2>
+        <form id="room-form" novalidate>
+          <label>
+            Ancho (X)
+            <span class="input-unit"><input name="width" type="number" step="0.01" min="1" max="30" required /> m</span>
+          </label>
+          <label>
+            Largo (Z)
+            <span class="input-unit"><input name="length" type="number" step="0.01" min="1" max="30" required /> m</span>
+          </label>
+          <label>
+            Alto (Y)
+            <span class="input-unit"><input name="height" type="number" step="0.01" min="2" max="6" required /> m</span>
+          </label>
+          <label>
+            Grosor de muro
+            <span class="input-unit"><input name="wallThickness" type="number" step="0.01" min="0.05" max="0.5" required /> m</span>
+          </label>
+          <p id="room-error" class="error" hidden></p>
+          <button type="submit">Aplicar medidas</button>
+        </form>
+        <dl id="room-info"></dl>
+      </section>
+
+      <section class="panel">
+        <h2>Ventanas y puertas</h2>
+        <div class="button-row">
+          <button data-add-opening="window">+ Ventana</button>
+          <button data-add-opening="door">+ Puerta</button>
+        </div>
+        <ul id="list-openings" class="item-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Iluminación</h2>
+        <label class="range">
+          Luz ambiental <output id="ambient-value"></output>
+          <input id="ambient" type="range" min="0" max="2" step="0.05" value="0.6" />
+        </label>
+        <div class="button-row">
+          <button data-add-light="point" title="Luz puntual">+ Bombilla</button>
+          <button data-add-light="spot" title="Cono de luz dirigido">+ Foco</button>
+          <button data-add-light="sun" title="Luz solar que entra por una ventana">+ Sol</button>
+        </div>
+        <ul id="list-lights" class="item-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Muebles</h2>
+        <h3>Paramétricos</h3>
+        <div id="catalog-parametric" class="button-grid"></div>
+        <h3>Modelos 3D</h3>
+        <div id="catalog-models" class="button-grid"></div>
+        <div class="button-row">
+          <button data-action="import-model" title="Importar un modelo .glb o .gltf (Ctrl+I)">Importar .glb/.gltf…</button>
+        </div>
+        <h3>En la habitación</h3>
+        <ul id="list-furniture" class="item-list"></ul>
+      </section>
+    </aside>
+
+    <main id="viewport">
+      <div id="toolbar">
+        <div class="tool-group">
+          <button data-action="new" title="Nuevo proyecto (Ctrl+N)">Nuevo</button>
+          <button data-action="open" title="Abrir proyecto (Ctrl+O)">Abrir</button>
+          <button data-action="save" title="Guardar (Ctrl+S)">Guardar</button>
+        </div>
+        <div class="tool-group">
+          <button data-action="undo" title="Deshacer (Ctrl+Z)">↶</button>
+          <button data-action="redo" title="Rehacer (Ctrl+Y)">↷</button>
+        </div>
+        <div class="segmented">
+          <button data-view="3d" class="active" title="Ctrl+1">Vista 3D</button>
+          <button data-view="plan" title="Ctrl+2">Planta 2D</button>
+        </div>
+        <label class="check" title="Ctrl+M"><input id="toggle-dims" type="checkbox" checked /> Cotas</label>
+        <button data-action="reset-camera" title="Centrar cámara (Ctrl+0)">Centrar</button>
+        <button data-action="export-image" title="Exportar imagen PNG (Ctrl+E)">Captura</button>
+      </div>
+      <div id="toast" hidden></div>
+      <!-- Aquí se insertan el canvas de Three.js y la capa de etiquetas -->
+    </main>
+
+    <aside id="inspector"></aside>
+
+    <dialog id="import-dialog">
+      <form>
+        <h2>Agregar modelo al catálogo</h2>
+        <p class="hint import-size"></p>
+        <label>Nombre <input name="name" type="text" maxlength="40" /></label>
+        <label>
+          Giro inicial
+          <select name="rotation">
+            <option value="0">0°</option>
+            <option value="90">90°</option>
+            <option value="180">180°</option>
+            <option value="270">270°</option>
+          </select>
+        </label>
+        <label>Ancho (X) <span class="input-unit"><input name="width" type="number" step="0.01" min="0.05" max="6" /> m</span></label>
+        <label>Profundidad (Z) <span class="input-unit"><input name="depth" type="number" step="0.01" min="0.05" max="6" /> m</span></label>
+        <label>Alto (Y) <span class="input-unit"><input name="height" type="number" step="0.01" min="0.05" max="4" /> m</span></label>
+        <label class="check"><input name="keep" type="checkbox" checked /> Mantener proporciones</label>
+        <p class="hint">El frente del mueble debe mirar hacia +Z (hacia abajo en la planta). Si no, cambia el giro inicial.</p>
+        <p class="error" hidden></p>
+        <div class="button-row">
+          <button type="button" data-cancel>Cancelar</button>
+          <button type="submit" class="primary">Agregar al catálogo</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
