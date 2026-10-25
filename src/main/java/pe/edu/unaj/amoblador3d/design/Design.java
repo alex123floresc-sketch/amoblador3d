@@ -1,0 +1,650 @@
+package pe.edu.unaj.amoblador3d.design;
+
+import static pe.edu.unaj.amoblador3d.util.Units.checkRange;
+import static pe.edu.unaj.amoblador3d.util.Units.round;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+import pe.edu.unaj.amoblador3d.catalog.Catalog;
+import pe.edu.unaj.amoblador3d.catalog.CatalogEntry;
+import pe.edu.unaj.amoblador3d.model.Footprint;
+import pe.edu.unaj.amoblador3d.model.Furniture;
+import pe.edu.unaj.amoblador3d.model.Light;
+import pe.edu.unaj.amoblador3d.model.LightType;
+import pe.edu.unaj.amoblador3d.model.Opening;
+import pe.edu.unaj.amoblador3d.model.OpeningType;
+import pe.edu.unaj.amoblador3d.model.Project;
+import pe.edu.unaj.amoblador3d.model.RoomDims;
+import pe.edu.unaj.amoblador3d.model.Surface;
+import pe.edu.unaj.amoblador3d.model.SurfaceMaterial;
+import pe.edu.unaj.amoblador3d.model.WallSide;
+import pe.edu.unaj.amoblador3d.util.Outcome;
+import pe.edu.unaj.amoblador3d.util.Units;
+
+/**
+ * El proyecto que se está editando y todas sus reglas: dónde caben las aberturas,
+ * colisiones de muebles (con paredes, con otros muebles y con el giro de las puertas)
+ * y luces que dependen de las ventanas.
+ *
+ * <p>No depende de JavaFX: la vista 3D se entera de los cambios con {@link #addListener}.
+ */
+public final class Design {
+    /** Separación mínima de una abertura con esquinas, techo y otras aberturas. */
+    public static final double MARGIN = 0.05;
+    /** JavaFX ilumina cada objeto con un máximo de 3 luces (sin contar la ambiental). */
+    public static final int MAX_ACTIVE_LIGHTS = 3;
+
+    /** Qué parte cambió, para que la vista 3D reconstruya solo eso. */
+    public enum Change { ROOM, SURFACES, LIGHTS, FURNITURE }
+
+    private final Catalog catalog;
+    private final IdGenerator ids = new IdGenerator();
+    private final List<Consumer<Set<Change>>> listeners = new ArrayList<>();
+    private Consumer<String> onWarning = message -> {};
+    private Project project = new Project();
+
+    public Design(Catalog catalog) {
+        this.catalog = catalog;
+    }
+
+    public Catalog catalog() {
+        return catalog;
+    }
+
+    public RoomDims room() {
+        return project.room;
+    }
+
+    public double ambient() {
+        return project.ambient;
+    }
+
+    public List<Opening> openings() {
+        return List.copyOf(project.openings);
+    }
+
+    public List<Light> lights() {
+        return List.copyOf(project.lights);
+    }
+
+    public List<Furniture> furniture() {
+        return List.copyOf(project.furniture);
+    }
+
+    public Surface floor() {
+        return project.floor;
+    }
+
+    public Surface wall(WallSide side) {
+        return project.walls.get(side);
+    }
+
+    /** Copia independiente del estado actual (para guardar o para deshacer). */
+    public Project snapshot() {
+        return project.copy();
+    }
+
+    public void addListener(Consumer<Set<Change>> listener) {
+        listeners.add(listener);
+    }
+
+    /** Recibe avisos que no son respuesta directa a una acción (p. ej. "el sol se eliminó"). */
+    public void setWarningHandler(Consumer<String> handler) {
+        onWarning = handler;
+    }
+
+    private void fire(Change first, Change... rest) {
+        Set<Change> changes = EnumSet.of(first, rest);
+        for (Consumer<Set<Change>> l : listeners) l.accept(changes);
+    }
+
+    private void warn(List<String> warnings) {
+        if (!warnings.isEmpty()) onWarning.accept(String.join("\n", warnings));
+    }
+
+    /** Todas las entidades seleccionables (el piso y las paredes no se pueden eliminar). */
+    public List<Object> entities() {
+        List<Object> all = new ArrayList<>();
+        all.add(project.floor);
+        all.addAll(project.walls.values());
+        all.addAll(project.openings);
+        all.addAll(project.lights);
+        all.addAll(project.furniture);
+        return all;
+    }
+
+    /** Busca una entidad por id (para conservar la selección al deshacer). */
+    public Object findById(String id) {
+        for (Object e : entities()) if (idOf(e).equals(id)) return e;
+        return null;
+    }
+
+    public static String idOf(Object entity) {
+        if (entity instanceof Opening o) return o.id;
+        if (entity instanceof Light l) return l.id;
+        if (entity instanceof Furniture f) return f.id;
+        if (entity instanceof Surface s) return s.id;
+        throw new IllegalArgumentException("Entidad desconocida: " + entity);
+    }
+
+    /** Nombre visible: "Ventana 1 (norte)", "Bombilla 2", "Cama 1"... */
+    public String label(Object entity) {
+        if (entity instanceof Opening o) return o.type.label() + " " + suffix(o.id) + " (" + o.wall.id() + ")";
+        if (entity instanceof Light l) return l.type.label() + " " + suffix(l.id);
+        if (entity instanceof Furniture f) return catalog.get(f.type).name() + " " + suffix(f.id);
+        if (entity instanceof Surface s) return s.isFloor() ? "Piso" : "Pared " + s.wallSide().id();
+        return String.valueOf(entity);
+    }
+
+    private static String suffix(String id) {
+        return id.substring(id.lastIndexOf('-') + 1);
+    }
+
+    // ---------------------------------------------------------------- Proyecto
+
+    /**
+     * Reemplaza todo el contenido por el del proyecto (que ya debe estar validado,
+     * ver {@code ProjectJson}). Devuelve avisos, por ejemplo ventanas que no cabían.
+     */
+    public List<String> load(Project data) {
+        project = data.copy();
+        ids.reset();
+        for (Object e : entities()) ids.register(idOf(e));
+        List<String> warnings = fitOpenings();
+        warnings.addAll(refreshSunLights());
+        fire(Change.ROOM, Change.SURFACES, Change.LIGHTS, Change.FURNITURE);
+        return warnings;
+    }
+
+    /** Habitación por defecto: una ventana, una puerta, una bombilla y el sol. */
+    public void loadDefault() {
+        Project p = new Project();
+        load(p);
+        addOpening(OpeningType.WINDOW);
+        addOpening(OpeningType.DOOR);
+        addLight(LightType.POINT);
+        addLight(LightType.SUN);
+    }
+
+    /** Cambia las medidas de la habitación y acomoda lo que haya dentro. Devuelve avisos. */
+    public List<String> setRoom(RoomDims dims) {
+        project.room = dims.rounded();
+        List<String> warnings = fitOpenings();
+        warnings.addAll(fitLightsToRoom());
+        warnings.addAll(fitFurnitureToRoom());
+        fire(Change.ROOM, Change.LIGHTS, Change.FURNITURE);
+        return warnings;
+    }
+
+    public void setAmbient(double intensity) {
+        project.ambient = Units.clamp(intensity, 0, 2);
+        fire(Change.LIGHTS);
+    }
+
+    /** Elimina una abertura, luz o mueble. */
+    public void remove(Object entity) {
+        if (entity instanceof Opening o) {
+            project.openings.remove(o);
+            openingsChanged();
+        } else if (entity instanceof Light l) {
+            project.lights.remove(l);
+            fire(Change.LIGHTS);
+        } else if (entity instanceof Furniture f) {
+            project.furniture.remove(f);
+            fire(Change.FURNITURE);
+        }
+    }
+
+    // ---------------------------------------------------------------- Paredes y piso
+
+    /** Cambia el material y/o el color de una pared o del piso. Devuelve un error o null. */
+    String changeSurface(Surface s, SurfaceMaterial material, String color) {
+        if (!material.allowedOn(s.isFloor())) {
+            return material.label() + " no se puede usar " + (s.isFloor() ? "en el piso." : "en las paredes.");
+        }
+        s.material = material;
+        s.color = color;
+        fire(Change.SURFACES);
+        return null;
+    }
+
+    /** Copia el acabado de una pared a las otras tres. */
+    String applyToAllWalls(Surface source) {
+        for (Surface w : project.walls.values()) {
+            w.material = source.material;
+            w.color = source.color;
+        }
+        fire(Change.SURFACES);
+        return null;
+    }
+
+    // ---------------------------------------------------------------- Aberturas
+
+    public double wallLength(WallSide wall) {
+        return project.room.wallLength(wall);
+    }
+
+    /** Agrega una ventana o puerta en el primer lugar libre. */
+    public Outcome<Opening> addOpening(OpeningType type) {
+        Opening o = Opening.create(ids.next(type.id()), type);
+        // Las puertas empiezan por el sur y las ventanas por el norte.
+        List<WallSide> order = type == OpeningType.DOOR
+                ? List.of(WallSide.SUR, WallSide.OESTE, WallSide.ESTE, WallSide.NORTE)
+                : List.of(WallSide.NORTE, WallSide.ESTE, WallSide.OESTE, WallSide.SUR);
+        for (WallSide wall : order) {
+            o.wall = wall;
+            Double offset = findFreeOffset(o, null);
+            if (offset != null) {
+                o.offset = offset;
+                project.openings.add(o);
+                openingsChanged();
+                return Outcome.ok(o);
+            }
+        }
+        String what = type == OpeningType.DOOR ? "puerta" : "ventana";
+        return Outcome.fail("No hay espacio libre en las paredes para otra " + what + ".");
+    }
+
+    /**
+     * Revisa que la abertura quepa en su pared y no choque con otras.
+     *
+     * @param self           la abertura que se está editando (se ignora a sí misma), o null
+     * @param checkFurniture si es una puerta, comprobar también que su giro no choque con muebles
+     * @return un mensaje de error o null
+     */
+    String validateOpening(Opening o, Opening self, boolean checkFurniture) {
+        double len = wallLength(o.wall);
+        double h = project.room.height();
+        boolean door = o.type == OpeningType.DOOR;
+        String name = door ? "La puerta" : "La ventana";
+
+        String err = checkRange("El ancho", o.width, 0.3, len - 2 * MARGIN);
+        if (err == null) err = checkRange("La posición", o.offset, MARGIN, len - o.width - MARGIN);
+        if (err == null && door) err = checkRange("El alto", o.height, 1.5, h - MARGIN);
+        if (err == null && !door) err = checkRange("El alféizar", o.sill, MARGIN, h - o.height - MARGIN);
+        if (err == null && !door) err = checkRange("El alto", o.height, 0.3, h - o.sill - MARGIN);
+        if (err != null) return err;
+        if (door && o.sill != 0) return "Las puertas siempre empiezan en el piso.";
+
+        for (Opening other : project.openings) {
+            if (other == self || other.wall != o.wall) continue;
+            boolean separated = o.offset >= other.offset + other.width + MARGIN || o.offset + o.width <= other.offset - MARGIN;
+            if (!separated) return name + " se superpone con " + label(other) + ".";
+        }
+        // Corrección: antes se podía poner una puerta encima de un mueble y quedaba bloqueada.
+        if (door && checkFurniture) {
+            Footprint zone = doorZone(o);
+            for (Furniture f : project.furniture) {
+                if (Footprint.of(f).overlaps(zone)) return name + " no podría abrirse: choca con " + label(f) + ".";
+            }
+        }
+        return null;
+    }
+
+    /** Busca una posición libre en la pared (primero el centro). Devuelve el offset o null. */
+    private Double findFreeOffset(Opening o, Opening self) {
+        double len = wallLength(o.wall);
+        List<Double> candidates = new ArrayList<>();
+        candidates.add(round((len - o.width) / 2));
+        int steps = (int) Math.floor((len - o.width - 2 * MARGIN) / 0.05 + 1e-9);
+        for (int i = 0; i <= steps; i++) candidates.add(round(MARGIN + i * 0.05));
+        Opening test = o.copy();
+        for (double offset : candidates) {
+            test.offset = offset;
+            if (validateOpening(test, self, true) == null) return offset;
+        }
+        return null;
+    }
+
+    /**
+     * Aplica los cambios de una abertura si son válidos.
+     * Si cambió de pared, se busca un lugar libre en la nueva pared.
+     */
+    String changeOpening(Opening o, Opening candidate) {
+        if (candidate.wall != o.wall) {
+            Double offset = findFreeOffset(candidate, o);
+            if (offset == null) return "No hay espacio libre en la pared " + candidate.wall.id() + ".";
+            candidate.offset = offset;
+        }
+        candidate.offset = round(candidate.offset);
+        candidate.width = round(candidate.width);
+        candidate.height = round(candidate.height);
+        candidate.sill = round(candidate.sill);
+        String error = validateOpening(candidate, o, true);
+        if (error != null) return error;
+        o.wall = candidate.wall;
+        o.offset = candidate.offset;
+        o.width = candidate.width;
+        o.height = candidate.height;
+        o.sill = candidate.sill;
+        openingsChanged();
+        return null;
+    }
+
+    private void openingsChanged() {
+        List<String> warnings = refreshSunLights();
+        fire(Change.ROOM, Change.LIGHTS);
+        warn(warnings);
+    }
+
+    /**
+     * Tras cambiar las medidas, intenta que cada abertura siga cabiendo
+     * (achicándola o moviéndola). Si no es posible, la elimina.
+     */
+    private List<String> fitOpenings() {
+        List<String> warnings = new ArrayList<>();
+        double h = project.room.height();
+        List<Opening> all = new ArrayList<>(project.openings);
+        project.openings.clear(); // se van agregando las que sí caben
+        for (Opening o : all) {
+            double len = wallLength(o.wall);
+            Opening fitted = o.copy();
+            fitted.width = round(Math.min(o.width, len - 0.1));
+            if (o.type == OpeningType.DOOR) {
+                fitted.height = round(Math.min(o.height, h - 0.05));
+                fitted.sill = 0;
+            } else {
+                fitted.height = round(Math.min(o.height, h - 0.15));
+                fitted.sill = round(Math.max(0.05, Math.min(o.sill, h - fitted.height - 0.05)));
+            }
+            fitted.offset = round(Math.max(0.05, Math.min(o.offset, len - fitted.width - 0.05)));
+            // Los muebles no impiden conservar la puerta: fitFurnitureToRoom avisará si bloquean el paso.
+            if (validateOpening(fitted, o, false) != null) {
+                warnings.add(label(o) + " ya no cabía y se eliminó.");
+            } else {
+                o.offset = fitted.offset;
+                o.width = fitted.width;
+                o.height = fitted.height;
+                o.sill = fitted.sill;
+                project.openings.add(o);
+            }
+        }
+        return warnings;
+    }
+
+    /**
+     * Zona de giro de una puerta: un cuadrado de lado = ancho de la puerta, pegado a la
+     * pared por el lado interior. Ningún mueble puede invadirla.
+     */
+    public Footprint doorZone(Opening door) {
+        double w = door.width, along = door.offset + w / 2;
+        RoomDims r = project.room;
+        return switch (door.wall) {
+            case NORTE -> new Footprint(along, w / 2, w / 2, w / 2, 0);
+            case SUR -> new Footprint(along, r.length() - w / 2, w / 2, w / 2, 0);
+            case OESTE -> new Footprint(w / 2, along, w / 2, w / 2, 0);
+            case ESTE -> new Footprint(r.width() - w / 2, along, w / 2, w / 2, 0);
+        };
+    }
+
+    public Opening findOpening(String id) {
+        for (Opening o : project.openings) if (o.id.equals(id)) return o;
+        return null;
+    }
+
+    // ---------------------------------------------------------------- Luces
+
+    public Outcome<Light> addLight(LightType type) {
+        RoomDims r = project.room;
+        Light l = new Light(null, type);
+        switch (type) {
+            case POINT -> {
+                l.x = r.width() / 2;
+                l.y = r.height() - 0.25;
+                l.z = r.length() / 2;
+            }
+            case SPOT -> {
+                l.x = r.width() * 0.25;
+                l.y = r.height() - 0.05;
+                l.z = r.length() * 0.3;
+                l.targetX = l.x;
+                l.targetZ = l.z;
+                l.angle = 30;
+                l.penumbra = 0.4;
+            }
+            case SUN -> {
+                Opening window = firstWindow();
+                if (window == null) return Outcome.fail("Agrega primero una ventana: la luz del sol entra por ella.");
+                l.windowId = window.id;
+                l.elevation = 35;
+                l.deviation = 20;
+            }
+        }
+        l.id = ids.next(type.id());
+        roundLight(l);
+        project.lights.add(l);
+        fire(Change.LIGHTS);
+        if (project.lights.size() > MAX_ACTIVE_LIGHTS) {
+            onWarning.accept("JavaFX ilumina cada objeto con " + MAX_ACTIVE_LIGHTS
+                    + " luces como máximo: las luces adicionales pueden no verse.");
+        }
+        return Outcome.ok(l);
+    }
+
+    String changeLight(Light l, Light candidate) {
+        roundLight(candidate);
+        l.color = candidate.color;
+        l.intensity = candidate.intensity;
+        l.castShadow = candidate.castShadow;
+        l.x = candidate.x;
+        l.y = candidate.y;
+        l.z = candidate.z;
+        l.targetX = candidate.targetX;
+        l.targetZ = candidate.targetZ;
+        l.angle = candidate.angle;
+        l.penumbra = candidate.penumbra;
+        l.windowId = candidate.windowId;
+        l.elevation = candidate.elevation;
+        l.deviation = candidate.deviation;
+        fire(Change.LIGHTS);
+        return null;
+    }
+
+    public List<Opening> windows() {
+        return project.openings.stream().filter(o -> o.type == OpeningType.WINDOW).toList();
+    }
+
+    private Opening firstWindow() {
+        List<Opening> windows = windows();
+        return windows.isEmpty() ? null : windows.get(0);
+    }
+
+    /** Si la ventana de un sol desaparece, lo pasa a otra ventana (o lo elimina si no hay). */
+    private List<String> refreshSunLights() {
+        List<String> warnings = new ArrayList<>();
+        for (Light l : List.copyOf(project.lights)) {
+            if (l.type != LightType.SUN) continue;
+            Opening window = findOpening(l.windowId == null ? "" : l.windowId);
+            if (window != null && window.type == OpeningType.WINDOW) continue;
+            Opening first = firstWindow();
+            if (first == null) {
+                warnings.add(label(l) + " se eliminó porque ya no hay ventanas.");
+                project.lights.remove(l);
+            } else {
+                l.windowId = first.id;
+            }
+        }
+        return warnings;
+    }
+
+    /** Tras cambiar las medidas de la habitación, mete las luces dentro. */
+    private List<String> fitLightsToRoom() {
+        RoomDims r = project.room;
+        for (Light l : project.lights) {
+            if (l.type == LightType.SUN) continue;
+            l.x = clampInside(l.x, r.width());
+            l.y = clampInside(l.y, r.height());
+            l.z = clampInside(l.z, r.length());
+            if (l.type == LightType.SPOT) {
+                l.targetX = clampInside(l.targetX, r.width());
+                l.targetZ = clampInside(l.targetZ, r.length());
+            }
+            roundLight(l);
+        }
+        return refreshSunLights();
+    }
+
+    private static double clampInside(double v, double max) {
+        return Units.clamp(v, 0.05, max - 0.05);
+    }
+
+    private static void roundLight(Light l) {
+        l.intensity = round(l.intensity);
+        l.x = round(l.x);
+        l.y = round(l.y);
+        l.z = round(l.z);
+        l.targetX = round(l.targetX);
+        l.targetZ = round(l.targetZ);
+        l.angle = round(l.angle);
+        l.penumbra = round(l.penumbra);
+        l.elevation = round(l.elevation);
+        l.deviation = round(l.deviation);
+    }
+
+    // ---------------------------------------------------------------- Muebles
+
+    /** Agrega un mueble del catálogo en el lugar libre más cercano al centro. */
+    public Outcome<Furniture> addFurniture(String type) {
+        CatalogEntry e = catalog.get(type);
+        CatalogEntry.Size s = e.defaults();
+        Furniture f = new Furniture(ids.next(type), type, 0, 0, 0, s.width(), s.depth(), s.height(), e.defaultColor());
+        return placeNew(f, e.name(), null);
+    }
+
+    /** Crea una copia del mueble en el lugar libre más cercano al original. */
+    public Outcome<Furniture> duplicate(Furniture source) {
+        Furniture f = source.copy();
+        f.id = ids.next(source.type);
+        return placeNew(f, catalog.get(source.type).name(), source);
+    }
+
+    private Outcome<Furniture> placeNew(Furniture f, String name, Furniture near) {
+        double[] spot = findFreeSpot(f, near);
+        if (spot == null) {
+            return Outcome.fail("No hay espacio libre para " + name.toLowerCase() + " ("
+                    + Units.number(f.width) + " x " + Units.number(f.depth) + " m).");
+        }
+        f.x = spot[0];
+        f.z = spot[1];
+        project.furniture.add(f);
+        fire(Change.FURNITURE);
+        return Outcome.ok(f);
+    }
+
+    /** Revisa si el mueble puede estar con la posición/medidas de {@code candidate}. Devuelve un error o null. */
+    public String checkFurniture(Furniture self, Furniture candidate) {
+        RoomDims r = project.room;
+        if (candidate.height > r.height() + 1e-9) {
+            return "Es más alto (" + Units.number(candidate.height) + " m) que la habitación ("
+                    + Units.number(r.height()) + " m).";
+        }
+        Footprint fp = Footprint.of(candidate);
+        if (!fp.insideRoom(r.width(), r.length())) return "No cabe dentro de la habitación en esa posición.";
+        for (Furniture other : project.furniture) {
+            if (other != self && fp.overlaps(Footprint.of(other))) return "Choca con " + label(other) + ".";
+        }
+        for (Opening o : project.openings) {
+            if (o.type == OpeningType.DOOR && fp.overlaps(doorZone(o))) return "Bloquea el paso de " + label(o) + ".";
+        }
+        return null;
+    }
+
+    /**
+     * Mueve el mueble lo más cerca posible de (x, z), usado al arrastrar.
+     * Si choca, intenta deslizarlo solo en X o solo en Z (así "resbala" por las
+     * paredes y otros muebles en lugar de quedarse pegado).
+     */
+    public boolean moveFurniture(Furniture f, double x, double z) {
+        RoomDims r = project.room;
+        Footprint target = Footprint.of(f).withCenter(round(x), round(z)).clampToRoom(r.width(), r.length());
+        double[][] tries = {{target.x(), target.z()}, {target.x(), f.z}, {f.x, target.z()}};
+        Furniture candidate = f.copy();
+        for (double[] pos : tries) {
+            candidate.x = round(pos[0]);
+            candidate.z = round(pos[1]);
+            if (candidate.x == f.x && candidate.z == f.z) continue;
+            if (checkFurniture(f, candidate) == null) {
+                f.x = candidate.x;
+                f.z = candidate.z;
+                fire(Change.FURNITURE);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Aplica medidas, giro, posición o color si el resultado es válido. */
+    String changeFurniture(Furniture f, Furniture candidate, boolean positionEdited) {
+        candidate.rotation = ((candidate.rotation % 360) + 360) % 360;
+        candidate.x = round(candidate.x);
+        candidate.z = round(candidate.z);
+        candidate.width = round(candidate.width);
+        candidate.depth = round(candidate.depth);
+        candidate.height = round(candidate.height);
+        // Si al girar o agrandar el mueble se sale por una pared, lo empujamos hacia adentro.
+        if (!positionEdited) {
+            RoomDims r = project.room;
+            Footprint fp = Footprint.of(candidate).clampToRoom(r.width(), r.length());
+            candidate.x = round(fp.x());
+            candidate.z = round(fp.z());
+        }
+        String conflict = checkFurniture(f, candidate);
+        if (conflict != null) return conflict;
+        f.x = candidate.x;
+        f.z = candidate.z;
+        f.rotation = candidate.rotation;
+        f.width = candidate.width;
+        f.depth = candidate.depth;
+        f.height = candidate.height;
+        f.color = candidate.color;
+        fire(Change.FURNITURE);
+        return null;
+    }
+
+    public String rotateFurniture(Furniture f, double degrees) {
+        Furniture candidate = f.copy();
+        candidate.rotation = f.rotation + degrees;
+        return changeFurniture(f, candidate, false);
+    }
+
+    /** Tras cambiar las medidas de la habitación, mete los muebles dentro. Devuelve avisos. */
+    private List<String> fitFurnitureToRoom() {
+        RoomDims r = project.room;
+        List<String> warnings = new ArrayList<>();
+        for (Furniture f : project.furniture) {
+            Footprint fp = Footprint.of(f).clampToRoom(r.width(), r.length());
+            f.x = round(fp.x());
+            f.z = round(fp.z());
+            String error = checkFurniture(f, f);
+            if (error != null) warnings.add(label(f) + ": " + error);
+        }
+        return warnings;
+    }
+
+    /**
+     * Prueba posiciones en una cuadrícula de 10 cm, empezando por las más
+     * cercanas a {@code near} (por defecto, el centro de la habitación).
+     */
+    private double[] findFreeSpot(Furniture f, Furniture near) {
+        RoomDims r = project.room;
+        double ox = near != null ? near.x : r.width() / 2;
+        double oz = near != null ? near.z : r.length() / 2;
+        List<double[]> candidates = new ArrayList<>();
+        int nx = (int) Math.floor(r.width() * 10 + 1e-9), nz = (int) Math.floor(r.length() * 10 + 1e-9);
+        for (int i = 0; i <= nx; i++) {
+            for (int j = 0; j <= nz; j++) candidates.add(new double[] {round(i * 0.1), round(j * 0.1)});
+        }
+        candidates.sort(Comparator.comparingDouble(p -> Math.hypot(p[0] - ox, p[1] - oz)));
+        Furniture test = f.copy();
+        for (double[] p : candidates) {
+            test.x = p[0];
+            test.z = p[1];
+            if (checkFurniture(null, test) == null) return p;
+        }
+        return null;
+    }
+}

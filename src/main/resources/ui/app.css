@@ -1,0 +1,139 @@
+/* Tema oscuro de Amoblador3D (a juego con el fondo de la vista 3D). */
+
+.root {
+    -fx-base: #2f353c;
+    -fx-background: #24292e;
+    -fx-control-inner-background: #1d2125;
+    -fx-accent: #4f9cf9;
+    -fx-focus-color: #4f9cf9;
+    -fx-faint-focus-color: #4f9cf922;
+    -fx-text-base-color: #e6e8eb;
+    -fx-font-size: 13px;
+}
+
+.menu-bar {
+    -fx-background-color: #1d2125;
+}
+
+.tool-bar {
+    -fx-background-color: #2a2f35;
+    -fx-padding: 6 8 6 8;
+    -fx-spacing: 6;
+    -fx-border-color: transparent transparent #15181b transparent;
+}
+
+.button, .toggle-button {
+    -fx-background-radius: 5;
+    -fx-padding: 5 10 5 10;
+    -fx-cursor: hand;
+}
+
+.button.primary {
+    -fx-base: #2f6fca;
+}
+
+.button.danger {
+    -fx-base: #8c2f2f;
+}
+
+.toggle-button.segment-left {
+    -fx-background-radius: 5 0 0 5;
+}
+
+.toggle-button.segment-right {
+    -fx-background-radius: 0 5 5 0;
+}
+
+.toggle-button:selected {
+    -fx-base: #2f6fca;
+}
+
+/* Paneles laterales */
+.side-scroll, .side-scroll > .viewport {
+    -fx-background-color: #24292e;
+}
+
+.sidebar {
+    -fx-padding: 6;
+    -fx-spacing: 6;
+}
+
+.titled-pane > .title {
+    -fx-background-color: #2f353c;
+    -fx-background-radius: 5 5 0 0;
+    -fx-padding: 6 8 6 8;
+}
+
+.titled-pane > .title > .text {
+    -fx-font-weight: bold;
+}
+
+.titled-pane > .content {
+    -fx-background-color: #2a2f35;
+    -fx-border-color: #2f353c;
+    -fx-padding: 10;
+}
+
+.inspector {
+    -fx-padding: 12;
+}
+
+.panel-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.subheading {
+    -fx-font-weight: bold;
+    -fx-text-fill: #aeb6bf;
+}
+
+.field-label {
+    -fx-text-fill: #c4cbd3;
+}
+
+.unit {
+    -fx-text-fill: #8b949e;
+}
+
+.hint {
+    -fx-text-fill: #8b949e;
+    -fx-font-size: 12px;
+}
+
+.error {
+    -fx-text-fill: #ff7b72;
+}
+
+.catalog-button {
+    -fx-min-width: 82;
+}
+
+.list-view {
+    -fx-background-color: #1d2125;
+}
+
+.thumb {
+    -fx-background-color: #1d2125;
+    -fx-background-radius: 4;
+}
+
+.item-name {
+    -fx-font-weight: bold;
+}
+
+/* Barra de estado */
+.status-bar {
+    -fx-background-color: #1d2125;
+    -fx-border-color: #15181b transparent transparent transparent;
+}
+
+.status-text {
+    -fx-text-fill: #aeb6bf;
+    -fx-font-size: 12px;
+}
+
+.tooltip {
+    -fx-background-color: #15181b;
+    -fx-text-fill: #e6e8eb;
+}

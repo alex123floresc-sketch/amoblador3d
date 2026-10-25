@@ -1,4 +1,12 @@
+# Maven
+target/
+
+# IDE
+.idea/workspace.xml
+*.iml
+.vscode/
+
+# Versión Electron anterior
 node_modules/
 dist/
 release/
-.idea/workspace.xml
