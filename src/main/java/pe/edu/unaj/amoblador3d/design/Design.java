@@ -525,6 +525,14 @@ public final class Design {
     private Outcome<Furniture> placeNew(Furniture f, String name, Furniture near) {
         double[] spot = findFreeSpot(f, near);
         if (spot == null) {
+            // Corrección: antes nunca se probaba girar el mueble, y en una habitación de 4 x 3.5 m
+            // solo cabía una cama aunque girada cabía otra.
+            Furniture turned = f.copy();
+            turned.rotation = (f.rotation + 90) % 360;
+            spot = findFreeSpot(turned, near);
+            if (spot != null) f.rotation = turned.rotation;
+        }
+        if (spot == null) {
             return Outcome.fail("No hay espacio libre para " + name.toLowerCase() + " ("
                     + Units.number(f.width) + " x " + Units.number(f.depth) + " m).");
         }

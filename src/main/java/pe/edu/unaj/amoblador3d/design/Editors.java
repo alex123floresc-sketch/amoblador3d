@@ -29,6 +29,23 @@ public final class Editors {
         String duplicate(Furniture f);
     }
 
+    /** Colores sugeridos (el selector de color sigue permitiendo cualquier otro). */
+    private static final List<Option> WALL_COLORS = List.of(
+            new Option("#f2efe9", "Blanco hueso"), new Option("#fafafa", "Blanco"), new Option("#d9d7d1", "Gris perla"),
+            new Option("#e3d5bf", "Arena"), new Option("#c97b5a", "Terracota"), new Option("#a8b89a", "Verde salvia"),
+            new Option("#b7cfe0", "Celeste"), new Option("#5e6266", "Grafito"));
+    private static final List<Option> FLOOR_COLORS = List.of(
+            new Option("#c9a274", "Roble claro"), new Option("#b07d4f", "Cerezo"), new Option("#7a5235", "Nogal"),
+            new Option("#ecebe7", "Blanco"), new Option("#9a9a96", "Gris cemento"), new Option("#b0603f", "Terracota"),
+            new Option("#7d8a96", "Gris azulado"), new Option("#2d2d2d", "Negro"));
+    private static final List<Option> LIGHT_COLORS = List.of(
+            new Option("#ffd6a0", "Cálida"), new Option("#ffe2b8", "Cálida suave"), new Option("#fff4e0", "Neutra"),
+            new Option("#eef3ff", "Fría"));
+    private static final List<Option> FURNITURE_COLORS = List.of(
+            new Option("#d9c6a5", "Haya"), new Option("#a0764f", "Roble"), new Option("#6d4c33", "Nogal"),
+            new Option("#f4f1ea", "Blanco"), new Option("#8a8f94", "Gris"), new Option("#2f3236", "Negro"),
+            new Option("#5b7fa6", "Azul"), new Option("#7a9a6e", "Verde"));
+
     private Editors() {}
 
     public static Editable of(Design design, Object entity, DuplicateHandler onDuplicate) {
@@ -134,7 +151,7 @@ public final class Editors {
         public List<Field> fields() {
             RoomDims r = design.room();
             List<Field> fields = new ArrayList<>();
-            fields.add(Field.color("color", "Color"));
+            fields.add(Field.color("color", "Color", LIGHT_COLORS));
             fields.add(Field.number("intensity", "Intensidad", 0, l.type.maxIntensity(), 0.5, l.type.unit()));
             if (l.type != LightType.SUN) {
                 fields.add(Field.meters("x", "Posición X", 0.05, r.width() - 0.05));
@@ -234,7 +251,7 @@ public final class Editors {
             fields.add(Field.meters("depth", "Profundidad", e.depthRange().min(), e.depthRange().max()));
             fields.add(Field.meters("height", "Alto", e.heightRange().min(), e.heightRange().max()));
             // Los modelos 3D traen sus propios colores y texturas.
-            if (e.kind() == CatalogEntry.Kind.PARAMETRIC) fields.add(Field.color("color", "Color"));
+            if (e.kind() == CatalogEntry.Kind.PARAMETRIC) fields.add(Field.color("color", "Color", FURNITURE_COLORS));
             return fields;
         }
 
@@ -300,7 +317,8 @@ public final class Editors {
         public List<Field> fields() {
             List<Option> materials = new ArrayList<>();
             for (SurfaceMaterial m : SurfaceMaterial.forSurface(s.isFloor())) materials.add(new Option(m.id(), m.label()));
-            return List.of(Field.select("material", "Material", materials), Field.color("color", "Color"));
+            return List.of(Field.gallery("material", "Material", materials),
+                    Field.color("color", "Color", s.isFloor() ? FLOOR_COLORS : WALL_COLORS));
         }
 
         @Override

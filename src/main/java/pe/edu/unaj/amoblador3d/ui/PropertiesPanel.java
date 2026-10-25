@@ -5,23 +5,30 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.util.StringConverter;
 import pe.edu.unaj.amoblador3d.design.Editable;
 import pe.edu.unaj.amoblador3d.design.Field;
@@ -37,34 +44,38 @@ import pe.edu.unaj.amoblador3d.util.Units;
  * Si el cambio no es válido, se muestra el motivo y el campo vuelve al valor anterior.
  */
 final class PropertiesPanel {
-    private final VBox content = new VBox(10);
+    private static final double SWATCH = 22, PREVIEW = 58;
+
+    private final VBox content = new VBox(12);
     private final ScrollPane root = new ScrollPane(content);
     private final Label title = new Label();
+    private final Label subtitle = new Label();
     private final Label error = new Label();
-    private final GridPane grid = new GridPane();
+    private final VBox form = new VBox(10);
     private final FlowPane actions = new FlowPane(6, 6);
     private final Button delete = new Button("Eliminar");
     /** Controles de cada campo, para actualizar sus valores sin rehacer el formulario. */
     private final Map<String, Node> controls = new LinkedHashMap<>();
 
-    private Editable editable;
-    private List<Field> shownFields = List.of();
     /** Se llama después de cada cambio aplicado (para registrarlo en deshacer). */
     private final Runnable onChanged;
-    private final Consumer<Object> onDelete;
+    /** Miniatura de cada opción de una galería (p. ej. "ladrillo" -> textura). */
+    private final Function<String, Image> previews;
+    private final Node emptyState;
+
+    private Editable editable;
+    private List<Field> shownFields = List.of();
     private boolean updating;
 
-    PropertiesPanel(Runnable onChanged, Consumer<Object> onDelete) {
+    PropertiesPanel(Runnable onChanged, Consumer<Object> onDelete, Function<String, Image> previews, Node emptyState) {
         this.onChanged = onChanged;
-        this.onDelete = onDelete;
+        this.previews = previews;
+        this.emptyState = emptyState;
         title.getStyleClass().add("panel-title");
         title.setWrapText(true);
-        error.getStyleClass().add("error");
+        subtitle.getStyleClass().add("hint");
+        error.getStyleClass().add("error-box");
         error.setWrapText(true);
-        error.setManaged(false);
-        error.setVisible(false);
-        grid.setHgap(8);
-        grid.setVgap(8);
         delete.getStyleClass().add("danger");
         delete.setOnAction(e -> {
             if (editable != null) onDelete.accept(editable.entity());
@@ -73,8 +84,8 @@ final class PropertiesPanel {
         root.setFitToWidth(true);
         root.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         root.getStyleClass().add("side-scroll");
-        root.setPrefWidth(290);
-        root.setMinWidth(260);
+        root.setPrefWidth(300);
+        root.setMinWidth(270);
         showEmpty();
     }
 
@@ -86,14 +97,11 @@ final class PropertiesPanel {
         editable = null;
         shownFields = List.of();
         controls.clear();
-        Label hint = new Label("Haz clic en una pared, el piso, una ventana, una luz o un mueble para ver y cambiar sus propiedades.");
-        hint.setWrapText(true);
-        hint.getStyleClass().add("hint");
         title.setText("Propiedades");
-        content.getChildren().setAll(title, hint);
+        content.getChildren().setAll(title, emptyState);
     }
 
-    /** Muestra el formulario de un elemento (o el mensaje inicial si es null). */
+    /** Muestra el formulario de un elemento (o la ayuda inicial si es null). */
     void show(Editable e) {
         if (e == null) {
             showEmpty();
@@ -131,32 +139,54 @@ final class PropertiesPanel {
 
     private void build() {
         controls.clear();
-        grid.getChildren().clear();
         shownFields = editable.fields();
         title.setText(editable.title());
+        subtitle.setText(editable.entity() instanceof Surface ? "Elige un material y luego ajusta el color." : "");
+
+        GridPane grid = new GridPane();
+        grid.setHgap(8);
+        grid.setVgap(8);
+        List<Node> blocks = new ArrayList<>();
         int row = 0;
         updating = true;
         for (Field f : shownFields) {
-            Label label = new Label(f.label());
-            label.getStyleClass().add("field-label");
             Node control = createControl(f);
             controls.put(f.key(), control);
             setControlValue(f, control);
+            Label label = new Label(f.label());
+            label.getStyleClass().add("field-label");
+            // Galerías y colores con sugerencias ocupan todo el ancho; el resto va en dos columnas.
+            if (f.type() == Field.Type.GALLERY || (f.type() == Field.Type.COLOR && !f.options().isEmpty())) {
+                if (row > 0) {
+                    blocks.add(grid);
+                    grid = new GridPane();
+                    grid.setHgap(8);
+                    grid.setVgap(8);
+                    row = 0;
+                }
+                label.getStyleClass().add("subheading");
+                blocks.add(new VBox(6, label, control));
+                continue;
+            }
             Node cell = control;
             if (f.type() == Field.Type.NUMBER && !f.unit().isEmpty()) {
                 Label unit = new Label(f.unit());
                 unit.getStyleClass().add("unit");
+                unit.setMinWidth(18);
                 HBox box = new HBox(4, control, unit);
                 box.setAlignment(Pos.CENTER_LEFT);
                 HBox.setHgrow(control, Priority.ALWAYS);
                 cell = box;
             }
+            label.setMinWidth(110);
             grid.add(label, 0, row);
             grid.add(cell, 1, row);
             GridPane.setHgrow(cell, Priority.ALWAYS);
             row++;
         }
+        if (row > 0) blocks.add(grid);
         updating = false;
+        form.getChildren().setAll(blocks);
 
         actions.getChildren().clear();
         for (Editable.Action a : editable.actions()) {
@@ -168,7 +198,9 @@ final class PropertiesPanel {
         // Las paredes y el piso no se eliminan.
         if (!(editable.entity() instanceof Surface)) actions.getChildren().add(delete);
 
-        List<Node> children = new ArrayList<>(List.of(title, grid));
+        List<Node> children = new ArrayList<>(List.of(title));
+        if (!subtitle.getText().isEmpty()) children.add(subtitle);
+        children.add(form);
         if (!actions.getChildren().isEmpty()) children.add(actions);
         children.add(error);
         content.getChildren().setAll(children);
@@ -179,7 +211,8 @@ final class PropertiesPanel {
             case NUMBER -> {
                 TextField t = new TextField();
                 t.setPrefColumnCount(6);
-                t.setTooltip(new Tooltip("Entre " + Units.number(f.min()) + " y " + Units.number(f.max()) + " " + f.unit()));
+                t.setTooltip(new Tooltip("Entre " + Units.number(f.min()) + " y " + Units.number(f.max()) + " " + f.unit()
+                        + "\nEnter para aplicar, Esc para cancelar"));
                 t.setOnAction(e -> commitNumber(f, t));
                 t.focusedProperty().addListener((obs, was, now) -> {
                     if (!now) commitNumber(f, t);
@@ -188,6 +221,7 @@ final class PropertiesPanel {
                     if (e.getCode() == KeyCode.ESCAPE) {
                         setControlValue(f, t);
                         hideError();
+                        e.consume();
                     }
                 });
                 yield t;
@@ -212,13 +246,55 @@ final class PropertiesPanel {
                 });
                 yield c;
             }
+            case GALLERY -> {
+                TilePane tiles = new TilePane(6, 6);
+                tiles.setPrefColumns(3);
+                for (Option o : f.options()) {
+                    ToggleButton b = new ToggleButton(o.label());
+                    b.setUserData(o.value());
+                    b.getStyleClass().add("gallery-tile");
+                    b.setContentDisplay(ContentDisplay.TOP);
+                    b.setWrapText(true);
+                    b.setFocusTraversable(false);
+                    Image img = previews.apply(o.value());
+                    if (img != null) {
+                        ImageView view = new ImageView(img);
+                        view.setFitWidth(PREVIEW);
+                        view.setFitHeight(PREVIEW);
+                        view.setSmooth(true);
+                        b.setGraphic(view);
+                    }
+                    b.setOnAction(e -> {
+                        if (!updating && !o.value().equals(editable.get(f.key()))) apply(f.key(), o.value());
+                        else setControlValue(f, tiles); // un clic sobre el ya elegido no lo "apaga"
+                    });
+                    tiles.getChildren().add(b);
+                }
+                yield tiles;
+            }
             case COLOR -> {
                 ColorPicker p = new ColorPicker();
                 p.setMaxWidth(Double.MAX_VALUE);
                 p.setOnAction(e -> {
                     if (!updating) apply(f.key(), Colors.toHex(p.getValue()));
                 });
-                yield p;
+                if (f.options().isEmpty()) yield p;
+                FlowPane swatches = new FlowPane(5, 5);
+                for (Option o : f.options()) {
+                    Rectangle r = new Rectangle(SWATCH, SWATCH, Color.web(o.value()));
+                    r.setArcWidth(6);
+                    r.setArcHeight(6);
+                    Button b = new Button(null, r);
+                    b.setUserData(o.value());
+                    b.getStyleClass().add("swatch");
+                    b.setFocusTraversable(false);
+                    b.setTooltip(new Tooltip(o.label()));
+                    b.setOnAction(e -> apply(f.key(), o.value()));
+                    swatches.getChildren().add(b);
+                }
+                VBox box = new VBox(6, swatches, p);
+                box.setUserData(p);
+                yield box;
             }
             case CHECKBOX -> {
                 CheckBox c = new CheckBox();
@@ -233,22 +309,34 @@ final class PropertiesPanel {
     @SuppressWarnings("unchecked")
     private void setControlValue(Field f, Node control) {
         Object v = editable.get(f.key());
+        boolean was = updating;
+        updating = true;
         switch (f.type()) {
-            case NUMBER -> {
-                ((TextField) control).setText(v instanceof Double d ? Units.number(d) : "");
-            }
+            case NUMBER -> ((TextField) control).setText(v instanceof Double d ? Units.number(d) : "");
             case SELECT -> {
                 ComboBox<Option> c = (ComboBox<Option>) control;
                 Option selected = null;
                 for (Option o : c.getItems()) if (o.value().equals(v)) selected = o;
                 c.setValue(selected);
             }
+            case GALLERY -> {
+                for (Node n : ((TilePane) control).getChildren()) {
+                    ((ToggleButton) n).setSelected(n.getUserData().equals(v));
+                }
+            }
             case COLOR -> {
-                ColorPicker p = (ColorPicker) control;
+                ColorPicker p = control instanceof ColorPicker cp ? cp : (ColorPicker) control.getUserData();
                 p.setValue(v instanceof String s ? Color.web(s) : Color.WHITE);
+                if (control instanceof VBox box) {
+                    for (Node n : ((FlowPane) box.getChildren().get(0)).getChildren()) {
+                        boolean current = v instanceof String s && s.equalsIgnoreCase((String) n.getUserData());
+                        n.pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("current"), current);
+                    }
+                }
             }
             case CHECKBOX -> ((CheckBox) control).setSelected(Boolean.TRUE.equals(v));
         }
+        updating = was;
     }
 
     private void commitNumber(Field f, TextField t) {

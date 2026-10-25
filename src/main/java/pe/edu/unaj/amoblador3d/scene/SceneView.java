@@ -27,6 +27,7 @@ import pe.edu.unaj.amoblador3d.design.Design;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
 import pe.edu.unaj.amoblador3d.model.Surface;
+import pe.edu.unaj.amoblador3d.model.WallSide;
 
 /**
  * Vista 3D: une la habitación, las luces, los muebles y la capa de cotas, y atiende el ratón.
@@ -175,6 +176,12 @@ public final class SceneView {
         redraw();
     }
 
+    /** Acerca (factor < 1) o aleja (factor > 1) la cámara, como la rueda del ratón. */
+    public void zoom(double factor) {
+        cam.zoom(factor);
+        redraw();
+    }
+
     public void redraw() {
         dirty = true;
     }
@@ -192,7 +199,8 @@ public final class SceneView {
 
     private void render() {
         dirty = false;
-        room.updateVisibility(cam.eye(), cam.mode == ViewCamera.Mode.PLAN);
+        WallSide selectedWall = selected instanceof Surface s ? s.wallSide() : null;
+        room.updateVisibility(cam.eye(), cam.mode == ViewCamera.Mode.PLAN, selectedWall);
         overlay.draw(cam, design, lights, selected, showDimensions);
     }
 
@@ -269,8 +277,7 @@ public final class SceneView {
 
         subScene.setOnScroll(e -> {
             if (e.getDeltaY() == 0) return;
-            cam.zoom(e.getDeltaY() > 0 ? 0.9 : 1 / 0.9);
-            redraw();
+            zoom(e.getDeltaY() > 0 ? 0.9 : 1 / 0.9);
         });
 
         // Cambiar el cursor al pasar sobre algo seleccionable.

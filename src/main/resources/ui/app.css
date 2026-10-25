@@ -105,8 +105,23 @@
     -fx-text-fill: #ff7b72;
 }
 
+.error-box {
+    -fx-text-fill: #ffd8d4;
+    -fx-background-color: #5a1e1e;
+    -fx-background-radius: 5;
+    -fx-padding: 8;
+}
+
 .catalog-button {
-    -fx-min-width: 82;
+    -fx-pref-width: 128;
+    -fx-min-height: 46;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-background-radius: 6;
+}
+
+.catalog-button:hover, .gallery-tile:hover, .surface-button:hover {
+    -fx-base: #3b434c;
 }
 
 .list-view {
@@ -136,4 +151,99 @@
 .tooltip {
     -fx-background-color: #15181b;
     -fx-text-fill: #e6e8eb;
+}
+
+/* Pestañas del panel izquierdo */
+.sidebar-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-padding: 4 10 4 10;
+}
+
+.sidebar-tabs > .tab-header-area > .tab-header-background {
+    -fx-background-color: #1d2125;
+}
+
+.sidebar-tabs > .tab-header-area > .headers-region > .tab:selected {
+    -fx-base: #2f6fca;
+}
+
+.group {
+    -fx-background-color: #2a2f35;
+    -fx-background-radius: 6;
+    -fx-padding: 10;
+}
+
+.group-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: #e6e8eb;
+}
+
+.surface-button {
+    -fx-alignment: center-left;
+    -fx-graphic-text-gap: 8;
+}
+
+/* Galería de materiales y colores sugeridos */
+.gallery-tile {
+    -fx-pref-width: 78;
+    -fx-min-height: 92;
+    -fx-font-size: 11px;
+    -fx-padding: 4;
+    -fx-text-alignment: center;
+    -fx-background-radius: 6;
+}
+
+.gallery-tile:selected {
+    -fx-base: #2f6fca;
+    -fx-border-color: #8cc2ff;
+    -fx-border-radius: 6;
+    -fx-border-width: 2;
+}
+
+.swatch {
+    -fx-padding: 2;
+    -fx-background-radius: 6;
+    -fx-background-color: transparent;
+}
+
+.swatch:hover {
+    -fx-background-color: #ffffff33;
+}
+
+.swatch:current {
+    -fx-background-color: #4f9cf9;
+}
+
+.tips {
+    -fx-text-fill: #aeb6bf;
+    -fx-font-size: 12px;
+    -fx-background-color: #2a2f35;
+    -fx-background-radius: 6;
+    -fx-padding: 10;
+    -fx-line-spacing: 3;
+}
+
+/* Sobre la vista 3D */
+.toast {
+    -fx-background-color: #15181bee;
+    -fx-text-fill: #e6e8eb;
+    -fx-background-radius: 8;
+    -fx-padding: 9 14 9 14;
+    -fx-effect: dropshadow(gaussian, #0008, 12, 0, 0, 3);
+}
+
+.toast-error {
+    -fx-background-color: #7a2323ee;
+}
+
+.view-controls .button {
+    -fx-min-width: 34;
+    -fx-min-height: 32;
+    -fx-font-size: 15px;
+    -fx-background-color: #15181bcc;
+    -fx-text-fill: #e6e8eb;
+    -fx-background-radius: 6;
+}
+
+.view-controls .button:hover {
+    -fx-background-color: #2f6fcacc;
 }

@@ -157,14 +157,15 @@ final class RoomView {
      * En 3D, oculta las paredes que están entre la cámara y el interior (efecto
      * "casa de muñecas") para poder ver dentro. En planta se ven todas.
      */
-    void updateVisibility(Point3D eye, boolean plan) {
+    void updateVisibility(Point3D eye, boolean plan, WallSide selected) {
         grid.setVisible(plan);
         for (Map.Entry<WallSide, Group> e : walls.entrySet()) {
             WallFrame wall = WallFrame.of(e.getKey(), dims);
             Point3D normal = wall.interiorNormal();
             // Un punto de la cara interior: el centro de la habitación proyectado sobre la pared.
             Point3D inside = wall.point(e.getKey().alongX() ? dims.width() / 2 : dims.length() / 2, 0, 0);
-            boolean show = plan || eye.subtract(inside).dotProduct(normal) > 0;
+            // La pared seleccionada siempre se ve (si no, al elegirla desde el panel no se vería nada).
+            boolean show = plan || e.getKey() == selected || eye.subtract(inside).dotProduct(normal) > 0;
             e.getValue().setVisible(show);
         }
     }

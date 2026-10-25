@@ -15,6 +15,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -34,8 +35,9 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TextInputControl;
-import javafx.scene.control.TitledPane;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.ToolBar;
@@ -49,8 +51,13 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import pe.edu.unaj.amoblador3d.catalog.BuiltinCatalog;
@@ -58,6 +65,7 @@ import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.catalog.CatalogEntry;
 import pe.edu.unaj.amoblador3d.catalog.UserModels;
 import pe.edu.unaj.amoblador3d.design.Design;
+import pe.edu.unaj.amoblador3d.design.Editable;
 import pe.edu.unaj.amoblador3d.design.Editors;
 import pe.edu.unaj.amoblador3d.design.History;
 import pe.edu.unaj.amoblador3d.gltf.GltfLoader;
@@ -70,12 +78,14 @@ import pe.edu.unaj.amoblador3d.model.OpeningType;
 import pe.edu.unaj.amoblador3d.model.Project;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
 import pe.edu.unaj.amoblador3d.model.Surface;
+import pe.edu.unaj.amoblador3d.model.SurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.WallSide;
 import pe.edu.unaj.amoblador3d.persistence.ProjectFormatException;
 import pe.edu.unaj.amoblador3d.persistence.ProjectJson;
 import pe.edu.unaj.amoblador3d.persistence.ProjectRepository;
 import pe.edu.unaj.amoblador3d.scene.ModelLibrary;
 import pe.edu.unaj.amoblador3d.scene.SceneView;
+import pe.edu.unaj.amoblador3d.scene.SurfacePreview;
 import pe.edu.unaj.amoblador3d.util.Outcome;
 import pe.edu.unaj.amoblador3d.util.Units;
 
@@ -116,6 +126,11 @@ public final class MainWindow {
     private final Label ambientValue = new Label();
     private final FlowPane parametricButtons = new FlowPane(6, 6), modelButtons = new FlowPane(6, 6);
     private final ListView<Object> items = new ListView<>();
+    private final Button floorButton = new Button("Piso");
+    private final java.util.Map<WallSide, Button> wallButtons = new java.util.EnumMap<>(WallSide.class);
+    private Toast toast;
+    /** Pasos de un movimiento con las flechas: se registran juntos al soltar la tecla. */
+    private boolean nudging;
 
     // Barra superior y de estado
     private final Button undoButton = new Button("↶ Deshacer"), redoButton = new Button("↷ Rehacer");
@@ -142,7 +157,12 @@ public final class MainWindow {
         design.loadDefault();
         view = new SceneView(design, models, this::warn);
         history = new History(() -> ProjectJson.write(design.snapshot()), this::restore, this::updateTitle);
-        properties = new PropertiesPanel(history::commit, this::delete);
+        properties = new PropertiesPanel(history::commit, this::delete,
+                id -> {
+                    SurfaceMaterial m = SurfaceMaterial.fromId(id);
+                    return SurfacePreview.of(m, m.defaultColor());
+                },
+                buildEmptyState());
 
         view.setOnSelect(this::select);
         view.setOnDragEnd(history::commit);
@@ -151,11 +171,15 @@ public final class MainWindow {
         BorderPane root = new BorderPane();
         root.setTop(new VBox(buildMenu(), buildToolbar()));
         root.setLeft(buildSidebar());
-        root.setCenter(view.node());
+        root.setCenter(buildViewport());
         root.setRight(properties.node());
         root.setBottom(buildStatusBar());
 
-        Scene scene = new Scene(root, 1360, 820);
+        // Que la ventana quepa en pantallas pequeñas (p. ej. 1366 x 768).
+        Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+        double w = Math.min(1400, screen.getWidth() * 0.95), h = Math.min(860, screen.getHeight() * 0.92);
+        Scene scene = new Scene(root, w, h);
+        if (screen.getWidth() < 1300 || screen.getHeight() < 760) stage.setMaximized(true);
         scene.getStylesheets().add(STYLESHEET);
         scene.addEventHandler(KeyEvent.KEY_PRESSED, this::onKey);
         stage.setScene(scene);
@@ -163,6 +187,12 @@ public final class MainWindow {
         stage.setMinHeight(600);
         stage.setOnCloseRequest(e -> {
             if (!confirmDiscard()) e.consume();
+        });
+        scene.addEventHandler(KeyEvent.KEY_RELEASED, e -> {
+            if (nudging && e.getCode().isArrowKey()) {
+                nudging = false;
+                history.flush();
+            }
         });
 
         statusTimer.setOnFinished(e -> status.setText(defaultStatus()));
@@ -175,7 +205,11 @@ public final class MainWindow {
     /** Muestra la ventana y encuadra la habitación cuando ya tiene tamaño. */
     public void show(List<String> startupWarnings) {
         stage.show();
-        Platform.runLater(view::frameRoom);
+        Platform.runLater(() -> {
+            view.frameRoom();
+            // Corrección: antes el foco empezaba en el campo "Ancho" y R, Supr o las flechas no hacían nada.
+            view.node().requestFocus();
+        });
         if (!startupWarnings.isEmpty()) warn(String.join("\n", startupWarnings));
     }
 
@@ -255,6 +289,11 @@ public final class MainWindow {
         redoButton.setTooltip(new Tooltip("Rehacer (Ctrl+Y)"));
         redoButton.setOnAction(e -> redo());
 
+        undoButton.setFocusTraversable(false);
+        redoButton.setFocusTraversable(false);
+        view3d.setFocusTraversable(false);
+        viewPlan.setFocusTraversable(false);
+        dimensions.setFocusTraversable(false);
         view3d.setToggleGroup(viewGroup);
         viewPlan.setToggleGroup(viewGroup);
         view3d.setSelected(true);
@@ -283,37 +322,94 @@ public final class MainWindow {
                 segmented, dimensions, center, capture);
     }
 
+    /**
+     * Los botones no toman el foco al hacer clic: así la barra espaciadora no repite la última
+     * acción (antes agregaba otra mesa) y los atajos como R o Supr siguen yendo a la vista 3D.
+     */
     private static Button toolButton(String text, String tooltip, Runnable action) {
         Button b = new Button(text);
         b.setTooltip(new Tooltip(tooltip));
         b.setOnAction(e -> action.run());
+        b.setFocusTraversable(false);
         return b;
     }
 
+    /** Panel izquierdo en pestañas: antes era una sola columna larga y los muebles quedaban fuera de la vista. */
     private Node buildSidebar() {
-        VBox box = new VBox(
-                section("Habitación", buildRoomForm()),
-                section("Paredes y piso", buildSurfaceButtons()),
-                section("Ventanas y puertas", row(
-                        smallButton("+ Ventana", "Agrega una ventana en el primer lugar libre", () -> addOpening(OpeningType.WINDOW)),
-                        smallButton("+ Puerta", "Agrega una puerta en el primer lugar libre", () -> addOpening(OpeningType.DOOR)))),
-                section("Iluminación", buildLightingControls()),
-                section("Muebles", buildCatalog()),
-                section("En la habitación", buildItemList()));
-        box.getStyleClass().add("sidebar");
-        ScrollPane scroll = new ScrollPane(box);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setPrefWidth(300);
-        scroll.setMinWidth(270);
-        scroll.getStyleClass().add("side-scroll");
-        return scroll;
+        TabPane tabs = new TabPane(
+                tab("Muebles", buildCatalog()),
+                tab("Habitación", new VBox(14,
+                        group("Medidas", buildRoomForm()),
+                        group("Paredes y piso", buildSurfaceButtons()),
+                        group("Ventanas y puertas", row(
+                                smallButton("+ Ventana", "Agrega una ventana en el primer lugar libre", () -> addOpening(OpeningType.WINDOW)),
+                                smallButton("+ Puerta", "Agrega una puerta en el primer lugar libre", () -> addOpening(OpeningType.DOOR)))))),
+                tab("Luz", buildLightingControls()),
+                tab("Lista", buildItemList()));
+        tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabs.getStyleClass().add("sidebar-tabs");
+        tabs.setPrefWidth(310);
+        tabs.setMinWidth(280);
+        return tabs;
     }
 
-    private static TitledPane section(String title, Node content) {
-        TitledPane pane = new TitledPane(title, content);
-        pane.setAnimated(false);
-        return pane;
+    private static Tab tab(String title, Node content) {
+        VBox box = new VBox(content);
+        box.getStyleClass().add("sidebar");
+        VBox.setVgrow(content, Priority.ALWAYS);
+        ScrollPane scroll = new ScrollPane(box);
+        scroll.setFitToWidth(true);
+        scroll.setFitToHeight(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.getStyleClass().add("side-scroll");
+        return new Tab(title, scroll);
+    }
+
+    private static VBox group(String title, Node content) {
+        Label label = new Label(title);
+        label.getStyleClass().add("group-title");
+        VBox box = new VBox(8, label, content);
+        box.getStyleClass().add("group");
+        return box;
+    }
+
+    /** Vista 3D con los avisos flotantes y los botones de zoom encima. */
+    private Node buildViewport() {
+        StackPane viewport = new StackPane(view.node());
+        viewport.setMinSize(0, 0);
+        toast = new Toast(viewport);
+        Button zoomIn = toolButton("+", "Acercar (rueda del ratón)", () -> view.zoom(0.8));
+        Button zoomOut = toolButton("−", "Alejar (rueda del ratón)", () -> view.zoom(1.25));
+        Button center = toolButton("⤢", "Encuadrar la habitación (Ctrl+0)", view::frameRoom);
+        VBox controls = new VBox(4, zoomIn, zoomOut, center);
+        controls.getStyleClass().add("view-controls");
+        controls.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        StackPane.setAlignment(controls, Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(controls, new Insets(0, 12, 12, 0));
+        viewport.getChildren().add(controls);
+        return viewport;
+    }
+
+    /** Lo que muestra el panel derecho cuando no hay nada seleccionado. */
+    private Node buildEmptyState() {
+        Label intro = new Label("Haz clic en una pared, el piso, una ventana, una luz o un mueble para ver y cambiar sus propiedades.");
+        intro.setWrapText(true);
+        intro.getStyleClass().add("hint");
+        Label quick = new Label("Para empezar");
+        quick.getStyleClass().add("subheading");
+        Button walls = smallButton("Cambiar el material de las paredes", "Selecciona la pared norte", () -> select(design.wall(WallSide.NORTE)));
+        Button floor = smallButton("Cambiar el piso", "Selecciona el piso", () -> select(design.floor()));
+        Label tips = new Label("""
+                Atajos útiles
+                • Arrastra un mueble para moverlo
+                • Flechas: mover 5 cm (Shift: 1 cm)
+                • R / Shift+R: girar 90°
+                • Supr: eliminar · Ctrl+D: duplicar
+                • Ctrl+Z / Ctrl+Y: deshacer / rehacer
+                • F1: todos los atajos""");
+        tips.getStyleClass().add("tips");
+        tips.setWrapText(true);
+        return new VBox(10, intro, quick, walls, floor, tips);
     }
 
     private static HBox row(Node... nodes) {
@@ -352,22 +448,43 @@ public final class MainWindow {
         return new VBox(8, grid, roomError, apply, roomInfo);
     }
 
+    /** Botones del piso y de cada pared, con una muestra de su material actual. */
     private Node buildSurfaceButtons() {
-        Button floor = smallButton("Piso", "Material y color del piso", () -> select(design.floor()));
-        FlowPane walls = new FlowPane(6, 6);
+        floorButton.setOnAction(e -> select(design.floor()));
+        floorButton.setTooltip(new Tooltip("Material y color del piso"));
+        floorButton.getStyleClass().add("surface-button");
+        floorButton.setMaxWidth(Double.MAX_VALUE);
+        floorButton.setFocusTraversable(false);
+        GridPane walls = new GridPane();
+        walls.setHgap(6);
+        walls.setVgap(6);
+        int i = 0;
         for (WallSide side : WallSide.values()) {
             Button b = new Button(side.label());
             b.setTooltip(new Tooltip("Material y color de la pared " + side.id()));
             b.setOnAction(e -> select(design.wall(side)));
-            b.setPrefWidth(60);
-            walls.getChildren().add(b);
+            b.getStyleClass().add("surface-button");
+            b.setMaxWidth(Double.MAX_VALUE);
+            b.setFocusTraversable(false);
+            GridPane.setHgrow(b, Priority.ALWAYS);
+            walls.add(b, i % 2, i / 2);
+            wallButtons.put(side, b);
+            i++;
         }
         Label hint = new Label("También puedes hacer clic en una pared o en el piso de la vista 3D.");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
-        Label wallsLabel = new Label("Paredes");
-        wallsLabel.getStyleClass().add("subheading");
-        return new VBox(8, floor, wallsLabel, walls, hint);
+        return new VBox(8, floorButton, walls, hint);
+    }
+
+    /** Muestra del material de una superficie para su botón. */
+    private static Node swatch(Surface s) {
+        Rectangle r = new Rectangle(26, 18);
+        r.setArcWidth(4);
+        r.setArcHeight(4);
+        r.setFill(new javafx.scene.paint.ImagePattern(SurfacePreview.of(s.material, s.color), 0, 0, 0.5, 0.5, true));
+        r.setStroke(Color.web("#00000066"));
+        return r;
     }
 
     private Node buildLightingControls() {
@@ -385,11 +502,17 @@ public final class MainWindow {
         });
         ambient.setOnMouseReleased(e -> history.flush());
         ambient.setOnKeyReleased(e -> history.flush());
-        HBox label = row(new Label("Luz ambiental"), spacer(), ambientValue);
-        return new VBox(8, label, ambient, row(
-                smallButton("+ Bombilla", "Luz puntual", () -> addLight(LightType.POINT)),
-                smallButton("+ Foco", "Cono de luz dirigido", () -> addLight(LightType.SPOT)),
-                smallButton("+ Sol", "Luz solar que entra por una ventana", () -> addLight(LightType.SUN))));
+        HBox label = row(new Label("Intensidad"), spacer(), ambientValue);
+        Label info = new Label("JavaFX ilumina cada objeto con " + Design.MAX_ACTIVE_LIGHTS
+                + " luces como máximo. El sol entra por una ventana y dibuja su mancha de luz en el piso.");
+        info.getStyleClass().add("hint");
+        info.setWrapText(true);
+        return new VBox(14,
+                group("Luz ambiental", new VBox(6, label, ambient)),
+                group("Agregar luces", new VBox(6, row(
+                        smallButton("+ Bombilla", "Luz puntual", () -> addLight(LightType.POINT)),
+                        smallButton("+ Foco", "Cono de luz dirigido", () -> addLight(LightType.SPOT)),
+                        smallButton("+ Sol", "Luz solar que entra por una ventana", () -> addLight(LightType.SUN))), info)));
     }
 
     private static Region spacer() {
@@ -399,34 +522,40 @@ public final class MainWindow {
     }
 
     private Node buildCatalog() {
-        Label parametric = new Label("Paramétricos");
-        parametric.getStyleClass().add("subheading");
-        Label models3d = new Label("Modelos 3D");
-        models3d.getStyleClass().add("subheading");
-        Button importButton = smallButton("Importar .glb/.gltf…", "Agregar un modelo 3D al catálogo (Ctrl+I)", this::importModel);
-        return new VBox(8, parametric, parametricButtons, models3d, modelButtons, importButton);
+        Button importButton = smallButton("Importar modelo .glb/.gltf…", "Agregar un modelo 3D al catálogo (Ctrl+I)", this::importModel);
+        Label hint = new Label("Clic para agregar en el lugar libre más cercano al centro. Clic derecho en un modelo importado para quitarlo.");
+        hint.getStyleClass().add("hint");
+        hint.setWrapText(true);
+        return new VBox(14,
+                group("Paramétricos (medidas y color editables)", parametricButtons),
+                group("Modelos 3D", new VBox(8, modelButtons, importButton)),
+                hint);
     }
 
     private Node buildItemList() {
-        items.setPrefHeight(200);
         items.setPlaceholder(new Label("Vacío"));
         items.setCellFactory(v -> new ListCell<>() {
             @Override
             protected void updateItem(Object item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(empty || item == null ? null : icon(item) + "  " + design.label(item));
+                setText(empty || item == null ? null : design.label(item));
+                setGraphic(empty || item == null ? null : new Circle(5, Color.web(dotColor(item))));
             }
         });
         items.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
             if (!syncing && n != null) select(n);
         });
-        return items;
+        Label hint = new Label("Clic para seleccionar · Supr para eliminar");
+        hint.getStyleClass().add("hint");
+        VBox.setVgrow(items, Priority.ALWAYS);
+        return new VBox(8, items, hint);
     }
 
-    private static String icon(Object entity) {
-        if (entity instanceof Opening o) return o.type == OpeningType.DOOR ? "🚪" : "🪟";
-        if (entity instanceof Light l) return l.type == LightType.SUN ? "☀" : "💡";
-        return "🛋";
+    /** Color del punto de cada tipo de elemento en la lista. */
+    private static String dotColor(Object entity) {
+        if (entity instanceof Opening o) return o.type == OpeningType.DOOR ? "#c08457" : "#9fd3ff";
+        if (entity instanceof Light l) return l.type == LightType.SUN ? "#ffc845" : "#ffe2b8";
+        return "#7ee0a1";
     }
 
     private Node buildStatusBar() {
@@ -452,8 +581,9 @@ public final class MainWindow {
 
     private Button catalogButton(CatalogEntry e) {
         CatalogEntry.Size s = e.defaults();
-        Button b = new Button(e.name());
+        Button b = new Button(e.name() + "\n" + Units.number(s.width()) + " × " + Units.number(s.depth()) + " m");
         b.getStyleClass().add("catalog-button");
+        b.setFocusTraversable(false);
         b.setTooltip(new Tooltip("Agregar " + e.name().toLowerCase() + " (" + Units.number(s.width()) + " x "
                 + Units.number(s.depth()) + " x " + Units.number(s.height()) + " m)"));
         b.setOnAction(ev -> addFurniture(e.id()));
@@ -471,10 +601,11 @@ public final class MainWindow {
     private void designChanged() {
         syncing = true;
         RoomDims r = design.room();
-        setIfIdle(roomWidth, r.width());
-        setIfIdle(roomLength, r.length());
-        setIfIdle(roomHeight, r.height());
-        setIfIdle(roomWall, r.wallThickness());
+        // Corrección: antes no se actualizaban si el campo tenía el foco, y tras deshacer quedaba el valor viejo.
+        roomWidth.setText(Units.number(r.width()));
+        roomLength.setText(Units.number(r.length()));
+        roomHeight.setText(Units.number(r.height()));
+        roomWall.setText(Units.number(r.wallThickness()));
         roomInfo.setText("Área: " + Units.number(Units.round(r.width() * r.length())) + " m²   ·   Volumen: "
                 + Units.number(Units.round(r.width() * r.length() * r.height())) + " m³");
         ambient.setValue(design.ambient());
@@ -483,7 +614,12 @@ public final class MainWindow {
         List<Object> list = new ArrayList<>(design.openings());
         list.addAll(design.lights());
         list.addAll(design.furniture());
-        items.getItems().setAll(list);
+        // Solo se reemplaza la lista si cambió qué hay; si no, se refrescan los nombres
+        // (antes se reconstruía en cada movimiento al arrastrar y el scroll volvía arriba).
+        if (!sameItems(items.getItems(), list)) items.getItems().setAll(list);
+        else items.refresh();
+        floorButton.setGraphic(swatch(design.floor()));
+        for (WallSide side : WallSide.values()) wallButtons.get(side).setGraphic(swatch(design.wall(side)));
         if (selected != null && list.contains(selected)) items.getSelectionModel().select(selected);
         else items.getSelectionModel().clearSelection();
         syncing = false;
@@ -494,8 +630,10 @@ public final class MainWindow {
         updateSelectionInfo();
     }
 
-    private static void setIfIdle(TextField t, double value) {
-        if (!t.isFocused()) t.setText(Units.number(value));
+    private static boolean sameItems(List<Object> a, List<Object> b) {
+        if (a.size() != b.size()) return false;
+        for (int i = 0; i < a.size(); i++) if (a.get(i) != b.get(i)) return false;
+        return true;
     }
 
     private void select(Object entity) {
@@ -530,8 +668,13 @@ public final class MainWindow {
     }
 
     private void notify(String message) {
+        notify(message, Toast.Kind.INFO);
+    }
+
+    private void notify(String message, Toast.Kind kind) {
         status.setText(message.replace('\n', ' '));
         statusTimer.playFromStart();
+        toast.show(message, kind);
     }
 
     private String defaultStatus() {
@@ -541,8 +684,8 @@ public final class MainWindow {
     /** Muestra el error de una acción o la registra en el historial. */
     private <T> void handle(Outcome<T> outcome, Consumer<T> onOk) {
         if (outcome.failed()) {
-            notify(outcome.error());
-            Dialogs.error(stage, "No se pudo completar", outcome.error());
+            // Aviso flotante en lugar de una ventana que obliga a hacer clic.
+            notify(outcome.error(), Toast.Kind.ERROR);
             return;
         }
         history.commit();
@@ -598,9 +741,9 @@ public final class MainWindow {
     private void duplicateSelected() {
         if (selected instanceof Furniture f) {
             String err = duplicate(f);
-            if (err != null) notify(err);
+            if (err != null) notify(err, Toast.Kind.ERROR);
         } else {
-            notify("Selecciona un mueble para duplicarlo.");
+            notify("Selecciona un mueble para duplicarlo.", Toast.Kind.ERROR);
         }
     }
 
@@ -616,16 +759,26 @@ public final class MainWindow {
     private void rotateSelected(double degrees) {
         if (!(selected instanceof Furniture f)) return;
         String err = design.rotateFurniture(f, degrees);
-        if (err != null) notify(err);
+        if (err != null) notify(err, Toast.Kind.ERROR);
         else history.commit();
     }
 
     private void undo() {
+        commitEdits();
         if (history.undo()) notify("Deshecho.");
     }
 
     private void redo() {
+        commitEdits();
         if (history.redo()) notify("Rehecho.");
+    }
+
+    /**
+     * Aplica lo que se esté escribiendo en un campo (se aplica al perder el foco).
+     * Corrección: antes, escribir un valor y presionar Ctrl+S guardaba el valor anterior.
+     */
+    private void commitEdits() {
+        if (stage.getScene().getFocusOwner() instanceof TextInputControl) view.node().requestFocus();
     }
 
     /** Aplica una "foto" del historial conservando la selección. */
@@ -647,14 +800,33 @@ public final class MainWindow {
         if (e.getCode() == KeyCode.DELETE || e.getCode() == KeyCode.BACK_SPACE) delete(selected);
         else if (e.getCode() == KeyCode.ESCAPE) select(null);
         else if (e.getCode() == KeyCode.R) rotateSelected(e.isShiftDown() ? 90 : -90);
+        else if (e.getCode().isArrowKey() && selected instanceof Furniture f) nudge(f, e.getCode(), e.isShiftDown() ? 0.01 : 0.05);
         else return;
         e.consume();
+    }
+
+    /** Mueve el mueble con las flechas (arriba = norte). Respeta las mismas reglas que el panel. */
+    private void nudge(Furniture f, KeyCode key, double step) {
+        Editable editor = Editors.of(design, f, this::duplicate);
+        String err = switch (key) {
+            case LEFT -> editor.set("x", Units.round(f.x - step));
+            case RIGHT -> editor.set("x", Units.round(f.x + step));
+            case UP -> editor.set("z", Units.round(f.z - step));
+            default -> editor.set("z", Units.round(f.z + step));
+        };
+        if (err != null) {
+            notify(err, Toast.Kind.ERROR);
+            return;
+        }
+        nudging = true;
+        history.markPending();
     }
 
     // ---------------------------------------------------------------- Proyectos (base de datos)
 
     /** Si hay cambios sin guardar, pregunta. Devuelve false si el usuario canceló. */
     private boolean confirmDiscard() {
+        commitEdits();
         if (!history.isDirty()) return true;
         ButtonType answer = Dialogs.unsavedChanges(stage, projectName);
         if (answer == Dialogs.SAVE) return save();
@@ -703,11 +875,13 @@ public final class MainWindow {
 
     /** Devuelve true si se guardó. */
     private boolean save() {
+        commitEdits();
         if (projectId == null) return saveAs();
         return saveTo(projectId, projectName);
     }
 
     private boolean saveAs() {
+        commitEdits();
         String initial = UNTITLED.equals(projectName) ? "Mi habitación" : projectName;
         var name = Dialogs.askText(stage, "Guardar como", "Nombre del proyecto", initial);
         if (name.isEmpty()) return false;
@@ -770,6 +944,7 @@ public final class MainWindow {
     }
 
     private void exportFile() {
+        commitEdits();
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Exportar proyecto");
         chooser.getExtensionFilters().add(PROJECT_FILES);
@@ -785,6 +960,7 @@ public final class MainWindow {
     }
 
     private void exportImage() {
+        commitEdits();
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Exportar imagen");
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Imagen PNG (*.png)", "*.png"));

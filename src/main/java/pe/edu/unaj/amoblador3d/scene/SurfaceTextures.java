@@ -1,6 +1,6 @@
 package pe.edu.unaj.amoblador3d.scene;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
@@ -16,7 +16,18 @@ import pe.edu.unaj.amoblador3d.model.SurfaceMaterial;
  * una baldosa miden lo mismo en una pared de 2 m que en una de 8 m (ver {@code Meshes.box}).
  */
 final class SurfaceTextures {
-    private static final Map<String, PhongMaterial> CACHE = new HashMap<>();
+    /**
+     * Texturas ya dibujadas, las usadas más recientemente al final. Tiene un límite porque cada
+     * una pesa hasta 1 MB y el selector de color puede producir cientos de colores distintos;
+     * las que la escena sigue usando no se pierden (el nodo conserva su material).
+     */
+    private static final int CACHE_LIMIT = 32;
+    private static final Map<String, PhongMaterial> CACHE = new LinkedHashMap<>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, PhongMaterial> eldest) {
+            return size() > CACHE_LIMIT;
+        }
+    };
 
     private SurfaceTextures() {}
 
