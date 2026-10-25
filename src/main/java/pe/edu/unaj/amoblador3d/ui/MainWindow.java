@@ -403,7 +403,7 @@ public final class MainWindow {
                 Atajos útiles
                 • Arrastra un mueble para moverlo
                 • Flechas: mover 5 cm (Shift: 1 cm)
-                • R / Shift+R: girar 90°
+                • R / Shift+R: girar 90° · Q / E: 15°
                 • Supr: eliminar · Ctrl+D: duplicar
                 • Ctrl+Z / Ctrl+Y: deshacer / rehacer
                 • F1: todos los atajos""");
@@ -800,6 +800,8 @@ public final class MainWindow {
         if (e.getCode() == KeyCode.DELETE || e.getCode() == KeyCode.BACK_SPACE) delete(selected);
         else if (e.getCode() == KeyCode.ESCAPE) select(null);
         else if (e.getCode() == KeyCode.R) rotateSelected(e.isShiftDown() ? 90 : -90);
+        else if (e.getCode() == KeyCode.Q) rotateSelected(15);
+        else if (e.getCode() == KeyCode.E) rotateSelected(-15);
         else if (e.getCode().isArrowKey() && selected instanceof Furniture f) nudge(f, e.getCode(), e.isShiftDown() ? 0.01 : 0.05);
         else return;
         e.consume();
@@ -1074,7 +1076,8 @@ public final class MainWindow {
                 Ctrl+S  Guardar               Ctrl+Shift+S  Guardar como
                 Ctrl+Z  Deshacer              Ctrl+Y  Rehacer
                 Ctrl+D  Duplicar mueble       Supr  Eliminar selección
-                R / Shift+R  Girar mueble 90°  Esc  Deseleccionar
+                R / Shift+R  Girar mueble 90°  Q / E  Girar 15°
+                Flechas  Mover 5 cm (Shift: 1 cm)    Esc  Deseleccionar
                 Ctrl+1  Vista 3D              Ctrl+2  Planta 2D
                 Ctrl+M  Cotas                 Ctrl+0  Centrar cámara
                 Ctrl+E  Exportar imagen       Ctrl+I  Importar modelo 3D

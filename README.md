@@ -40,11 +40,73 @@ En Linux/macOS usa `./mvnw` en lugar de `.\mvnw.cmd`.
 | Ctrl+Z / Ctrl+Y | Deshacer / Rehacer |
 | Flechas (Shift: más fino) | Mover el mueble 5 cm (1 cm) |
 | R / Shift+R | Girar el mueble 90° |
+| Q / E | Girar el mueble 15° |
 | Supr / Ctrl+D | Eliminar / Duplicar |
 | Ctrl+1 / Ctrl+2 | Vista 3D / Planta 2D |
 | F1 | Todos los atajos |
 
 Ratón en 3D: botón izquierdo gira, derecho mueve, rueda acerca. Arrastra un mueble para moverlo.
+
+## Agregar muebles al catálogo
+
+### Opción A: desde la aplicación (recomendada)
+
+*Archivo → Importar modelo 3D* (o *Importar modelo .glb/.gltf…* en la pestaña Muebles). Elige el
+archivo, revisa sus medidas reales y listo. El modelo se copia a la carpeta de datos
+(*Archivo → Abrir carpeta de modelos importados*). Clic derecho sobre su botón para quitarlo.
+
+### Opción B: incluirlo en la aplicación, editando `catalog.json`
+
+1. Copia el modelo `.glb` (o `.gltf` con sus `.bin` y texturas) en `src/main/resources/assets/models/`.
+2. Agrega una entrada en `src/main/resources/assets/catalog.json`:
+
+```json
+{ "id": "mi-sillon", "name": "Sillón", "file": "models/mi-sillon.glb",
+  "width": 0.9, "depth": 0.85, "height": 0.95, "rotation": 0 }
+```
+
+| Campo | Significado |
+|---|---|
+| `id` | Identificador único (sin espacios). Se guarda en los proyectos. |
+| `name` | Nombre visible en el botón. |
+| `file` | Ruta del modelo, relativa a `assets/`. |
+| `width`, `depth`, `height` | Medidas **reales** en metros (ancho X, profundidad Z, alto Y). |
+| `rotation` | Grados para que el frente del modelo mire a +Z (0, 90, 180 o 270). |
+
+3. Vuelve a compilar (`.\mvnw.cmd javafx:run`).
+
+El modelo se escala a las medidas indicadas aunque haya sido modelado en centímetros o milímetros.
+
+**Modelos gratuitos (.glb):** [Poly Haven](https://polyhaven.com/models),
+[Sketchfab](https://sketchfab.com) (filtrar por *Downloadable*), [Kenney](https://kenney.nl/assets)
+(*Furniture Kit*). Revisa la licencia de cada modelo. No se admiten modelos comprimidos con Draco/Meshopt.
+
+### Opción C: mueble paramétrico (por código)
+
+Crea su método en `scene/ParametricBuilder.java`, regístralo en `build` y declara sus medidas en
+`catalog/Catalog.java`. Regla: el mueble ocupa exactamente `x ∈ [-ancho/2, ancho/2]`,
+`z ∈ [-prof/2, prof/2]`, `y ∈ [0, alto]`, con el frente hacia +Z.
+
+## Formato del proyecto (.amob3d)
+
+Es JSON legible (el mismo de la versión Electron, más `surfaces`):
+
+```json
+{
+  "app": "Amoblador3D", "version": 1,
+  "room": { "width": 4, "length": 3.5, "height": 2.5, "wallThickness": 0.15 },
+  "surfaces": { "piso": { "material": "madera", "color": "#b07d4f" },
+                "pared-norte": { "material": "ladrillo", "color": "#a4553a" } },
+  "openings": [{ "id": "window-1", "type": "window", "wall": "norte", "offset": 1.4, "width": 1.2, "height": 1, "sill": 0.9 }],
+  "ambient": 0.6,
+  "lights": [{ "id": "point-1", "type": "point", "color": "#ffe2b8", "intensity": 6, "x": 2, "y": 2.25, "z": 1.75 }],
+  "furniture": [{ "id": "cama-1", "type": "cama", "x": 2, "z": 1.6, "rotation": 0, "width": 1.4, "depth": 1.9, "height": 0.9, "color": "#8b6b4a" }]
+}
+```
+
+Las medidas de la habitación son **interiores** (el espacio libre); los muros crecen hacia afuera.
+Coordenadas: el origen es la esquina interior **noroeste** a nivel del piso; X crece hacia el este,
+Z hacia el sur, Y hacia arriba.
 
 ## Datos
 
