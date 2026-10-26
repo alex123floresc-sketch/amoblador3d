@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.design.Design;
+import pe.edu.unaj.amoblador3d.model.LightType;
 import pe.edu.unaj.amoblador3d.model.Project;
 import pe.edu.unaj.amoblador3d.model.Surface;
 import pe.edu.unaj.amoblador3d.model.SurfaceMaterial;
@@ -126,6 +128,26 @@ class PersistenceTest {
             long id = repo.save(null, "Sala", new Project(), null);
             assertEquals(id, repo.findByName("SALA"));
             assertTrue(repo.findByName("Cocina") == null);
+        }
+    }
+
+    @Test
+    void elScriptSqliteDeEjemploLoAbreLaAplicacion() throws Exception {
+        Path file = dir.resolve("script.db");
+        String script = Files.readString(Path.of("database/amoblador3d_sqlite.sql"));
+        String sql = String.join("\n", script.lines().filter(l -> !l.strip().startsWith("--")).toList());
+        try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + file); Statement st = c.createStatement()) {
+            for (String statement : sql.split(";")) if (!statement.isBlank()) st.execute(statement);
+        }
+        // La aplicación reconoce las tablas (no intenta crearlas de nuevo) y el proyecto es válido.
+        try (Database db = new Database(file)) {
+            Project p = new ProjectRepository(db).load(1);
+            assertNotNull(p);
+            assertEquals(SurfaceMaterial.LADRILLO, p.walls.get(WallSide.NORTE).material);
+            assertEquals(4, p.furniture.size());
+            assertEquals("window-1", p.lights.stream().filter(l -> l.type == LightType.SUN).findFirst().orElseThrow().windowId);
+            Design design = new Design(new Catalog());
+            assertTrue(design.load(p).isEmpty(), "el ejemplo no debería necesitar correcciones");
         }
     }
 }

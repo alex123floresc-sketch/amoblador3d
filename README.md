@@ -19,6 +19,9 @@ java -jar target\amoblador3d.jar
 
 En Linux/macOS usa `./mvnw` en lugar de `.\mvnw.cmd`.
 
+Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frecuentes):
+**[GUIA_EJECUCION.md](GUIA_EJECUCION.md)**.
+
 ## Funciones
 
 - **Habitación**: ancho, largo, alto y grosor de muro; ventanas y puertas que no se superponen.
@@ -113,6 +116,10 @@ Z hacia el sur, Y hacia arriba.
 Los proyectos y los modelos importados se guardan en `%APPDATA%\Amoblador3D`
 (se puede cambiar con `-Damoblador.home=C:\otra\carpeta`).
 
+En `database/` están los scripts de la base de datos: `amoblador3d_sqlite.sql` (el esquema que
+usa la aplicación, con un proyecto de ejemplo) y `amoblador3d_postgresql.sql` (la misma base en
+PostgreSQL, con vistas de consulta). Cómo cargarlos: [GUIA_EJECUCION.md](GUIA_EJECUCION.md#bases-de-datos).
+
 ## Estructura del código
 
 ```
@@ -126,4 +133,5 @@ src/main/java/pe/edu/unaj/amoblador3d/
   scene/          vista 3D: habitación, texturas, luces, muebles, cotas, cámara
   ui/             ventana principal, paneles y diálogos
 src/test/java/    pruebas de reglas, persistencia e historial
+database/         scripts SQL (SQLite y PostgreSQL)
 ```
