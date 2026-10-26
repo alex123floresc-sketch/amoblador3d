@@ -1,5 +1,5 @@
 -- =============================================================================
--- Amoblador3D: base de datos SQLite (esquema v5)
+-- Amoblador3D: base de datos SQLite (esquema v6)
 --
 -- Es el mismo esquema que la aplicación crea sola al arrancar
 -- (src/main/java/pe/edu/unaj/amoblador3d/persistence/Database.java), más un
@@ -115,8 +115,28 @@ CREATE TABLE camera_view (
     PRIMARY KEY (project_id, position)
 );
 
+-- v6: zócalo configurable (alto 0 = sin zócalo) y columnas, muros internos y recortes en L.
+-- El techo es una fila más de surface (id 'techo').
+ALTER TABLE project ADD COLUMN baseboard_height REAL NOT NULL DEFAULT 0.08;
+ALTER TABLE project ADD COLUMN baseboard_color TEXT NOT NULL DEFAULT '#f7f5f0';
+
+CREATE TABLE room_column (
+    project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    position   INTEGER NOT NULL,
+    id         TEXT    NOT NULL,
+    kind       TEXT    NOT NULL CHECK (kind IN ('column', 'wall', 'notch')),
+    corner     TEXT    CHECK (corner IN ('noroeste', 'noreste', 'suroeste', 'sureste')),
+    x          REAL    NOT NULL,
+    z          REAL    NOT NULL,
+    width      REAL    NOT NULL CHECK (width > 0),
+    depth      REAL    NOT NULL CHECK (depth > 0),
+    material   TEXT    NOT NULL,
+    color      TEXT    NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
 -- La aplicación lee este número para saber que las tablas ya están creadas.
-PRAGMA user_version = 5;
+PRAGMA user_version = 6;
 
 -- -----------------------------------------------------------------------------
 -- Proyecto de ejemplo: dormitorio de 4 x 3.5 m
@@ -129,7 +149,8 @@ INSERT INTO surface (project_id, id, material, color) VALUES
     (1, 'pared-norte', 'ladrillo', '#a4553a'),
     (1, 'pared-sur',   'pintura',  '#f2efe9'),
     (1, 'pared-este',  'pintura',  '#f2efe9'),
-    (1, 'pared-oeste', 'pintura',  '#f2efe9');
+    (1, 'pared-oeste', 'pintura',  '#f2efe9'),
+    (1, 'techo',       'pintura',  '#fafafa');
 
 INSERT INTO opening (project_id, position, id, type, wall, wall_offset, width, height, sill) VALUES
     (1, 0, 'window-1', 'window', 'norte', 1.40, 1.2, 1.0, 0.9),

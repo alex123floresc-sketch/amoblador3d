@@ -16,7 +16,7 @@ import java.sql.Statement;
  * tablas en el futuro, se agrega un paso en {@link #migrate()} y se sube {@link #SCHEMA_VERSION}.
  */
 public final class Database implements AutoCloseable {
-    static final int SCHEMA_VERSION = 5;
+    static final int SCHEMA_VERSION = 6;
 
     private static final String[] SCHEMA_V1 = {
         """
@@ -129,8 +129,29 @@ public final class Database implements AutoCloseable {
         )""",
     };
 
+    /** v6: zócalo configurable y columnas, muros internos y recortes en L. (El techo va en surface). */
+    private static final String[] SCHEMA_V6 = {
+        "ALTER TABLE project ADD COLUMN baseboard_height REAL NOT NULL DEFAULT 0.08",
+        "ALTER TABLE project ADD COLUMN baseboard_color TEXT NOT NULL DEFAULT '#f7f5f0'",
+        """
+        CREATE TABLE room_column (
+            project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+            position   INTEGER NOT NULL,
+            id         TEXT    NOT NULL,
+            kind       TEXT    NOT NULL CHECK (kind IN ('column', 'wall', 'notch')),
+            corner     TEXT    CHECK (corner IN ('noroeste', 'noreste', 'suroeste', 'sureste')),
+            x          REAL    NOT NULL,
+            z          REAL    NOT NULL,
+            width      REAL    NOT NULL CHECK (width > 0),
+            depth      REAL    NOT NULL CHECK (depth > 0),
+            material   TEXT    NOT NULL,
+            color      TEXT    NOT NULL,
+            PRIMARY KEY (project_id, id)
+        )""",
+    };
+
     /** Pasos de migración: el paso i lleva la base de la versión i a la i + 1. */
-    private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5};
+    private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6};
 
     private final Connection connection;
 

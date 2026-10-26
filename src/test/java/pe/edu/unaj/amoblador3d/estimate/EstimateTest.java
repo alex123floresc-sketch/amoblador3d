@@ -65,8 +65,8 @@ class EstimateTest {
         p.walls.get(WallSide.ESTE).color = "#a4553a";
         Estimate e = Estimate.of(p, new Catalog(), new PriceList());
         List<Estimate.Line> finishes = e.lines().stream().filter(l -> l.section() == Estimate.Section.FINISHES).toList();
-        // piso de madera + pintura (norte, sur, oeste) + ladrillo (este)
-        assertEquals(3, finishes.size());
+        // piso de madera + pintura (norte, sur, oeste) + ladrillo (este) + techo (pintura de otro color)
+        assertEquals(4, finishes.size());
         Estimate.Line paint = finishes.stream().filter(l -> l.priceKey().equals(PriceList.Key.material(SurfaceMaterial.PINTURA)))
                 .findFirst().orElseThrow();
         assertTrue(paint.detail().startsWith("Paredes norte, sur, oeste"), paint.detail());

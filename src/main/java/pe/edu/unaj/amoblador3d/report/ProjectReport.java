@@ -11,6 +11,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import pe.edu.unaj.amoblador3d.estimate.Estimate;
 import pe.edu.unaj.amoblador3d.estimate.Quantities;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Opening;
 import pe.edu.unaj.amoblador3d.model.Project;
@@ -42,14 +43,8 @@ public record ProjectReport(String name, Project project, Estimate estimate, byt
             try (PdfLayout pdf = new PdfLayout(doc)) {
                 pdf.title(name, "Informe de diseño · " + LocalDateTime.now().format(DATE));
                 room(pdf);
-                if (planPng != null) {
-                    pdf.heading("Planta");
-                    pdf.image(planPng, "planta", 340);
-                }
-                if (viewPng != null) {
-                    pdf.heading("Vista 3D");
-                    pdf.image(viewPng, "vista", 300);
-                }
+                if (planPng != null) pdf.imageSection("Planta", planPng, "planta", 340);
+                if (viewPng != null) pdf.imageSection("Vista 3D", viewPng, "vista", 300);
                 openings(pdf);
                 furniture(pdf);
                 budget(pdf);
@@ -76,7 +71,23 @@ public record ProjectReport(String name, Project project, Estimate estimate, byt
         for (WallSide side : WallSide.values()) {
             rows.add(Row.of("Pared " + side.id(), project.walls.get(side).material.label() + " (" + area(q.wallNet().get(side)) + ")"));
         }
+        rows.add(Row.of("Techo", project.ceiling.material.label() + " (" + area(q.floorArea()) + ")"));
+        rows.add(Row.of("Zócalo", project.baseboard.height > 0
+                ? Units.number(project.baseboard.height * 100) + " cm (" + Units.meters(q.baseboard()) + ")" : "Sin zócalo"));
         pdf.table(new String[] {"Dato", "Valor"}, new float[] {0.55f, 0.45f}, new Align[] {Align.LEFT, Align.LEFT}, rows);
+        columns(pdf);
+    }
+
+    private void columns(PdfLayout pdf) throws IOException {
+        if (project.columns.isEmpty()) return;
+        pdf.heading("Columnas, muros internos y recortes");
+        List<Row> rows = new ArrayList<>();
+        for (Column c : project.columns) {
+            rows.add(Row.of(labels.apply(c), Units.number(c.width) + " × " + Units.number(c.depth) + " m",
+                    "(" + Units.number(c.x) + "; " + Units.number(c.z) + ")", c.material.label()));
+        }
+        pdf.table(new String[] {"Elemento", "Ancho × prof.", "Centro (X; Z) m", "Acabado"},
+                new float[] {0.34f, 0.22f, 0.22f, 0.22f}, new Align[] {Align.LEFT, Align.RIGHT, Align.RIGHT, Align.LEFT}, rows);
     }
 
     private void openings(PdfLayout pdf) throws IOException {

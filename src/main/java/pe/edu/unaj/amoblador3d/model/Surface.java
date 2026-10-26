@@ -1,16 +1,18 @@
 package pe.edu.unaj.amoblador3d.model;
 
 /**
- * Acabado de una pared o del piso: material y color.
+ * Acabado de una pared, del piso o del techo: material y color.
  * <ul>
- *   <li>id: "piso" o "pared-norte", "pared-sur"... (fijo, sirve para seleccionarla).</li>
+ *   <li>id: "piso", "techo" o "pared-norte", "pared-sur"... (fijo, sirve para seleccionarla).</li>
  *   <li>color: "#rrggbb"; tiñe la textura del material.</li>
  * </ul>
  */
 public final class Surface {
-    public static final String FLOOR_ID = "piso";
+    public static final String FLOOR_ID = "piso", CEILING_ID = "techo";
     public static final SurfaceMaterial DEFAULT_FLOOR = SurfaceMaterial.MADERA;
     public static final SurfaceMaterial DEFAULT_WALL = SurfaceMaterial.PINTURA;
+    public static final SurfaceMaterial DEFAULT_CEILING = SurfaceMaterial.PINTURA;
+    private static final String CEILING_COLOR = "#fafafa";
 
     public final String id;
     public SurfaceMaterial material;
@@ -26,6 +28,11 @@ public final class Surface {
         return new Surface(FLOOR_ID, DEFAULT_FLOOR, DEFAULT_FLOOR.defaultColor());
     }
 
+    /** Cielo raso: se ve en el recorrido (desde las otras vistas taparía la habitación). */
+    public static Surface ceiling() {
+        return new Surface(CEILING_ID, DEFAULT_CEILING, CEILING_COLOR);
+    }
+
     public static Surface wall(WallSide side) {
         return new Surface(wallId(side), DEFAULT_WALL, DEFAULT_WALL.defaultColor());
     }
@@ -38,9 +45,13 @@ public final class Surface {
         return FLOOR_ID.equals(id);
     }
 
-    /** La pared a la que pertenece, o null si es el piso. */
+    public boolean isCeiling() {
+        return CEILING_ID.equals(id);
+    }
+
+    /** La pared a la que pertenece, o null si es el piso o el techo. */
     public WallSide wallSide() {
-        return isFloor() ? null : WallSide.fromId(id.substring("pared-".length()));
+        return id.startsWith("pared-") ? WallSide.fromId(id.substring("pared-".length())) : null;
     }
 
     public Surface copy() {

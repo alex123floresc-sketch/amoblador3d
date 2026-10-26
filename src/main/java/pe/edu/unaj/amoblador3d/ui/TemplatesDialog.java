@@ -16,6 +16,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Window;
 import pe.edu.unaj.amoblador3d.design.Templates;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Footprint;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Opening;
@@ -103,6 +104,10 @@ final class TemplatesDialog {
             g.fillRect(x, z, w, h);
         }
 
+        for (Column c : p.columns) { // columnas y recortes: del color de los muros
+            g.setFill(Color.web("#b9b2a6"));
+            g.fillRect(ox + c.minX() * scale, oz + c.minZ() * scale, c.width * scale, c.depth * scale);
+        }
         for (Furniture f : p.furniture) {
             double[][] c = Footprint.of(f).corners();
             double[] xs = new double[4], zs = new double[4];

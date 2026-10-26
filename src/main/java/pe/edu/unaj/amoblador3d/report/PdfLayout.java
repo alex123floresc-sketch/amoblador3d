@@ -222,12 +222,16 @@ final class PdfLayout implements AutoCloseable {
 
     // ---------------------------------------------------------------- Imágenes
 
-    /** Imagen PNG escalada para caber en {@code maxWidth} x {@code maxHeight}, centrada. */
-    void image(byte[] png, String name, float maxHeight) throws IOException {
+    /**
+     * Título con una imagen PNG debajo (escalada para caber en el ancho y en {@code maxHeight},
+     * centrada). Si no caben juntos en la página, pasan los dos a la siguiente.
+     */
+    void imageSection(String title, byte[] png, String name, float maxHeight) throws IOException {
         PDImageXObject img = PDImageXObject.createFromByteArray(doc, png, name);
         float scale = Math.min(WIDTH / img.getWidth(), maxHeight / img.getHeight());
         float w = img.getWidth() * scale, h = img.getHeight() * scale;
-        ensure(h + 4);
+        ensure(h + 36);
+        heading(title);
         cs.drawImage(img, MARGIN + (WIDTH - w) / 2, y - h, w, h);
         y -= h + 8;
     }

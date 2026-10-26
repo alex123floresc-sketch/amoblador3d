@@ -11,7 +11,6 @@ final class Materials {
     private static final Map<String, PhongMaterial> CACHE = new HashMap<>();
 
     static final PhongMaterial GRID = of(Color.rgb(0, 0, 0, 0.18));
-    static final PhongMaterial BASEBOARD = shiny(Color.web("#f7f5f0"), 0.25, 20);
     static final PhongMaterial PLINTH = of("#cfc9bf");
     static final PhongMaterial FRAME = shiny(Color.web("#fafafa"), 0.3, 20);
     static final PhongMaterial GLASS = glass();

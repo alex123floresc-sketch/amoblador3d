@@ -25,8 +25,12 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 ## Funciones
 
 - **Habitación**: ancho, largo, alto y grosor de muro; ventanas y puertas que no se superponen.
-- **Paredes y piso**: 11 materiales (pintura, ladrillo, piedra, madera, cerámico, mármol,
-  porcelanato, alfombra...) con texturas a escala real y cualquier color.
+- **Paredes, piso y techo**: 11 materiales (pintura, ladrillo, piedra, madera, cerámico, mármol,
+  porcelanato, alfombra...) con texturas a escala real y cualquier color. El techo se ve en el
+  recorrido. Zócalo con alto (o sin zócalo) y color a elección.
+- **Columnas, muros internos y habitación en L** (pestaña *Habitación*): bloques del piso al techo
+  con su propio acabado. Los muebles no los atraviesan, no tapan ventanas ni puertas, el imán se
+  pega a ellos y el metrado los descuenta del piso y suma sus caras a la pintura.
 - **Muebles**: 14 paramétricos con medidas y color editables (cama, mesa de noche, cómoda, closet,
   sofá, mueble de TV, librero, mesa, silla, mueble de cocina, refrigeradora, inodoro, lavatorio y
   escritorio) y modelos 3D `.glb/.gltf` (incluidos o importados), agrupados por categoría y con

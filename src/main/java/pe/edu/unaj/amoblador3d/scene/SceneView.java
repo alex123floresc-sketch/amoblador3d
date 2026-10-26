@@ -34,6 +34,7 @@ import javafx.scene.transform.Rotate;
 import pe.edu.unaj.amoblador3d.design.Design;
 import pe.edu.unaj.amoblador3d.design.Snapper;
 import pe.edu.unaj.amoblador3d.model.CameraView;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Footprint;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Opening;
@@ -316,7 +317,7 @@ public final class SceneView {
     private void render() {
         dirty = false;
         WallSide selectedWall = selection.size() == 1 && selection.get(0) instanceof Surface s ? s.wallSide() : null;
-        room.updateVisibility(cam.eye(), cam.mode == ViewCamera.Mode.PLAN, selectedWall);
+        room.updateVisibility(cam.eye(), cam.mode == ViewCamera.Mode.PLAN, cam.mode == ViewCamera.Mode.WALK, selectedWall);
         overlay.draw(cam, design, lights, selection, showDimensions && cam.mode != ViewCamera.Mode.WALK);
         overlay.drawGuides(guides);
         if (banding) overlay.drawBand(pressX, pressY, bandX, bandY);
@@ -445,6 +446,7 @@ public final class SceneView {
         if (x < BODY || z < BODY || x > r.width() - BODY || z > r.length() - BODY) return false;
         Footprint body = new Footprint(x, z, BODY, BODY, 0);
         for (Furniture f : design.furniture()) if (Footprint.of(f).overlaps(body)) return false;
+        for (Column c : design.columns()) if (c.footprint().overlaps(body)) return false;
         return true;
     }
 
@@ -527,8 +529,11 @@ public final class SceneView {
         double x = p.getX(), z = p.getZ();
         double best = SNAP_CORNER;
         double[] corner = null;
-        for (Furniture f : design.furniture()) {
-            for (double[] c : Footprint.of(f).corners()) {
+        List<Footprint> shapes = new ArrayList<>();
+        for (Furniture f : design.furniture()) shapes.add(Footprint.of(f));
+        for (Column col : design.columns()) shapes.add(col.footprint());
+        for (Footprint shape : shapes) {
+            for (double[] c : shape.corners()) {
                 double d = Math.hypot(c[0] - x, c[1] - z);
                 if (d < best) {
                     best = d;

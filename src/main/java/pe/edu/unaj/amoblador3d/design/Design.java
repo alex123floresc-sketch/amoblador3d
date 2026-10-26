@@ -14,7 +14,9 @@ import java.util.Set;
 import java.util.function.Consumer;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.catalog.CatalogEntry;
+import pe.edu.unaj.amoblador3d.model.Baseboard;
 import pe.edu.unaj.amoblador3d.model.CameraView;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Footprint;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
@@ -109,6 +111,18 @@ public final class Design {
         return -1;
     }
 
+    public Surface ceiling() {
+        return project.ceiling;
+    }
+
+    public Baseboard baseboard() {
+        return project.baseboard;
+    }
+
+    public List<Column> columns() {
+        return List.copyOf(project.columns);
+    }
+
     public Surface floor() {
         return project.floor;
     }
@@ -140,14 +154,14 @@ public final class Design {
         if (!warnings.isEmpty()) onWarning.accept(String.join("\n", warnings));
     }
 
-    /** Todas las entidades seleccionables (el piso y las paredes no se pueden eliminar). */
+    /** Todas las entidades seleccionables (piso, paredes, techo y zócalo no se pueden eliminar). */
     public List<Object> entities() {
-        List<Object> all = new ArrayList<>();
-        all.add(project.floor);
-        all.addAll(project.walls.values());
+        List<Object> all = new ArrayList<>(project.surfaces());
+        all.add(project.baseboard);
         all.addAll(project.openings);
         all.addAll(project.lights);
         all.addAll(project.furniture);
+        all.addAll(project.columns);
         return all;
     }
 
@@ -162,6 +176,8 @@ public final class Design {
         if (entity instanceof Light l) return l.id;
         if (entity instanceof Furniture f) return f.id;
         if (entity instanceof Surface s) return s.id;
+        if (entity instanceof Column c) return c.id;
+        if (entity instanceof Baseboard) return Baseboard.ID;
         throw new IllegalArgumentException("Entidad desconocida: " + entity);
     }
 
@@ -170,7 +186,11 @@ public final class Design {
         if (entity instanceof Opening o) return o.type.label() + " " + suffix(o.id) + " (" + o.wall.id() + ")";
         if (entity instanceof Light l) return l.type.label() + " " + suffix(l.id);
         if (entity instanceof Furniture f) return catalog.get(f.type).name() + " " + suffix(f.id);
-        if (entity instanceof Surface s) return s.isFloor() ? "Piso" : "Pared " + s.wallSide().id();
+        if (entity instanceof Surface s) return s.isFloor() ? "Piso" : s.isCeiling() ? "Techo" : "Pared " + s.wallSide().id();
+        if (entity instanceof Column c) {
+            return c.kind == Column.Kind.NOTCH ? c.kind.label() + " (" + c.corner.id() + ")" : c.kind.label() + " " + suffix(c.id);
+        }
+        if (entity instanceof Baseboard) return "Zócalo";
         return String.valueOf(entity);
     }
 
@@ -188,7 +208,8 @@ public final class Design {
         project = data.copy();
         ids.reset();
         for (Object e : entities()) ids.register(idOf(e));
-        List<String> warnings = fitOpenings();
+        List<String> warnings = fitColumnsToRoom();
+        warnings.addAll(fitOpenings());
         warnings.addAll(refreshSunLights());
         fire(Change.ROOM, Change.SURFACES, Change.LIGHTS, Change.FURNITURE, Change.VIEWS);
         return warnings;
@@ -207,7 +228,8 @@ public final class Design {
     /** Cambia las medidas de la habitación y acomoda lo que haya dentro. Devuelve avisos. */
     public List<String> setRoom(RoomDims dims) {
         project.room = dims.rounded();
-        List<String> warnings = fitOpenings();
+        List<String> warnings = fitColumnsToRoom();
+        warnings.addAll(fitOpenings());
         warnings.addAll(fitLightsToRoom());
         warnings.addAll(fitFurnitureToRoom());
         fire(Change.ROOM, Change.LIGHTS, Change.FURNITURE);
@@ -231,16 +253,19 @@ public final class Design {
         } else if (entity instanceof Furniture f) {
             project.furniture.remove(f);
             fire(Change.FURNITURE);
+        } else if (entity instanceof Column c) {
+            project.columns.remove(c);
+            fire(Change.ROOM);
         }
         return null;
     }
 
     // ---------------------------------------------------------------- Paredes y piso
 
-    /** Cambia el material y/o el color de una pared o del piso. Devuelve un error o null. */
+    /** Cambia el material y/o el color de una pared, el piso o el techo. Devuelve un error o null. */
     String changeSurface(Surface s, SurfaceMaterial material, String color) {
-        if (!material.allowedOn(s.isFloor())) {
-            return material.label() + " no se puede usar " + (s.isFloor() ? "en el piso." : "en las paredes.");
+        if (!material.allowedOn(s)) {
+            return material.label() + " no se puede usar " + (s.isFloor() ? "en el piso." : s.isCeiling() ? "en el techo." : "en las paredes.");
         }
         s.material = material;
         s.color = color;
@@ -255,6 +280,16 @@ public final class Design {
             w.color = source.color;
         }
         fire(Change.SURFACES);
+        return null;
+    }
+
+    /** Alto (0 = sin zócalo) y color del zócalo. Devuelve un error o null. */
+    String changeBaseboard(double height, String color) {
+        String err = checkRange("El alto del zócalo", height, 0, Baseboard.MAX_HEIGHT);
+        if (err != null) return err;
+        project.baseboard.height = round(height);
+        project.baseboard.color = color;
+        fire(Change.ROOM);
         return null;
     }
 
@@ -310,6 +345,10 @@ public final class Design {
             if (other == self || other.wall != o.wall) continue;
             boolean separated = o.offset >= other.offset + other.width + MARGIN || o.offset + o.width <= other.offset - MARGIN;
             if (!separated) return name + " se superpone con " + label(other) + ".";
+        }
+        for (Column c : project.columns) {
+            if (covers(c, o)) return name + " quedaría tapada por " + label(c).toLowerCase() + ".";
+            if (door && c.footprint().overlaps(doorZone(o))) return name + " no podría abrirse: choca con " + label(c).toLowerCase() + ".";
         }
         // Corrección: antes se podía poner una puerta encima de un mueble y quedaba bloqueada.
         if (door && checkFurniture) {
@@ -463,6 +502,11 @@ public final class Design {
 
     String changeLight(Light l, Light candidate) {
         roundLight(candidate);
+        if (candidate.type != LightType.SUN) {
+            for (Column c : project.columns) {
+                if (inside(c, candidate.x, candidate.z)) return "Quedaría dentro de " + label(c).toLowerCase() + ".";
+            }
+        }
         l.color = candidate.color;
         l.intensity = candidate.intensity;
         l.castShadow = candidate.castShadow;
@@ -596,6 +640,9 @@ public final class Design {
         if (!fp.insideRoom(r.width(), r.length())) return "No cabe dentro de la habitación en esa posición.";
         for (Furniture other : project.furniture) {
             if (!ignore.contains(other) && fp.overlaps(Footprint.of(other))) return "Choca con " + label(other) + ".";
+        }
+        for (Column c : project.columns) {
+            if (fp.overlaps(c.footprint())) return "Choca con " + label(c).toLowerCase() + ".";
         }
         for (Opening o : project.openings) {
             if (o.type == OpeningType.DOOR && fp.overlaps(doorZone(o))) return "Bloquea el paso de " + label(o) + ".";
@@ -805,6 +852,7 @@ public final class Design {
         if (magnet) {
             Set<Furniture> members = identitySet(group);
             for (Furniture f : project.furniture) if (!members.contains(f)) others.add(Snapper.Box.of(Footprint.of(f)));
+            for (Column c : project.columns) others.add(Snapper.Box.of(c.footprint()));
             Snapper.Result snap = Snapper.snap(box.shift(dx, dz), r.width(), r.length(), others);
             // Pegado en los dos ejes; si así choca, pegado solo en uno.
             if (snap.guideX() != null && snap.guideZ() != null) tries.add(new Try(dx + snap.dx(), dz + snap.dz()));
@@ -921,5 +969,163 @@ public final class Design {
         if (placed.isEmpty()) return Outcome.fail("No hay espacio libre para " + String.join(", ", failed).toLowerCase() + ".");
         if (!failed.isEmpty()) onWarning.accept("No hubo espacio para: " + String.join(", ", failed) + ".");
         return Outcome.ok(placed);
+    }
+
+    // ---------------------------------------------------------------- Columnas, muros internos y recortes en L
+
+    /** A esta distancia (m) se considera que una columna toca una pared. */
+    private static final double TOUCH = 0.005;
+    public static final double MIN_COLUMN = 0.05;
+    /** Un recorte en L debe dejar al menos esto de habitación en cada sentido. */
+    public static final double MIN_LEFT = 0.5;
+
+    /** Agrega una columna o un muro interno en el lugar libre más cercano al centro. */
+    public Outcome<Column> addColumn(Column.Kind kind) {
+        if (kind == Column.Kind.NOTCH) throw new IllegalArgumentException("Los recortes se agregan con addNotch.");
+        Column c = new Column(ids.next(kind.id()), kind, 0, 0, kind.defaultWidth(), kind.defaultDepth());
+        Surface wall = project.walls.get(WallSide.NORTE); // mismo acabado que las paredes
+        c.material = wall.material;
+        c.color = wall.color;
+        RoomDims r = project.room;
+        List<double[]> candidates = new ArrayList<>();
+        int nx = (int) Math.floor(r.width() * 10 + 1e-9), nz = (int) Math.floor(r.length() * 10 + 1e-9);
+        for (int i = 0; i <= nx; i++) {
+            for (int j = 0; j <= nz; j++) candidates.add(new double[] {round(i * 0.1), round(j * 0.1)});
+        }
+        candidates.sort(Comparator.comparingDouble(p -> Math.hypot(p[0] - r.width() / 2, p[1] - r.length() / 2)));
+        Column test = c.copy();
+        for (double[] p : candidates) {
+            test.x = p[0];
+            test.z = p[1];
+            if (checkColumn(test, null) == null) {
+                c.x = p[0];
+                c.z = p[1];
+                project.columns.add(c);
+                fire(Change.ROOM);
+                return Outcome.ok(c);
+            }
+        }
+        return Outcome.fail("No hay espacio libre para " + (kind == Column.Kind.WALL ? "un muro interno" : "una columna") + " ("
+                + Units.number(c.width) + " x " + Units.number(c.depth) + " m).");
+    }
+
+    /**
+     * Convierte la habitación en una "L" quitándole una esquina de {@code width} (en X) por
+     * {@code depth} (en Z). El recorte se ve como muro y se descuenta del piso.
+     */
+    public Outcome<Column> addNotch(Column.Corner corner, double width, double depth) {
+        for (Column other : project.columns) {
+            if (other.kind == Column.Kind.NOTCH && other.corner == corner) {
+                return Outcome.fail("La esquina " + corner.id() + " ya tiene un recorte: cambia sus medidas en el panel.");
+            }
+        }
+        Column c = new Column(ids.next("notch"), Column.Kind.NOTCH, 0, 0, round(width), round(depth));
+        c.corner = corner;
+        Surface wall = project.walls.get(corner.south ? WallSide.SUR : WallSide.NORTE);
+        c.material = wall.material;
+        c.color = wall.color;
+        c.placeInCorner(project.room);
+        String err = checkColumn(c, null);
+        if (err != null) return Outcome.fail(err);
+        project.columns.add(c);
+        fire(Change.ROOM);
+        return Outcome.ok(c);
+    }
+
+    /** Revisa que la columna pueda quedar así. Devuelve un error o null. */
+    public String checkColumn(Column c, Column self) {
+        RoomDims r = project.room;
+        String err = checkRange("El ancho", c.width, MIN_COLUMN, r.width());
+        if (err == null) err = checkRange("La profundidad", c.depth, MIN_COLUMN, r.length());
+        if (err != null) return err;
+        if (c.kind == Column.Kind.NOTCH && (c.width > r.width() - MIN_LEFT + 1e-9 || c.depth > r.length() - MIN_LEFT + 1e-9)) {
+            return "El recorte debe dejar al menos " + Units.number(MIN_LEFT) + " m de habitación a cada lado.";
+        }
+        if (c.minX() < -1e-9 || c.minZ() < -1e-9 || c.maxX() > r.width() + 1e-9 || c.maxZ() > r.length() + 1e-9) {
+            return "No cabe dentro de la habitación en esa posición.";
+        }
+        Footprint fp = c.footprint();
+        for (Column other : project.columns) {
+            if (other != self && fp.overlaps(other.footprint())) return "Se superpone con " + label(other).toLowerCase() + ".";
+        }
+        for (Furniture f : project.furniture) {
+            if (fp.overlaps(Footprint.of(f))) return "Choca con " + label(f) + ".";
+        }
+        for (Light l : project.lights) {
+            if (l.type != LightType.SUN && inside(c, l.x, l.z)) return "Quedaría encima de " + label(l).toLowerCase() + ".";
+        }
+        for (Opening o : project.openings) {
+            if (covers(c, o)) return "Taparía " + label(o) + ".";
+            if (o.type == OpeningType.DOOR && fp.overlaps(doorZone(o))) return "Bloquearía el paso de " + label(o) + ".";
+        }
+        return null;
+    }
+
+    private static boolean inside(Column c, double x, double z) {
+        return x > c.minX() - 0.05 && x < c.maxX() + 0.05 && z > c.minZ() - 0.05 && z < c.maxZ() + 0.05;
+    }
+
+    /** true si la columna está pegada a la pared de la abertura y tapa (parte de) su ancho. */
+    private boolean covers(Column c, Opening o) {
+        RoomDims r = project.room;
+        boolean touches = switch (o.wall) {
+            case NORTE -> c.minZ() <= TOUCH;
+            case SUR -> c.maxZ() >= r.length() - TOUCH;
+            case OESTE -> c.minX() <= TOUCH;
+            case ESTE -> c.maxX() >= r.width() - TOUCH;
+        };
+        if (!touches) return false;
+        double a0 = o.wall.alongX() ? c.minX() : c.minZ(), a1 = o.wall.alongX() ? c.maxX() : c.maxZ();
+        return a0 < o.offset + o.width + MARGIN - 1e-9 && a1 > o.offset - MARGIN + 1e-9;
+    }
+
+    /** Aplica posición y medidas si el resultado es válido (los recortes se quedan en su esquina). */
+    String changeColumn(Column c, Column candidate) {
+        candidate.x = round(candidate.x);
+        candidate.z = round(candidate.z);
+        candidate.width = round(candidate.width);
+        candidate.depth = round(candidate.depth);
+        if (candidate.kind == Column.Kind.NOTCH) candidate.placeInCorner(project.room);
+        String err = checkColumn(candidate, c);
+        if (err != null) return err;
+        c.x = candidate.x;
+        c.z = candidate.z;
+        c.width = candidate.width;
+        c.depth = candidate.depth;
+        c.corner = candidate.corner;
+        fire(Change.ROOM);
+        return null;
+    }
+
+    String changeColumnFinish(Column c, SurfaceMaterial material, String color) {
+        if (!material.allowedOnWalls()) return material.label() + " no se puede usar en muros.";
+        c.material = material;
+        c.color = color;
+        fire(Change.ROOM);
+        return null;
+    }
+
+    /**
+     * Tras cambiar las medidas de la habitación: los recortes siguen en su esquina y las columnas
+     * se meten dentro. Lo que ya no cabe se elimina; lo que choca con algo se avisa.
+     */
+    private List<String> fitColumnsToRoom() {
+        RoomDims r = project.room;
+        List<String> warnings = new ArrayList<>();
+        for (Column c : List.copyOf(project.columns)) {
+            if (c.kind == Column.Kind.NOTCH) {
+                c.width = round(Math.min(c.width, r.width() - MIN_LEFT));
+                c.depth = round(Math.min(c.depth, r.length() - MIN_LEFT));
+                c.placeInCorner(r);
+            } else {
+                c.x = round(Units.clamp(c.x, c.width / 2, r.width() - c.width / 2));
+                c.z = round(Units.clamp(c.z, c.depth / 2, r.length() - c.depth / 2));
+            }
+            if (c.width < MIN_COLUMN || c.depth < MIN_COLUMN || c.width > r.width() + 1e-9 || c.depth > r.length() + 1e-9) {
+                project.columns.remove(c);
+                warnings.add(label(c) + " ya no cabía y se eliminó.");
+            }
+        }
+        return warnings;
     }
 }

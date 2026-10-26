@@ -10,7 +10,10 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
+import javafx.scene.paint.Color;
 import pe.edu.unaj.amoblador3d.design.Design;
+import pe.edu.unaj.amoblador3d.model.Baseboard;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Opening;
 import pe.edu.unaj.amoblador3d.model.OpeningType;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
@@ -18,24 +21,35 @@ import pe.edu.unaj.amoblador3d.model.Surface;
 import pe.edu.unaj.amoblador3d.model.WallSide;
 
 /**
- * Base, piso, cuadrícula, las 4 paredes con sus huecos y zócalos, y los marcos, vidrios y
- * hojas de puerta. El piso y cada pared usan el material y el color elegidos en el proyecto.
+ * Base, piso, cuadrícula, las 4 paredes con sus huecos y zócalos, columnas y muros internos,
+ * el techo (solo se muestra en el recorrido) y los marcos, vidrios y hojas de puerta. El piso,
+ * cada pared, el techo y cada columna usan el material y el color elegidos en el proyecto.
  */
 final class RoomView {
-    private static final double BASEBOARD_HEIGHT = 0.08, BASEBOARD_DEPTH = 0.012;
+    private static final double BASEBOARD_DEPTH = 0.012;
     private static final double PLINTH_MARGIN = 0.3, PLINTH_DEPTH = 0.08;
 
     final Group group = new Group();
     private final Group grid = new Group();
     private final Map<WallSide, Group> walls = new EnumMap<>(WallSide.class);
+    private Node ceiling;
     private RoomDims dims = RoomDims.DEFAULT;
+    // Zócalo de la reconstrucción actual (alto 0 = sin zócalo)
+    private double baseboardHeight;
+    private PhongMaterial baseboardMaterial;
+    private Baseboard baseboard;
 
     void rebuild(Design design) {
         dims = design.room();
         group.getChildren().clear();
         grid.getChildren().clear();
         walls.clear();
+        baseboard = design.baseboard();
+        baseboardHeight = baseboard.height;
+        baseboardMaterial = Materials.shiny(Color.web(baseboard.color), 0.25, 20);
         createFloor(design.floor());
+        createCeiling(design.ceiling());
+        for (Column c : design.columns()) createColumn(c);
         for (WallSide side : WallSide.values()) {
             WallFrame wall = WallFrame.of(side, dims);
             List<Opening> mine = new ArrayList<>();
@@ -108,6 +122,7 @@ final class RoomView {
 
     /** Zócalo a lo largo de la cara interior, cortado en las puertas. */
     private void createBaseboard(Group g, WallFrame wall, List<Opening> openings) {
+        if (baseboardHeight <= 0) return;
         List<Opening> doors = new ArrayList<>();
         for (Opening o : openings) if (o.type == OpeningType.DOOR) doors.add(o);
         doors.sort(Comparator.comparingDouble(o -> o.offset));
@@ -119,8 +134,48 @@ final class RoomView {
         if (end > cursor) g.getChildren().add(baseboard(wall, cursor, end));
     }
 
-    private static Box baseboard(WallFrame wall, double a0, double a1) {
-        return wall.box(a0, a1, 0, BASEBOARD_HEIGHT, -BASEBOARD_DEPTH, 0, Materials.BASEBOARD);
+    private Node baseboard(WallFrame wall, double a0, double a1) {
+        Box b = wall.box(a0, a1, 0, baseboardHeight, -BASEBOARD_DEPTH, 0, baseboardMaterial);
+        SceneView.tag(b, baseboard);
+        return b;
+    }
+
+    /** Cielo raso: una losa delgada sobre la habitación. Solo se ve en el recorrido. */
+    private void createCeiling(Surface surface) {
+        double w = dims.width(), l = dims.length(), h = dims.height(), t = dims.wallThickness();
+        ceiling = Meshes.box(-t, w + t, h, h + 0.02, -t, l + t, SurfaceTextures.tileSize(surface.material),
+                SurfaceTextures.material(surface.material, surface.color));
+        SceneView.tag(ceiling, surface);
+        ceiling.setVisible(false);
+        group.getChildren().add(ceiling);
+    }
+
+    /** Columna, muro interno o recorte: un bloque del piso al techo con su acabado y su zócalo. */
+    private void createColumn(Column c) {
+        double h = dims.height();
+        Group g = new Group();
+        g.getChildren().add(Meshes.box(c.minX(), c.maxX(), 0, h, c.minZ(), c.maxZ(), SurfaceTextures.tileSize(c.material),
+                SurfaceTextures.material(c.material, c.color)));
+        if (baseboardHeight > 0) {
+            double d = BASEBOARD_DEPTH, bh = baseboardHeight, e = 0.005;
+            // Solo en las caras que no están pegadas a una pared.
+            if (c.minZ() > e) g.getChildren().add(baseboardBox(c.minX() - d, c.maxX() + d, c.minZ() - d, c.minZ(), bh));
+            if (c.maxZ() < dims.length() - e) g.getChildren().add(baseboardBox(c.minX() - d, c.maxX() + d, c.maxZ(), c.maxZ() + d, bh));
+            if (c.minX() > e) g.getChildren().add(baseboardBox(c.minX() - d, c.minX(), c.minZ(), c.maxZ(), bh));
+            if (c.maxX() < dims.width() - e) g.getChildren().add(baseboardBox(c.maxX(), c.maxX() + d, c.minZ(), c.maxZ(), bh));
+        }
+        SceneView.tag(g, c);
+        group.getChildren().add(g);
+    }
+
+    private Box baseboardBox(double x0, double x1, double z0, double z1, double h) {
+        Box b = new Box(x1 - x0, h, z1 - z0);
+        b.setTranslateX((x0 + x1) / 2);
+        b.setTranslateY(h / 2);
+        b.setTranslateZ((z0 + z1) / 2);
+        b.setMaterial(baseboardMaterial);
+        SceneView.tag(b, baseboard);
+        return b;
     }
 
     /** Marco y vidrio (ventana) o marco, hoja y manijas (puerta). */
@@ -157,8 +212,9 @@ final class RoomView {
      * En 3D, oculta las paredes que están entre la cámara y el interior (efecto
      * "casa de muñecas") para poder ver dentro. En planta se ven todas.
      */
-    void updateVisibility(Point3D eye, boolean plan, WallSide selected) {
+    void updateVisibility(Point3D eye, boolean plan, boolean walk, WallSide selected) {
         grid.setVisible(plan);
+        if (ceiling != null) ceiling.setVisible(walk);
         for (Map.Entry<WallSide, Group> e : walls.entrySet()) {
             WallFrame wall = WallFrame.of(e.getKey(), dims);
             Point3D normal = wall.interiorNormal();

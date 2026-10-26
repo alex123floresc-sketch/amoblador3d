@@ -3,6 +3,8 @@ package pe.edu.unaj.amoblador3d.persistence;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
+import pe.edu.unaj.amoblador3d.model.Baseboard;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.Opening;
@@ -32,6 +34,11 @@ public final class ProjectValidator {
         p.ambient = Double.isFinite(p.ambient) ? Units.clamp(p.ambient, 0, 2) : Project.DEFAULT_AMBIENT;
         fixSurface(p.floor, Surface.DEFAULT_FLOOR);
         for (Surface s : p.walls.values()) fixSurface(s, Surface.DEFAULT_WALL);
+        fixSurface(p.ceiling, Surface.DEFAULT_CEILING);
+        if (p.baseboard == null) p.baseboard = new Baseboard();
+        if (!Double.isFinite(p.baseboard.height)) p.baseboard.height = Baseboard.DEFAULT_HEIGHT;
+        p.baseboard.height = Units.clamp(p.baseboard.height, 0, Baseboard.MAX_HEIGHT);
+        if (p.baseboard.color == null || !COLOR.matcher(p.baseboard.color).matches()) p.baseboard.color = Baseboard.DEFAULT_COLOR;
 
         Set<String> ids = new HashSet<>();
         for (Opening o : p.openings) {
@@ -43,6 +50,17 @@ public final class ProjectValidator {
             finite(l.id, l.intensity, l.x, l.y, l.z, l.targetX, l.targetZ, l.angle, l.penumbra, l.elevation, l.deviation);
             if (l.color == null || !COLOR.matcher(l.color).matches()) l.color = new Light(l.id, l.type).color;
             l.intensity = Units.clamp(l.intensity, 0, l.type.maxIntensity());
+        }
+        for (Column c : p.columns) {
+            checkId(c.id, ids);
+            if (c.kind == null) throw new ProjectFormatException("La columna " + c.id + " no tiene tipo.");
+            finite(c.id, c.x, c.z, c.width, c.depth);
+            if (c.width <= 0 || c.depth <= 0) throw new ProjectFormatException("La columna " + c.id + " tiene medidas no válidas.");
+            if (c.kind == Column.Kind.NOTCH && c.corner == null) {
+                throw new ProjectFormatException("El recorte " + c.id + " no dice en qué esquina está.");
+            }
+            if (c.material == null || !c.material.allowedOnWalls()) c.material = Surface.DEFAULT_WALL;
+            if (c.color == null || !COLOR.matcher(c.color).matches()) c.color = c.material.defaultColor();
         }
         // Vistas dañadas o con nombre repetido se descartan (no son motivo para no abrir el proyecto).
         Set<String> names = new HashSet<>();
@@ -61,7 +79,7 @@ public final class ProjectValidator {
 
     /** Un material que no corresponde (p. ej. alfombra en una pared) o un color dañado vuelven al valor por defecto. */
     private static void fixSurface(Surface s, SurfaceMaterial fallback) {
-        if (s.material == null || !s.material.allowedOn(s.isFloor())) s.material = fallback;
+        if (s.material == null || !s.material.allowedOn(s)) s.material = fallback;
         if (s.color == null || !COLOR.matcher(s.color).matches()) s.color = s.material.defaultColor();
     }
 

@@ -13,6 +13,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import pe.edu.unaj.amoblador3d.design.Design;
 import pe.edu.unaj.amoblador3d.design.Snapper;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
@@ -148,6 +149,13 @@ final class Overlay {
             double a0 = o.offset - 0.02, y0 = o.sill - 0.02, d0 = -0.03;
             double w = o.width + 0.04, h = o.height + 0.04, d = r.wallThickness() + 0.06;
             outline(w, h, d, (lx, ly, lz) -> wall.point(a0 + lx + w / 2, y0 + ly, d0 + lz + d / 2));
+        } else if (selected instanceof Column c) {
+            double h = r.height();
+            outline(c.width, h, c.depth, (lx, ly, lz) -> p(c.x + lx, ly, c.z + lz));
+            dimension(p(c.minX(), 0.01, c.maxZ()), p(c.maxX(), 0.01, c.maxZ()), p(0, 0, 1), 0.15); // ancho
+            dimension(p(c.maxX(), 0.01, c.minZ()), p(c.maxX(), 0.01, c.maxZ()), p(1, 0, 0), 0.15); // profundidad
+        } else if (selected instanceof Surface s && s.isCeiling()) {
+            outline(r.width(), 0.02, r.length(), (lx, ly, lz) -> p(r.width() / 2 + lx, r.height() + ly, r.length() / 2 + lz));
         } else if (selected instanceof Surface s && s.isFloor()) {
             outline(r.width(), 0.02, r.length(), (lx, ly, lz) -> p(r.width() / 2 + lx, ly, r.length() / 2 + lz));
         } else if (selected instanceof Surface s) {

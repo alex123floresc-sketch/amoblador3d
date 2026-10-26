@@ -9,7 +9,9 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import java.util.ArrayList;
 import java.util.List;
+import pe.edu.unaj.amoblador3d.model.Baseboard;
 import pe.edu.unaj.amoblador3d.model.CameraView;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
@@ -27,7 +29,9 @@ import pe.edu.unaj.amoblador3d.model.WallSide;
  * {
  *   "app": "Amoblador3D", "version": 1,
  *   "room":      { "width": 4, "length": 3.5, "height": 2.5, "wallThickness": 0.15 },
- *   "surfaces":  { "piso": { "material": "madera", "color": "#b07d4f" }, "pared-norte": { ... }, ... },
+ *   "surfaces":  { "piso": { "material": "madera", "color": "#b07d4f" }, "pared-norte": { ... }, ..., "techo": { ... } },
+ *   "baseboard": { "height": 0.08, "color": "#f7f5f0" },
+ *   "columns":   [ { "id", "kind": "column"|"wall"|"notch", "corner", "x", "z", "width", "depth", "material", "color" } ],
  *   "openings":  [ { "id", "type": "window"|"door", "wall", "offset", "width", "height", "sill" } ],
  *   "ambient":   0.6,
  *   "lights":    [ { "id", "type": "point"|"spot"|"sun", "color", "intensity", ... } ],
@@ -39,7 +43,13 @@ import pe.edu.unaj.amoblador3d.model.WallSide;
  */
 public final class ProjectJson {
     public static final String APP = "Amoblador3D";
-    public static final int VERSION = 1;
+    /**
+     * Versión 2: con columnas o recortes en L. Los proyectos sin ellos se siguen escribiendo como
+     * versión 1 para que las versiones anteriores de la aplicación puedan abrirlos (lo que no
+     * conocen, como el techo o el zócalo, simplemente lo ignoran). Uno con columnas no se puede
+     * abrir en una versión anterior: las perdería al guardar.
+     */
+    public static final int VERSION = 2;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private ProjectJson() {}
@@ -47,7 +57,7 @@ public final class ProjectJson {
     public static String write(Project p) {
         JsonObject root = new JsonObject();
         root.addProperty("app", APP);
-        root.addProperty("version", VERSION);
+        root.addProperty("version", p.columns.isEmpty() ? 1 : VERSION);
 
         JsonObject room = new JsonObject();
         room.addProperty("width", p.room.width());
@@ -57,16 +67,36 @@ public final class ProjectJson {
         root.add("room", room);
 
         JsonObject surfaces = new JsonObject();
-        List<Surface> all = new ArrayList<>();
-        all.add(p.floor);
-        all.addAll(p.walls.values());
-        for (Surface s : all) {
+        for (Surface s : p.surfaces()) {
             JsonObject j = new JsonObject();
             j.addProperty("material", s.material.id());
             j.addProperty("color", s.color);
             surfaces.add(s.id, j);
         }
         root.add("surfaces", surfaces);
+
+        JsonObject baseboard = new JsonObject();
+        baseboard.addProperty("height", p.baseboard.height);
+        baseboard.addProperty("color", p.baseboard.color);
+        root.add("baseboard", baseboard);
+
+        if (!p.columns.isEmpty()) {
+            JsonArray columns = new JsonArray();
+            for (Column c : p.columns) {
+                JsonObject j = new JsonObject();
+                j.addProperty("id", c.id);
+                j.addProperty("kind", c.kind.id());
+                if (c.corner != null) j.addProperty("corner", c.corner.id());
+                j.addProperty("x", c.x);
+                j.addProperty("z", c.z);
+                j.addProperty("width", c.width);
+                j.addProperty("depth", c.depth);
+                j.addProperty("material", c.material.id());
+                j.addProperty("color", c.color);
+                columns.add(j);
+            }
+            root.add("columns", columns);
+        }
 
         JsonArray openings = new JsonArray();
         for (Opening o : p.openings) {
@@ -214,16 +244,28 @@ public final class ProjectJson {
             // Los proyectos anteriores no tienen "surfaces": se quedan con los acabados por defecto.
             JsonElement surfaces = root.get("surfaces");
             if (surfaces != null && surfaces.isJsonObject()) {
-                List<Surface> all = new ArrayList<>();
-                all.add(p.floor);
-                all.addAll(p.walls.values());
-                for (Surface s : all) {
+                for (Surface s : p.surfaces()) {
                     JsonElement e = surfaces.getAsJsonObject().get(s.id);
                     if (e == null || !e.isJsonObject()) continue;
                     JsonObject j = e.getAsJsonObject();
                     if (str(j, "material") != null) s.material = SurfaceMaterial.fromId(str(j, "material"));
                     s.color = str(j, "color");
                 }
+            }
+
+            JsonElement baseboard = root.get("baseboard");
+            if (baseboard != null && baseboard.isJsonObject()) {
+                p.baseboard.height = num(baseboard.getAsJsonObject(), "height", Baseboard.DEFAULT_HEIGHT);
+                String color = str(baseboard.getAsJsonObject(), "color");
+                if (color != null) p.baseboard.color = color;
+            }
+            for (JsonObject j : list(root, "columns")) {
+                Column c = new Column(str(j, "id"), Column.Kind.fromId(str(j, "kind")), num(j, "x", Double.NaN),
+                        num(j, "z", Double.NaN), num(j, "width", Double.NaN), num(j, "depth", Double.NaN));
+                if (str(j, "corner") != null) c.corner = Column.Corner.fromId(str(j, "corner"));
+                if (str(j, "material") != null) c.material = SurfaceMaterial.fromId(str(j, "material"));
+                c.color = str(j, "color");
+                p.columns.add(c);
             }
 
             for (JsonObject j : list(root, "openings")) {

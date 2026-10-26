@@ -5,6 +5,8 @@ import static pe.edu.unaj.amoblador3d.design.Design.MARGIN;
 import java.util.ArrayList;
 import java.util.List;
 import pe.edu.unaj.amoblador3d.catalog.CatalogEntry;
+import pe.edu.unaj.amoblador3d.model.Baseboard;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.design.Field.Option;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
@@ -38,6 +40,9 @@ public final class Editors {
             new Option("#c9a274", "Roble claro"), new Option("#b07d4f", "Cerezo"), new Option("#7a5235", "Nogal"),
             new Option("#ecebe7", "Blanco"), new Option("#9a9a96", "Gris cemento"), new Option("#b0603f", "Terracota"),
             new Option("#7d8a96", "Gris azulado"), new Option("#2d2d2d", "Negro"));
+    private static final List<Option> BASEBOARD_COLORS = List.of(
+            new Option("#f7f5f0", "Blanco"), new Option("#d9d7d1", "Gris perla"), new Option("#c9a274", "Roble claro"),
+            new Option("#7a5235", "Nogal"), new Option("#2d2d2d", "Negro"));
     private static final List<Option> LIGHT_COLORS = List.of(
             new Option("#ffd6a0", "Cálida"), new Option("#ffe2b8", "Cálida suave"), new Option("#fff4e0", "Neutra"),
             new Option("#eef3ff", "Fría"));
@@ -50,7 +55,7 @@ public final class Editors {
 
     /** Nombre del color si es uno de los sugeridos ("Blanco hueso"), o el código "#rrggbb". */
     public static String colorName(String color) {
-        for (List<Option> list : List.of(WALL_COLORS, FLOOR_COLORS, FURNITURE_COLORS)) {
+        for (List<Option> list : List.of(WALL_COLORS, FLOOR_COLORS, FURNITURE_COLORS, BASEBOARD_COLORS)) {
             for (Option o : list) if (o.value().equalsIgnoreCase(color)) return o.label();
         }
         return color;
@@ -61,6 +66,8 @@ public final class Editors {
         if (entity instanceof Light l) return new LightEditor(design, l);
         if (entity instanceof Furniture f) return new FurnitureEditor(design, f, onDuplicate);
         if (entity instanceof Surface s) return new SurfaceEditor(design, s);
+        if (entity instanceof Column c) return new ColumnEditor(design, c);
+        if (entity instanceof Baseboard b) return new BaseboardEditor(design, b);
         throw new IllegalArgumentException("Entidad desconocida: " + entity);
     }
 
@@ -399,7 +406,7 @@ public final class Editors {
         @Override
         public List<Field> fields() {
             List<Option> materials = new ArrayList<>();
-            for (SurfaceMaterial m : SurfaceMaterial.forSurface(s.isFloor())) materials.add(new Option(m.id(), m.label()));
+            for (SurfaceMaterial m : SurfaceMaterial.forSurface(s)) materials.add(new Option(m.id(), m.label()));
             return List.of(Field.gallery("material", "Material", materials),
                     Field.color("color", "Color", s.isFloor() ? FLOOR_COLORS : WALL_COLORS));
         }
@@ -429,13 +436,169 @@ public final class Editors {
         @Override
         public List<Action> actions() {
             List<Action> actions = new ArrayList<>();
-            if (!s.isFloor()) {
+            if (s.wallSide() != null) {
                 actions.add(new Action("Aplicar a todas", "Usar este material y color en las 4 paredes",
                         () -> design.applyToAllWalls(s)));
             }
             actions.add(new Action("Color original", "Volver al color típico de " + s.material.label().toLowerCase(),
                     () -> design.changeSurface(s, s.material, s.material.defaultColor())));
             return actions;
+        }
+    }
+
+    // ---------------------------------------------------------------- Columnas, muros internos y recortes
+
+    private record ColumnEditor(Design design, Column c) implements Editable {
+        @Override
+        public Object entity() {
+            return c;
+        }
+
+        @Override
+        public String title() {
+            return design.label(c);
+        }
+
+        private boolean notch() {
+            return c.kind == Column.Kind.NOTCH;
+        }
+
+        @Override
+        public List<Field> fields() {
+            RoomDims r = design.room();
+            List<Field> fields = new ArrayList<>();
+            if (notch()) {
+                List<Option> corners = new ArrayList<>();
+                for (Column.Corner k : Column.Corner.values()) corners.add(new Option(k.id(), k.label()));
+                fields.add(Field.select("corner", "Esquina", corners));
+                fields.add(Field.meters("width", "Ancho (X)", Design.MIN_COLUMN, r.width() - Design.MIN_LEFT));
+                fields.add(Field.meters("depth", "Largo (Z)", Design.MIN_COLUMN, r.length() - Design.MIN_LEFT));
+            } else {
+                fields.add(Field.meters("x", "Posición X", c.width / 2, r.width() - c.width / 2));
+                fields.add(Field.meters("z", "Posición Z", c.depth / 2, r.length() - c.depth / 2));
+                fields.add(Field.meters("width", "Ancho (X)", Design.MIN_COLUMN, r.width()));
+                fields.add(Field.meters("depth", "Profundidad (Z)", Design.MIN_COLUMN, r.length()));
+            }
+            List<Option> materials = new ArrayList<>();
+            for (SurfaceMaterial m : SurfaceMaterial.forWalls()) materials.add(new Option(m.id(), m.label()));
+            fields.add(Field.gallery("material", "Material", materials));
+            fields.add(Field.color("color", "Color", WALL_COLORS));
+            return fields;
+        }
+
+        @Override
+        public Object get(String key) {
+            return switch (key) {
+                case "corner" -> c.corner == null ? null : c.corner.id();
+                case "x" -> c.x;
+                case "z" -> c.z;
+                case "width" -> c.width;
+                case "depth" -> c.depth;
+                case "material" -> c.material.id();
+                case "color" -> c.color;
+                default -> null;
+            };
+        }
+
+        @Override
+        public String set(String key, Object value) {
+            switch (key) {
+                case "material" -> {
+                    SurfaceMaterial m = SurfaceMaterial.fromId((String) value);
+                    return design.changeColumnFinish(c, m, m.defaultColor());
+                }
+                case "color" -> {
+                    return design.changeColumnFinish(c, c.material, (String) value);
+                }
+                case "corner" -> {
+                    Column k = c.copy();
+                    k.corner = Column.Corner.fromId((String) value);
+                    return design.changeColumn(c, k);
+                }
+                default -> {
+                    String error = checkField(fields(), key, value);
+                    if (error != null) return error;
+                    double v = (Double) value;
+                    Column k = c.copy();
+                    switch (key) {
+                        case "x" -> k.x = v;
+                        case "z" -> k.z = v;
+                        case "width" -> k.width = v;
+                        case "depth" -> k.depth = v;
+                        default -> { return "Campo desconocido: " + key; }
+                    }
+                    return design.changeColumn(c, k);
+                }
+            }
+        }
+
+        @Override
+        public List<Action> actions() {
+            List<Action> actions = new ArrayList<>();
+            if (!notch()) {
+                actions.add(new Action("Girar 90°", "Intercambiar ancho y profundidad (un muro de este-oeste pasa a norte-sur)",
+                        () -> {
+                            Column k = c.copy();
+                            k.width = c.depth;
+                            k.depth = c.width;
+                            return design.changeColumn(c, k);
+                        }));
+            }
+            actions.add(new Action("Igual que las paredes", "Usar el material y color de la pared norte",
+                    () -> design.changeColumnFinish(c, design.wall(WallSide.NORTE).material, design.wall(WallSide.NORTE).color)));
+            return actions;
+        }
+    }
+
+    // ---------------------------------------------------------------- Zócalo
+
+    private record BaseboardEditor(Design design, Baseboard b) implements Editable {
+        @Override
+        public Object entity() {
+            return b;
+        }
+
+        @Override
+        public String title() {
+            return "Zócalo";
+        }
+
+        @Override
+        public List<Field> fields() {
+            return List.of(Field.number("height", "Alto (0 = sin zócalo)", 0, Baseboard.MAX_HEIGHT, 0.01, "m"),
+                    Field.color("color", "Color", BASEBOARD_COLORS));
+        }
+
+        @Override
+        public Object get(String key) {
+            return switch (key) {
+                case "height" -> b.height;
+                case "color" -> b.color;
+                default -> null;
+            };
+        }
+
+        @Override
+        public String set(String key, Object value) {
+            return switch (key) {
+                case "height" -> {
+                    String error = checkField(fields(), key, value);
+                    yield error != null ? error : design.changeBaseboard((Double) value, b.color);
+                }
+                case "color" -> design.changeBaseboard(b.height, (String) value);
+                default -> "Campo desconocido: " + key;
+            };
+        }
+
+        @Override
+        public boolean canDelete() {
+            return false;
+        }
+
+        @Override
+        public List<Action> actions() {
+            return List.of(new Action("Sin zócalo", "Alto 0", () -> design.changeBaseboard(0, b.color)),
+                    new Action("Original", "8 cm, blanco", () -> design.changeBaseboard(Baseboard.DEFAULT_HEIGHT, Baseboard.DEFAULT_COLOR)));
         }
     }
 }

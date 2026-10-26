@@ -51,6 +51,8 @@ CREATE TABLE project (
     height         DOUBLE PRECISION NOT NULL CHECK (height > 0),
     wall_thickness DOUBLE PRECISION NOT NULL CHECK (wall_thickness > 0),
     ambient        DOUBLE PRECISION NOT NULL CHECK (ambient BETWEEN 0 AND 2),
+    baseboard_height DOUBLE PRECISION NOT NULL DEFAULT 0.08 CHECK (baseboard_height BETWEEN 0 AND 0.2), -- 0 = sin zócalo
+    baseboard_color  color_hex      NOT NULL DEFAULT '#f7f5f0',
     created_at     TIMESTAMPTZ      NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ      NOT NULL DEFAULT now(),
     thumbnail      BYTEA                                             -- miniatura PNG
@@ -60,7 +62,7 @@ CREATE TABLE project (
 CREATE UNIQUE INDEX project_name_key ON project (lower(name));
 
 -- -----------------------------------------------------------------------------
--- Paredes y piso
+-- Paredes, piso y techo
 -- -----------------------------------------------------------------------------
 CREATE TABLE surface_material (
     id            VARCHAR(20)  PRIMARY KEY,
@@ -68,27 +70,28 @@ CREATE TABLE surface_material (
     default_color color_hex    NOT NULL,
     on_wall       BOOLEAN      NOT NULL,
     on_floor      BOOLEAN      NOT NULL,
-    CHECK (on_wall OR on_floor)
+    on_ceiling    BOOLEAN      NOT NULL,
+    CHECK (on_wall OR on_floor OR on_ceiling)
 );
 
 -- Mismos valores que el enum model/SurfaceMaterial.java.
-INSERT INTO surface_material (id, label, default_color, on_wall, on_floor) VALUES
-    ('pintura',     'Pintura mate',        '#f2efe9', TRUE,  FALSE),
-    ('satinado',    'Pintura satinada',    '#e9eef2', TRUE,  FALSE),
-    ('papel-tapiz', 'Papel tapiz (rayas)', '#d8c7a8', TRUE,  FALSE),
-    ('ladrillo',    'Ladrillo',            '#a4553a', TRUE,  FALSE),
-    ('piedra',      'Piedra',              '#9d9488', TRUE,  TRUE),
-    ('concreto',    'Concreto',            '#a7a7a2', TRUE,  TRUE),
-    ('madera',      'Madera',              '#b07d4f', TRUE,  TRUE),
-    ('ceramico',    'Cerámico',            '#e4e0d8', TRUE,  TRUE),
-    ('marmol',      'Mármol',              '#ece9e4', TRUE,  TRUE),
-    ('porcelanato', 'Porcelanato',         '#c9c3b9', FALSE, TRUE),
-    ('alfombra',    'Alfombra',            '#7d8a96', FALSE, TRUE);
+INSERT INTO surface_material (id, label, default_color, on_wall, on_floor, on_ceiling) VALUES
+    ('pintura',     'Pintura mate',        '#f2efe9', TRUE,  FALSE, TRUE),
+    ('satinado',    'Pintura satinada',    '#e9eef2', TRUE,  FALSE, TRUE),
+    ('papel-tapiz', 'Papel tapiz (rayas)', '#d8c7a8', TRUE,  FALSE, FALSE),
+    ('ladrillo',    'Ladrillo',            '#a4553a', TRUE,  FALSE, FALSE),
+    ('piedra',      'Piedra',              '#9d9488', TRUE,  TRUE,  FALSE),
+    ('concreto',    'Concreto',            '#a7a7a2', TRUE,  TRUE,  TRUE),
+    ('madera',      'Madera',              '#b07d4f', TRUE,  TRUE,  TRUE),
+    ('ceramico',    'Cerámico',            '#e4e0d8', TRUE,  TRUE,  FALSE),
+    ('marmol',      'Mármol',              '#ece9e4', TRUE,  TRUE,  FALSE),
+    ('porcelanato', 'Porcelanato',         '#c9c3b9', FALSE, TRUE,  FALSE),
+    ('alfombra',    'Alfombra',            '#7d8a96', FALSE, TRUE,  FALSE);
 
 CREATE TABLE surface (
     project_id BIGINT      NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     id         VARCHAR(20) NOT NULL
-               CHECK (id IN ('piso', 'pared-norte', 'pared-sur', 'pared-este', 'pared-oeste')),
+               CHECK (id IN ('piso', 'techo', 'pared-norte', 'pared-sur', 'pared-este', 'pared-oeste')),
     material   VARCHAR(20) NOT NULL REFERENCES surface_material(id),
     color      color_hex   NOT NULL,
     PRIMARY KEY (project_id, id)
@@ -164,6 +167,23 @@ CREATE TABLE catalog_model (
     created_at TIMESTAMPTZ      NOT NULL DEFAULT now()
 );
 
+-- Columnas, muros internos y recortes en L: bloques del piso al techo (rectángulos en planta).
+CREATE TABLE room_column (
+    project_id BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    position   INTEGER          NOT NULL,
+    id         VARCHAR(60)      NOT NULL,
+    kind       VARCHAR(6)       NOT NULL CHECK (kind IN ('column', 'wall', 'notch')),
+    corner     VARCHAR(9)       CHECK (corner IN ('noroeste', 'noreste', 'suroeste', 'sureste')),
+    x          DOUBLE PRECISION NOT NULL,                   -- centro, en metros
+    z          DOUBLE PRECISION NOT NULL,
+    width      DOUBLE PRECISION NOT NULL CHECK (width > 0), -- medida en X
+    depth      DOUBLE PRECISION NOT NULL CHECK (depth > 0), -- medida en Z
+    material   VARCHAR(20)      NOT NULL REFERENCES surface_material(id),
+    color      color_hex        NOT NULL,
+    PRIMARY KEY (project_id, id),
+    CHECK ((kind = 'notch') = (corner IS NOT NULL))         -- solo los recortes tienen esquina
+);
+
 -- Vistas de cámara guardadas (ver el script SQLite para el significado de cada número).
 CREATE TABLE camera_view (
     project_id BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
@@ -194,7 +214,7 @@ LANGUAGE plpgsql AS $$
 DECLARE
     allowed BOOLEAN;
 BEGIN
-    SELECT CASE WHEN NEW.id = 'piso' THEN on_floor ELSE on_wall END
+    SELECT CASE WHEN NEW.id = 'piso' THEN on_floor WHEN NEW.id = 'techo' THEN on_ceiling ELSE on_wall END
       INTO allowed
       FROM surface_material
      WHERE id = NEW.material;
@@ -273,7 +293,8 @@ SELECT p.id, v.id, v.material, v.color
                ('pared-norte', 'ladrillo', '#a4553a'),
                ('pared-sur',   'pintura',  '#f2efe9'),
                ('pared-este',  'pintura',  '#f2efe9'),
-               ('pared-oeste', 'pintura',  '#f2efe9')) AS v(id, material, color)
+               ('pared-oeste', 'pintura',  '#f2efe9'),
+               ('techo',       'pintura',  '#fafafa')) AS v(id, material, color)
  WHERE p.name = 'Dormitorio de ejemplo';
 
 INSERT INTO opening (project_id, position, id, type, wall, wall_offset, width, height, sill)

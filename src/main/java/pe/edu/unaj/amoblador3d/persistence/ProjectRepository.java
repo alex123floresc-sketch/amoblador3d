@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import pe.edu.unaj.amoblador3d.model.CameraView;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
@@ -65,13 +66,13 @@ public final class ProjectRepository {
             String now = Instant.now().toString();
             long projectId;
             if (id == null) {
-                String sql = "INSERT INTO project (name, width, length, height, wall_thickness, ambient, created_at, updated_at, thumbnail)"
-                        + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                String sql = "INSERT INTO project (name, width, length, height, wall_thickness, ambient, baseboard_height,"
+                        + " baseboard_color, created_at, updated_at, thumbnail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                     bindProject(ps, name, p);
-                    ps.setString(7, now);
-                    ps.setString(8, now);
-                    ps.setBytes(9, thumbnail);
+                    ps.setString(9, now);
+                    ps.setString(10, now);
+                    ps.setBytes(11, thumbnail);
                     ps.executeUpdate();
                     try (ResultSet keys = ps.getGeneratedKeys()) {
                         keys.next();
@@ -81,15 +82,15 @@ public final class ProjectRepository {
             } else {
                 projectId = id;
                 String sql = "UPDATE project SET name = ?, width = ?, length = ?, height = ?, wall_thickness = ?, ambient = ?,"
-                        + " updated_at = ?, thumbnail = ? WHERE id = ?";
+                        + " baseboard_height = ?, baseboard_color = ?, updated_at = ?, thumbnail = ? WHERE id = ?";
                 try (PreparedStatement ps = c.prepareStatement(sql)) {
                     bindProject(ps, name, p);
-                    ps.setString(7, now);
-                    ps.setBytes(8, thumbnail);
-                    ps.setLong(9, projectId);
+                    ps.setString(9, now);
+                    ps.setBytes(10, thumbnail);
+                    ps.setLong(11, projectId);
                     if (ps.executeUpdate() == 0) throw new SQLException("El proyecto ya no existe en la base de datos.");
                 }
-                for (String table : List.of("surface", "opening", "light", "furniture", "camera_view")) {
+                for (String table : List.of("surface", "opening", "light", "furniture", "camera_view", "room_column")) {
                     try (PreparedStatement ps = c.prepareStatement("DELETE FROM " + table + " WHERE project_id = ?")) {
                         ps.setLong(1, projectId);
                         ps.executeUpdate();
@@ -108,15 +109,14 @@ public final class ProjectRepository {
         ps.setDouble(4, p.room.height());
         ps.setDouble(5, p.room.wallThickness());
         ps.setDouble(6, p.ambient);
+        ps.setDouble(7, p.baseboard.height);
+        ps.setString(8, p.baseboard.color);
     }
 
     private static void insertChildren(Connection c, long projectId, Project p) throws SQLException {
         String sql = "INSERT INTO surface (project_id, id, material, color) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
-            List<Surface> all = new ArrayList<>();
-            all.add(p.floor);
-            all.addAll(p.walls.values());
-            for (Surface s : all) {
+            for (Surface s : p.surfaces()) {
                 ps.setLong(1, projectId);
                 ps.setString(2, s.id);
                 ps.setString(3, s.material.id());
@@ -197,6 +197,28 @@ public final class ProjectRepository {
             ps.executeBatch();
         }
 
+        sql = "INSERT INTO room_column (project_id, position, id, kind, corner, x, z, width, depth, material, color)"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            int i = 0;
+            for (Column col : p.columns) {
+                ps.setLong(1, projectId);
+                ps.setInt(2, i++);
+                ps.setString(3, col.id);
+                ps.setString(4, col.kind.id());
+                if (col.corner != null) ps.setString(5, col.corner.id());
+                else ps.setNull(5, Types.VARCHAR);
+                ps.setDouble(6, col.x);
+                ps.setDouble(7, col.z);
+                ps.setDouble(8, col.width);
+                ps.setDouble(9, col.depth);
+                ps.setString(10, col.material.id());
+                ps.setString(11, col.color);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+
         sql = "INSERT INTO camera_view (project_id, position, name, mode, x, y, z, yaw, pitch, distance)"
                 + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
@@ -222,13 +244,16 @@ public final class ProjectRepository {
     public Project load(long id) throws SQLException, ProjectFormatException {
         Connection c = db.connection();
         Project p = new Project();
-        String sql = "SELECT width, length, height, wall_thickness, ambient FROM project WHERE id = ?";
+        String sql = "SELECT width, length, height, wall_thickness, ambient, baseboard_height, baseboard_color"
+                + " FROM project WHERE id = ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return null;
                 p.room = new RoomDims(rs.getDouble(1), rs.getDouble(2), rs.getDouble(3), rs.getDouble(4));
                 p.ambient = rs.getDouble(5);
+                p.baseboard.height = rs.getDouble(6);
+                p.baseboard.color = rs.getString(7);
             }
         }
         try {
@@ -239,8 +264,8 @@ public final class ProjectRepository {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         String sid = rs.getString(1);
-                        Surface s = Surface.FLOOR_ID.equals(sid) ? p.floor : null;
-                        for (Surface w : p.walls.values()) if (w.id.equals(sid)) s = w;
+                        Surface s = null;
+                        for (Surface any : p.surfaces()) if (any.id.equals(sid)) s = any;
                         if (s == null) continue;
                         s.material = SurfaceMaterial.fromId(rs.getString(2));
                         s.color = rs.getString(3);
@@ -278,6 +303,21 @@ public final class ProjectRepository {
                         l.elevation = rs.getDouble(14);
                         l.deviation = rs.getDouble(15);
                         p.lights.add(l);
+                    }
+                }
+            }
+            sql = "SELECT id, kind, corner, x, z, width, depth, material, color FROM room_column"
+                    + " WHERE project_id = ? ORDER BY position";
+            try (PreparedStatement ps = c.prepareStatement(sql)) {
+                ps.setLong(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        Column col = new Column(rs.getString(1), Column.Kind.fromId(rs.getString(2)), rs.getDouble(4),
+                                rs.getDouble(5), rs.getDouble(6), rs.getDouble(7));
+                        if (rs.getString(3) != null) col.corner = Column.Corner.fromId(rs.getString(3));
+                        col.material = SurfaceMaterial.fromId(rs.getString(8));
+                        col.color = rs.getString(9);
+                        p.columns.add(col);
                     }
                 }
             }

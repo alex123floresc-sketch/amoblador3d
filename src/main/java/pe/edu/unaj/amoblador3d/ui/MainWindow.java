@@ -73,6 +73,7 @@ import pe.edu.unaj.amoblador3d.estimate.PriceList;
 import pe.edu.unaj.amoblador3d.estimate.Quantities;
 import pe.edu.unaj.amoblador3d.gltf.GltfLoader;
 import pe.edu.unaj.amoblador3d.gltf.ModelData;
+import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
@@ -138,6 +139,7 @@ public final class MainWindow {
     private final VBox catalogGroups = new VBox(12);
     private final ListView<Object> items = new ListView<>();
     private final Button floorButton = new Button("Piso");
+    private final Button ceilingButton = new Button("Techo"), baseboardButton = new Button("Zócalo");
     private final java.util.Map<WallSide, Button> wallButtons = new java.util.EnumMap<>(WallSide.class);
     private Toast toast;
     /** Pasos de un movimiento con las flechas: se registran juntos al soltar la tecla. */
@@ -442,10 +444,11 @@ public final class MainWindow {
                 tab("Muebles", buildCatalog()),
                 tab("Habitación", new VBox(14,
                         group("Medidas", buildRoomForm()),
-                        group("Paredes y piso", buildSurfaceButtons()),
+                        group("Paredes, piso y techo", buildSurfaceButtons()),
                         group("Ventanas y puertas", row(
                                 smallButton("+ Ventana", "Agrega una ventana en el primer lugar libre", () -> addOpening(OpeningType.WINDOW)),
-                                smallButton("+ Puerta", "Agrega una puerta en el primer lugar libre", () -> addOpening(OpeningType.DOOR)))))),
+                                smallButton("+ Puerta", "Agrega una puerta en el primer lugar libre", () -> addOpening(OpeningType.DOOR)))),
+                        group("Columnas y forma", buildColumnButtons()))),
                 tab("Luz", buildLightingControls()),
                 tab("Lista", buildItemList()));
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
@@ -579,7 +582,30 @@ public final class MainWindow {
         Label hint = new Label("También puedes hacer clic en una pared o en el piso de la vista 3D.");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
-        return new VBox(8, floorButton, walls, hint);
+        for (Button b : List.of(ceilingButton, baseboardButton)) {
+            b.getStyleClass().add("surface-button");
+            b.setMaxWidth(Double.MAX_VALUE);
+            b.setFocusTraversable(false);
+            HBox.setHgrow(b, Priority.ALWAYS);
+        }
+        ceilingButton.setTooltip(new Tooltip("Material y color del techo (se ve en el Recorrido)"));
+        ceilingButton.setOnAction(e -> select(design.ceiling()));
+        baseboardButton.setTooltip(new Tooltip("Alto y color del zócalo (alto 0 = sin zócalo)"));
+        baseboardButton.setOnAction(e -> select(design.baseboard()));
+        return new VBox(8, floorButton, walls, row(ceilingButton, baseboardButton), hint);
+    }
+
+    /** Columnas, muros internos y el recorte que convierte la habitación en una L. */
+    private Node buildColumnButtons() {
+        Label hint = new Label("Bloques del piso al techo: los muebles no los atraviesan y se descuentan del piso "
+                + "en el presupuesto. Se mueven con las flechas o desde el panel.");
+        hint.getStyleClass().add("hint");
+        hint.setWrapText(true);
+        return new VBox(8,
+                row(smallButton("+ Columna", "Columna de 30 x 30 cm", () -> addColumn(Column.Kind.COLUMN)),
+                        smallButton("+ Muro interno", "Tabique de 1.5 m x 12 cm", () -> addColumn(Column.Kind.WALL))),
+                smallButton("Habitación en L…", "Quitar una esquina de la habitación", this::addNotch),
+                hint);
     }
 
     /** Muestra del material de una superficie para su botón. */
@@ -692,6 +718,7 @@ public final class MainWindow {
     private static String dotColor(Object entity) {
         if (entity instanceof Opening o) return o.type == OpeningType.DOOR ? "#c08457" : "#9fd3ff";
         if (entity instanceof Light l) return l.type == LightType.SUN ? "#ffc845" : "#ffe2b8";
+        if (entity instanceof Column) return "#b9b2a6";
         return "#7ee0a1";
     }
 
@@ -776,12 +803,17 @@ public final class MainWindow {
         List<Object> list = new ArrayList<>(design.openings());
         list.addAll(design.lights());
         list.addAll(design.furniture());
+        list.addAll(design.columns());
         // Solo se reemplaza la lista si cambió qué hay; si no, se refrescan los nombres
         // (antes se reconstruía en cada movimiento al arrastrar y el scroll volvía arriba).
         if (!sameItems(items.getItems(), list)) items.getItems().setAll(list);
         else items.refresh();
         rebuildViewsMenu();
         floorButton.setGraphic(swatch(design.floor()));
+        ceilingButton.setGraphic(swatch(design.ceiling()));
+        Rectangle trim = new Rectangle(26, 18, Color.web(design.baseboard().color));
+        trim.setStroke(Color.web("#00000066"));
+        baseboardButton.setGraphic(trim);
         for (WallSide side : WallSide.values()) wallButtons.get(side).setGraphic(swatch(design.wall(side)));
         syncListSelection();
         syncing = false;
@@ -929,6 +961,36 @@ public final class MainWindow {
         view.frameRoom();
         if (!warnings.isEmpty()) warn(String.join("\n", warnings));
         else notify("Medidas aplicadas.");
+    }
+
+    private void addColumn(Column.Kind kind) {
+        handle(design.addColumn(kind), this::select);
+    }
+
+    /** Pregunta la esquina y las medidas del recorte que convierte la habitación en una L. */
+    private void addNotch() {
+        commitEdits();
+        NotchDialog.show(stage, design.room()).ifPresent(n -> handle(design.addNotch(n.corner(), n.width(), n.depth()), c -> {
+            select(c);
+            notify("La habitación ahora es una L. Ajusta el recorte en el panel de la derecha.");
+        }));
+    }
+
+    /** Mueve una columna o muro interno con las flechas (mismas reglas que el panel). */
+    private void nudgeColumn(Column c, KeyCode key, double step) {
+        Editable editor = Editors.of(design, c, this::duplicate);
+        String err = switch (key) {
+            case LEFT -> editor.set("x", Units.round(c.x - step));
+            case RIGHT -> editor.set("x", Units.round(c.x + step));
+            case UP -> editor.set("z", Units.round(c.z - step));
+            default -> editor.set("z", Units.round(c.z + step));
+        };
+        if (err != null) {
+            notify(err, Toast.Kind.ERROR);
+            return;
+        }
+        nudging = true;
+        history.markPending();
     }
 
     private void addOpening(OpeningType type) {
@@ -1124,6 +1186,9 @@ public final class MainWindow {
         else if (e.getCode() == KeyCode.Q) rotateSelected(15);
         else if (e.getCode() == KeyCode.E) rotateSelected(-15);
         else if (e.getCode().isArrowKey() && !selectedFurniture().isEmpty()) nudge(e.getCode(), e.isShiftDown() ? 0.01 : 0.05);
+        else if (e.getCode().isArrowKey() && selected instanceof Column c && c.kind != Column.Kind.NOTCH) {
+            nudgeColumn(c, e.getCode(), e.isShiftDown() ? 0.01 : 0.05);
+        }
         else return;
         e.consume();
     }

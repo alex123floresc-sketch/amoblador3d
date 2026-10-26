@@ -114,6 +114,12 @@ scripts de la base de datos:
 | `amoblador3d_sqlite.sql` | El esquema exacto que usa la aplicación, con un proyecto de ejemplo. |
 | `amoblador3d_postgresql.sql` | La misma base escrita en PostgreSQL, con reglas extra y vistas de consulta. |
 
+Tablas (esquema v6): `project` (medidas, luz ambiental y zócalo), `surface` (piso, paredes y techo),
+`opening` (ventanas y puertas), `light`, `furniture`, `room_column` (columnas, muros internos y
+recortes en L), `camera_view` (vistas guardadas), `catalog_model` (modelos 3D importados) y `price`
+(precios que cambiaste en el presupuesto). Al abrir una base de una versión anterior, la aplicación
+la actualiza sola sin perder nada.
+
 ### Ver la base SQLite
 
 Instala [DB Browser for SQLite](https://sqlitebrowser.org) y abre
