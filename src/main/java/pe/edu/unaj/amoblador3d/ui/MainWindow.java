@@ -84,6 +84,7 @@ import pe.edu.unaj.amoblador3d.model.Surface;
 import pe.edu.unaj.amoblador3d.model.SurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.WallSide;
 import pe.edu.unaj.amoblador3d.persistence.PriceRepository;
+import pe.edu.unaj.amoblador3d.persistence.Recovery;
 import pe.edu.unaj.amoblador3d.persistence.ProjectFormatException;
 import pe.edu.unaj.amoblador3d.persistence.ProjectJson;
 import pe.edu.unaj.amoblador3d.persistence.ProjectRepository;
@@ -164,6 +165,12 @@ public final class MainWindow {
     private final Label selectionInfo = new Label();
     private final PauseTransition statusTimer = new PauseTransition(Duration.seconds(6));
 
+    /** Autoguardado cada minuto mientras haya cambios sin guardar (ver {@link Recovery}). */
+    private static final Duration AUTOSAVE_EVERY = Duration.seconds(60);
+    private final Recovery recovery = Recovery.inDataDir();
+    private String lastAutosave;
+    private boolean autosaveFailed;
+
     public MainWindow(Stage stage, Catalog catalog, UserModels userModels, ProjectRepository projects,
                       PriceRepository priceRepository, PriceList prices, ModelLibrary models, HostServices host) {
         this.stage = stage;
@@ -228,6 +235,10 @@ public final class MainWindow {
         });
 
         statusTimer.setOnFinished(e -> status.setText(defaultStatus()));
+        javafx.animation.Timeline autosave = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(AUTOSAVE_EVERY, e -> autosave()));
+        autosave.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        autosave.play();
         status.setText(defaultStatus());
         rebuildCatalogButtons();
         designChanged();
@@ -241,6 +252,7 @@ public final class MainWindow {
             view.frameRoom();
             // Corrección: antes el foco empezaba en el campo "Ancho" y R, Supr o las flechas no hacían nada.
             view.node().requestFocus();
+            offerRecovery();
         });
         if (!startupWarnings.isEmpty()) warn(String.join("\n", startupWarnings));
     }
@@ -1134,10 +1146,62 @@ public final class MainWindow {
     /** Si hay cambios sin guardar, pregunta. Devuelve false si el usuario canceló. */
     private boolean confirmDiscard() {
         commitEdits();
-        if (!history.isDirty()) return true;
-        ButtonType answer = Dialogs.unsavedChanges(stage, projectName);
-        if (answer == Dialogs.SAVE) return save();
-        return answer == Dialogs.DISCARD;
+        boolean ok;
+        if (!history.isDirty()) {
+            ok = true;
+        } else {
+            ButtonType answer = Dialogs.unsavedChanges(stage, projectName);
+            ok = answer == Dialogs.SAVE ? save() : answer == Dialogs.DISCARD;
+        }
+        // Lo anterior quedó guardado o el usuario lo descartó: la copia de recuperación ya no sirve.
+        if (ok) clearRecovery();
+        return ok;
+    }
+
+    // ---------------------------------------------------------------- Autoguardado
+
+    /** Copia el trabajo sin guardar (si cambió desde la última copia). */
+    private void autosave() {
+        if (!history.isDirty()) return;
+        String json = ProjectJson.write(design.snapshot());
+        if (json.equals(lastAutosave)) return;
+        try {
+            recovery.write(design.snapshot(), projectId, projectName);
+            lastAutosave = json;
+            autosaveFailed = false;
+        } catch (IOException e) {
+            if (!autosaveFailed) notify("No se pudo hacer la copia de seguridad automática: " + e.getMessage(), Toast.Kind.ERROR);
+            autosaveFailed = true;
+        }
+    }
+
+    private void clearRecovery() {
+        recovery.delete();
+        lastAutosave = null;
+    }
+
+    /** Al abrir: si la última vez se cerró sin guardar, ofrece recuperar la copia automática. */
+    private void offerRecovery() {
+        recovery.read().ifPresent(copy -> {
+            String when = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                    .format(copy.savedAt().atZone(java.time.ZoneId.systemDefault()));
+            boolean restore = Dialogs.confirm(stage, "Hay cambios sin guardar de la última vez",
+                    "Amoblador3D se cerró sin guardar \"" + copy.name() + "\" (copia automática del " + when + ").\n"
+                            + "¿Quieres recuperarlos? Si eliges Cancelar, la copia se descarta.", "Recuperar");
+            if (!restore) {
+                clearRecovery();
+                return;
+            }
+            Long id = copy.projectId();
+            try {
+                if (id != null && projects.list().stream().noneMatch(s -> s.id() == copy.projectId())) id = null;
+            } catch (SQLException e) {
+                id = null;
+            }
+            loadProject(copy.project(), id, copy.name());
+            history.markUnsaved(); // sigue sin guardar hasta que el usuario lo guarde
+            notify("Se recuperó el trabajo sin guardar. Guárdalo con Ctrl+S.");
+        });
     }
 
     private void newProject() {
@@ -1219,6 +1283,7 @@ public final class MainWindow {
             projectId = projects.save(id, name, design.snapshot(), thumbnail);
             projectName = name;
             history.markSaved();
+            clearRecovery();
             notify("Guardado: " + name);
             return true;
         } catch (SQLException e) {

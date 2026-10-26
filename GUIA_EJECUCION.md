@@ -54,6 +54,19 @@ java -jar target\amoblador3d.jar
 El `.jar` incluye todas las librerías. Se puede copiar a otra computadora con Java 21 y el mismo
 sistema operativo (JavaFX trae partes propias de cada sistema) y abrirse con doble clic.
 
+### Versión para Windows sin instalar Java (opcional)
+
+Para entregar la aplicación a alguien que **no tiene Java**: doble clic en
+`packaging\crear-instalador.cmd` (o en PowerShell: `.\packaging\crear-instalador.ps1`).
+Crea en `target\instalador\` una versión que trae su propio Java:
+
+- **Sin nada más instalado:** la carpeta `Amoblador3D\` (se abre con `Amoblador3D.exe`) y un
+  `Amoblador3D-2.0.0-windows.zip` para compartir. Se descomprime y se usa, sin instalar.
+- **Con [WiX Toolset](https://wixtoolset.org) instalado:** además un instalador
+  `Amoblador3D-2.0.0.exe` que crea accesos directos en el menú Inicio y el escritorio.
+
+Con `-SinPruebas` es más rápido (no corre las pruebas antes). Pesa unos 60 MB comprimido.
+
 ## 5. Ejecutar las pruebas (opcional)
 
 ```powershell
@@ -79,6 +92,11 @@ hereda de `Application`.
 |---|---|
 | Base de datos (proyectos guardados) | `%APPDATA%\Amoblador3D\amoblador3d.db` |
 | Modelos 3D importados | `%APPDATA%\Amoblador3D\modelos\` |
+| Copia automática del trabajo sin guardar | `%APPDATA%\Amoblador3D\recuperacion.json` |
+
+**Autoguardado:** mientras hay cambios sin guardar, la aplicación hace una copia cada minuto. Si se
+cierra de golpe (corte de luz, error), al volver a abrirla pregunta si quieres recuperar el trabajo.
+La copia se borra al guardar o al cerrar normalmente.
 
 Para usar otra carpeta (por ejemplo, una USB):
 

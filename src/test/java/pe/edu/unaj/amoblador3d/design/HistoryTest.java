@@ -29,6 +29,17 @@ class HistoryTest {
     }
 
     @Test
+    void loRecuperadoQuedaSinGuardarHastaGuardarlo() {
+        History h = new History(() -> state, s -> state = s, () -> {});
+        h.reset();
+        assertFalse(h.isDirty());
+        h.markUnsaved();
+        assertTrue(h.isDirty());
+        h.markSaved();
+        assertFalse(h.isDirty());
+    }
+
+    @Test
     void unCambioNuevoDescartaElRehacer() {
         History h = new History(() -> state, s -> state = s, () -> {});
         state = "b";

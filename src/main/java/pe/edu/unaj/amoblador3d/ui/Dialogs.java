@@ -53,6 +53,9 @@ final class Dialogs {
         d.setTitle(title);
         d.setHeaderText(header);
         d.getDialogPane().getStylesheets().add(MainWindow.STYLESHEET);
+        // Sin esto, JavaFX corta los mensajes largos con "..." en lugar de agrandar la ventana.
+        d.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        d.getDialogPane().setMinWidth(420);
         d.setResizable(true);
     }
 }

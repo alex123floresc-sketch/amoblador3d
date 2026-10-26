@@ -99,8 +99,14 @@ public final class History {
         onChange.run();
     }
 
+    /** Marca el estado actual como "no guardado" (p. ej. al recuperar un autoguardado). */
+    public void markUnsaved() {
+        saved = null;
+        onChange.run();
+    }
+
     public boolean isDirty() {
-        return pending || !stack.get(index).equals(saved);
+        return pending || saved == null || !stack.get(index).equals(saved);
     }
 
     public boolean canUndo() {

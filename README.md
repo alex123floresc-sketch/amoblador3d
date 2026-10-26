@@ -53,6 +53,9 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 - **Vistas** (botón *Vistas*): guardar la vista actual con un nombre (se guarda con el proyecto),
   volver a ella y ver la habitación desde cada puerta.
 - **Modo noche** (tecla N o pestaña *Luz*): sin sol y con poca luz ambiental, para ver las lámparas.
+- **Autoguardado**: copia cada minuto del trabajo sin guardar; si la aplicación se cierra de golpe,
+  al abrirla ofrece recuperarlo.
+- **Versión para Windows sin instalar Java**: `packaging\crear-instalador.cmd` (ver la guía).
 - Deshacer/rehacer, vista 3D y planta 2D, cotas.
 
 ### Atajos
