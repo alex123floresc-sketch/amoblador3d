@@ -260,6 +260,7 @@ public final class Editors {
             fields.add(Field.meters("height", "Alto", e.heightRange().min(), e.heightRange().max()));
             // Los modelos 3D traen sus propios colores y texturas.
             if (e.kind() == CatalogEntry.Kind.PARAMETRIC) fields.add(Field.color("color", "Color", FURNITURE_COLORS));
+            fields.add(Field.checkbox("locked", "Bloqueado"));
             return fields;
         }
 
@@ -273,12 +274,27 @@ public final class Editors {
                 case "depth" -> f.depth;
                 case "height" -> f.height;
                 case "color" -> f.color;
+                case "locked" -> f.locked;
                 default -> null;
             };
         }
 
         @Override
+        public boolean isEnabled(String key) {
+            return key.equals("locked") || !f.locked;
+        }
+
+        @Override
+        public boolean canDelete() {
+            return !f.locked;
+        }
+
+        @Override
         public String set(String key, Object value) {
+            if (key.equals("locked")) {
+                design.setLocked(List.of(f), Boolean.TRUE.equals(value));
+                return null;
+            }
             Furniture c = f.copy();
             if (key.equals("color")) {
                 c.color = (String) value;
@@ -302,9 +318,68 @@ public final class Editors {
         @Override
         public List<Action> actions() {
             return List.of(
-                    new Action("⟲ 90°", "Girar a la izquierda (Shift+R)", () -> design.rotateFurniture(f, 90)),
-                    new Action("⟳ 90°", "Girar a la derecha (R)", () -> design.rotateFurniture(f, -90)),
+                    new Action("⟲ 90°", "Girar a la izquierda (Shift+R)", () -> design.rotateFurniture(f, 90), !f.locked),
+                    new Action("⟳ 90°", "Girar a la derecha (R)", () -> design.rotateFurniture(f, -90), !f.locked),
                     new Action("Duplicar", "Ctrl+D", () -> onDuplicate.duplicate(f)));
+        }
+    }
+
+    // ---------------------------------------------------------------- Varios muebles
+
+    /** Acciones para un grupo de muebles seleccionados (devuelven un error o null). */
+    public interface GroupHandler {
+        String duplicate(List<Furniture> group);
+    }
+
+    /** Panel de varios muebles seleccionados: se mueven, giran, duplican, bloquean o eliminan juntos. */
+    public static Editable group(Design design, List<Furniture> group, GroupHandler handler) {
+        return new GroupEditor(design, List.copyOf(group), handler);
+    }
+
+    private record GroupEditor(Design design, List<Furniture> group, GroupHandler handler) implements Editable {
+        @Override
+        public Object entity() {
+            return group;
+        }
+
+        @Override
+        public String title() {
+            return group.size() + " muebles seleccionados";
+        }
+
+        private boolean anyLocked() {
+            return design.firstLocked(group) != null;
+        }
+
+        @Override
+        public List<Field> fields() {
+            return List.of(Field.checkbox("locked", "Bloqueados"));
+        }
+
+        @Override
+        public Object get(String key) {
+            return key.equals("locked") ? group.stream().allMatch(f -> f.locked) : null;
+        }
+
+        @Override
+        public String set(String key, Object value) {
+            if (!key.equals("locked")) return "Campo desconocido: " + key;
+            design.setLocked(group, Boolean.TRUE.equals(value));
+            return null;
+        }
+
+        @Override
+        public boolean canDelete() {
+            return !anyLocked();
+        }
+
+        @Override
+        public List<Action> actions() {
+            boolean free = !anyLocked();
+            return List.of(
+                    new Action("⟲ 90°", "Girar el grupo a la izquierda (Shift+R)", () -> design.rotateGroup(group, 90), free),
+                    new Action("⟳ 90°", "Girar el grupo a la derecha (R)", () -> design.rotateGroup(group, -90), free),
+                    new Action("Duplicar", "Ctrl+D", () -> handler.duplicate(group)));
         }
     }
 

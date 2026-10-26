@@ -22,6 +22,23 @@ public interface Editable {
         return List.of();
     }
 
-    /** @param run devuelve un mensaje de error o null */
-    record Action(String label, String tooltip, Supplier<String> run) {}
+    /** false si el campo se muestra pero no se puede cambiar (p. ej. un mueble bloqueado). */
+    default boolean isEnabled(String key) {
+        return true;
+    }
+
+    /** Si se muestra el botón "Eliminar" habilitado. */
+    default boolean canDelete() {
+        return true;
+    }
+
+    /**
+     * @param run     devuelve un mensaje de error o null
+     * @param enabled false: el botón se muestra deshabilitado
+     */
+    record Action(String label, String tooltip, Supplier<String> run, boolean enabled) {
+        public Action(String label, String tooltip, Supplier<String> run) {
+            this(label, tooltip, run, true);
+        }
+    }
 }

@@ -146,10 +146,23 @@ class PersistenceTest {
             assertNotNull(p);
             assertEquals(SurfaceMaterial.LADRILLO, p.walls.get(WallSide.NORTE).material);
             assertEquals(4, p.furniture.size());
+            assertTrue(p.furniture.get(0).locked, "la cama del ejemplo está bloqueada");
             assertEquals("window-1", p.lights.stream().filter(l -> l.type == LightType.SUN).findFirst().orElseThrow().windowId);
             Design design = new Design(new Catalog());
             assertTrue(design.load(p).isEmpty(), "el ejemplo no debería necesitar correcciones");
             assertEquals(70, new PriceRepository(db).load().get(PriceList.Key.material(SurfaceMaterial.PINTURA)), 1e-9);
+        }
+    }
+
+    @Test
+    void elBloqueoSeGuardaEnLaBaseYEnElArchivo() throws Exception {
+        Project p = sample();
+        p.furniture.get(0).locked = true;
+        assertTrue(ProjectJson.read(ProjectJson.write(p)).furniture.get(0).locked);
+        try (Database db = new Database(dir.resolve("bloqueo.db"))) {
+            ProjectRepository repo = new ProjectRepository(db);
+            long id = repo.save(null, "Con bloqueo", p, null);
+            assertTrue(repo.load(id).furniture.get(0).locked);
         }
     }
 

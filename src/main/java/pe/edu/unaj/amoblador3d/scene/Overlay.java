@@ -1,5 +1,6 @@
 package pe.edu.unaj.amoblador3d.scene;
 
+import java.util.List;
 import javafx.geometry.Point2D;
 import javafx.geometry.Point3D;
 import javafx.geometry.VPos;
@@ -11,6 +12,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import pe.edu.unaj.amoblador3d.design.Design;
+import pe.edu.unaj.amoblador3d.design.Snapper;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
@@ -29,20 +31,24 @@ final class Overlay {
     private static final Color DIM = Color.web("#ffd166");
     private static final Color SELECT = Color.web("#4f9cf9");
     private static final Color MEASURE = Color.web("#ff6b9a");
+    private static final Color GUIDE = Color.web("#ff4fd8");
+    private static final Color LOCKED = Color.web("#f0a04b");
     private static final Font LABEL_FONT = Font.font("System", FontWeight.BOLD, 12);
 
     final Canvas canvas = new Canvas();
     private GraphicsContext g;
     private ViewCamera cam;
+    private Color outlineColor = SELECT;
 
-    void draw(ViewCamera cam, Design design, LightView lights, Object selected, boolean showDimensions) {
+    void draw(ViewCamera cam, Design design, LightView lights, List<Object> selection, boolean showDimensions) {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        drawOn(gc, cam, design, lights, selected, showDimensions);
+        drawOn(gc, cam, design, lights, selection, showDimensions);
     }
 
     /** Dibuja en otro lienzo (para exportar imágenes más grandes que la pantalla). */
-    void drawOn(GraphicsContext gc, ViewCamera cam, Design design, LightView lights, Object selected, boolean showDimensions) {
+    void drawOn(GraphicsContext gc, ViewCamera cam, Design design, LightView lights, List<Object> selection,
+                boolean showDimensions) {
         this.cam = cam;
         g = gc;
         RoomDims r = design.room();
@@ -60,7 +66,42 @@ final class Overlay {
             dimension(p(r.width(), 0.01, 0), p(r.width(), 0.01, r.length()), p(1, 0, 0), gap); // largo, fuera del muro este
             if (!plan) dimension(p(0, 0, r.length()), p(0, r.height(), r.length()), p(-1, 0, 0), gap); // alto
         }
-        if (selected != null) drawSelection(r, lights, selected, plan);
+        if (selection.size() == 1) {
+            drawSelection(r, lights, selection.get(0), plan);
+        } else {
+            // Varios muebles: solo el contorno de cada uno (las cotas de todos serían ilegibles).
+            for (Object o : selection) if (o instanceof Furniture f) furnitureOutline(f);
+        }
+    }
+
+    /** Guías del imán: líneas punteadas sobre el piso que muestran a qué se pegó el mueble. */
+    void drawGuides(List<Snapper.Guide> guides) {
+        if (guides.isEmpty()) return;
+        g.setStroke(GUIDE);
+        g.setLineWidth(3);
+        g.setLineDashes(10, 6);
+        for (Snapper.Guide gd : guides) line(p(gd.x1(), 0.02, gd.z1()), p(gd.x2(), 0.02, gd.z2()));
+        g.setLineDashes();
+    }
+
+    /** Rectángulo de selección (coordenadas de pantalla). */
+    void drawBand(double x0, double y0, double x1, double y1) {
+        double x = Math.min(x0, x1), y = Math.min(y0, y1), w = Math.abs(x1 - x0), h = Math.abs(y1 - y0);
+        g.setFill(Color.rgb(79, 156, 249, 0.15));
+        g.fillRect(x, y, w, h);
+        g.setStroke(SELECT);
+        g.setLineWidth(1.2);
+        g.setLineDashes(5, 3);
+        g.strokeRect(x, y, w, h);
+        g.setLineDashes();
+    }
+
+    /** Contorno de un mueble (naranja si está bloqueado). */
+    private void furnitureOutline(Furniture f) {
+        double a = Math.toRadians(f.rotation), c = Math.cos(a), s = Math.sin(a);
+        outlineColor = f.locked ? LOCKED : SELECT;
+        outline(f.width, f.height, f.depth, (lx, ly, lz) -> p(f.x + lx * c + lz * s, ly, f.z - lx * s + lz * c));
+        outlineColor = SELECT;
     }
 
     /** Línea de la herramienta de medir entre dos puntos del piso, con su distancia. */
@@ -94,10 +135,7 @@ final class Overlay {
             // Esquinas locales del mueble llevadas al mundo (mismo giro que javafx Rotate en Y).
             java.util.function.BiFunction<Double, Double, double[]> world = (lx, lz) ->
                     new double[] {f.x + lx * c + lz * s, f.z - lx * s + lz * c};
-            outline(f.width, f.height, f.depth, (lx, ly, lz) -> {
-                double[] w = world.apply(lx, lz);
-                return p(w[0], ly, w[1]);
-            });
+            furnitureOutline(f);
             double hw = f.width / 2, hd = f.depth / 2;
             double[] fl = world.apply(-hw, hd), fr = world.apply(hw, hd), br = world.apply(hw, -hd);
             double[] front = world.apply(0.0, 1.0), side = world.apply(1.0, 0.0), left = world.apply(-1.0, 0.0);
@@ -143,7 +181,7 @@ final class Overlay {
                 v[i++] = corner.at(xz[0], y, xz[1]);
             }
         }
-        g.setStroke(SELECT);
+        g.setStroke(outlineColor);
         g.setLineWidth(2);
         for (int k = 0; k < 4; k++) {
             line(v[k], v[(k + 1) % 4]);

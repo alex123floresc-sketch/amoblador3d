@@ -4,8 +4,11 @@ import static pe.edu.unaj.amoblador3d.util.Units.checkRange;
 import static pe.edu.unaj.amoblador3d.util.Units.round;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -185,8 +188,9 @@ public final class Design {
         fire(Change.LIGHTS);
     }
 
-    /** Elimina una abertura, luz o mueble. */
-    public void remove(Object entity) {
+    /** Elimina una abertura, luz o mueble. Devuelve un error (mueble bloqueado) o null. */
+    public String remove(Object entity) {
+        if (entity instanceof Furniture f && f.locked) return label(f) + LOCKED;
         if (entity instanceof Opening o) {
             project.openings.remove(o);
             openingsChanged();
@@ -197,6 +201,7 @@ public final class Design {
             project.furniture.remove(f);
             fire(Change.FURNITURE);
         }
+        return null;
     }
 
     // ---------------------------------------------------------------- Paredes y piso
@@ -519,6 +524,7 @@ public final class Design {
     public Outcome<Furniture> duplicate(Furniture source) {
         Furniture f = source.copy();
         f.id = ids.next(source.type);
+        f.locked = false;
         return placeNew(f, catalog.get(source.type).name(), source);
     }
 
@@ -545,6 +551,11 @@ public final class Design {
 
     /** Revisa si el mueble puede estar con la posición/medidas de {@code candidate}. Devuelve un error o null. */
     public String checkFurniture(Furniture self, Furniture candidate) {
+        return check(candidate, self == null ? Set.of() : Collections.singleton(self));
+    }
+
+    /** Igual que {@link #checkFurniture}, sin chocar con los muebles de {@code ignore} (los de un grupo que se mueve). */
+    private String check(Furniture candidate, Set<Furniture> ignore) {
         RoomDims r = project.room;
         if (candidate.height > r.height() + 1e-9) {
             return "Es más alto (" + Units.number(candidate.height) + " m) que la habitación ("
@@ -553,7 +564,7 @@ public final class Design {
         Footprint fp = Footprint.of(candidate);
         if (!fp.insideRoom(r.width(), r.length())) return "No cabe dentro de la habitación en esa posición.";
         for (Furniture other : project.furniture) {
-            if (other != self && fp.overlaps(Footprint.of(other))) return "Choca con " + label(other) + ".";
+            if (!ignore.contains(other) && fp.overlaps(Footprint.of(other))) return "Choca con " + label(other) + ".";
         }
         for (Opening o : project.openings) {
             if (o.type == OpeningType.DOOR && fp.overlaps(doorZone(o))) return "Bloquea el paso de " + label(o) + ".";
@@ -567,6 +578,7 @@ public final class Design {
      * paredes y otros muebles en lugar de quedarse pegado).
      */
     public boolean moveFurniture(Furniture f, double x, double z) {
+        if (f.locked) return false;
         RoomDims r = project.room;
         Footprint target = Footprint.of(f).withCenter(round(x), round(z)).clampToRoom(r.width(), r.length());
         double[][] tries = {{target.x(), target.z()}, {target.x(), f.z}, {f.x, target.z()}};
@@ -587,6 +599,7 @@ public final class Design {
 
     /** Aplica medidas, giro, posición o color si el resultado es válido. */
     String changeFurniture(Furniture f, Furniture candidate, boolean positionEdited) {
+        if (f.locked) return label(f) + LOCKED;
         candidate.rotation = ((candidate.rotation % 360) + 360) % 360;
         candidate.x = round(candidate.x);
         candidate.z = round(candidate.z);
@@ -654,5 +667,228 @@ public final class Design {
             if (checkFurniture(null, test) == null) return p;
         }
         return null;
+    }
+
+    // ---------------------------------------------------------------- Bloqueo y grupos de muebles
+
+    private static final String LOCKED = " está bloqueado: desbloquéalo para cambiarlo.";
+
+    /** Bloquea o desbloquea muebles (un mueble bloqueado no se mueve, gira, cambia ni elimina). */
+    public void setLocked(Collection<Furniture> group, boolean locked) {
+        for (Furniture f : group) f.locked = locked;
+        fire(Change.FURNITURE);
+    }
+
+    /** El primer mueble bloqueado del grupo, o null. */
+    public Furniture firstLocked(Collection<Furniture> group) {
+        for (Furniture f : group) if (f.locked) return f;
+        return null;
+    }
+
+    private static Set<Furniture> identitySet(Collection<Furniture> items) {
+        Set<Furniture> set = Collections.newSetFromMap(new IdentityHashMap<>());
+        set.addAll(items);
+        return set;
+    }
+
+    private static Snapper.Box boxOf(Collection<Furniture> group) {
+        Snapper.Box box = null;
+        for (Furniture f : group) {
+            Snapper.Box b = Snapper.Box.of(Footprint.of(f));
+            box = box == null ? b : box.union(b);
+        }
+        return box;
+    }
+
+    /**
+     * Revisa que el grupo pueda quedar como {@code candidates} (misma posición en la lista):
+     * cada uno contra la habitación, las puertas y los muebles de fuera del grupo, y entre ellos.
+     */
+    private String checkGroup(List<Furniture> group, List<Furniture> candidates) {
+        Set<Furniture> ignore = identitySet(group);
+        for (int i = 0; i < candidates.size(); i++) {
+            String err = check(candidates.get(i), ignore);
+            if (err != null) return group.size() == 1 ? err : label(group.get(i)) + ": " + err;
+        }
+        for (int i = 0; i < candidates.size(); i++) {
+            Footprint a = Footprint.of(candidates.get(i));
+            for (int j = i + 1; j < candidates.size(); j++) {
+                if (a.overlaps(Footprint.of(candidates.get(j)))) {
+                    return label(group.get(i)) + " chocaría con " + label(group.get(j)) + ".";
+                }
+            }
+        }
+        return null;
+    }
+
+    private static List<Furniture> shifted(List<Furniture> group, double dx, double dz) {
+        List<Furniture> result = new ArrayList<>();
+        for (Furniture f : group) {
+            Furniture c = f.copy();
+            c.x = round(f.x + dx);
+            c.z = round(f.z + dz);
+            result.add(c);
+        }
+        return result;
+    }
+
+    private void applyGroup(List<Furniture> group, List<Furniture> candidates) {
+        for (int i = 0; i < group.size(); i++) {
+            Furniture f = group.get(i), c = candidates.get(i);
+            f.x = c.x;
+            f.z = c.z;
+            f.rotation = c.rotation;
+        }
+        fire(Change.FURNITURE);
+    }
+
+    /** Mueve todos los muebles del grupo a la vez (o ninguno). Devuelve un error o null. */
+    public String moveGroup(List<Furniture> group, double dx, double dz) {
+        Furniture locked = firstLocked(group);
+        if (locked != null) return label(locked) + LOCKED;
+        List<Furniture> candidates = shifted(group, round(dx), round(dz));
+        String err = checkGroup(group, candidates);
+        if (err == null) applyGroup(group, candidates);
+        return err;
+    }
+
+    /**
+     * Arrastre con el ratón: lleva el grupo para que {@code anchor} (el mueble que se agarró)
+     * quede lo más cerca posible de (x, z). Con {@code magnet}, el grupo se pega a paredes y
+     * a otros muebles cercanos. Si choca, intenta deslizarlo solo en X o solo en Z.
+     *
+     * @return las guías del imán (vacía si no se pegó a nada), o null si no se pudo mover
+     */
+    public List<Snapper.Guide> drag(List<Furniture> group, Furniture anchor, double x, double z, boolean magnet) {
+        if (firstLocked(group) != null) return null;
+        RoomDims r = project.room;
+        Snapper.Box box = boxOf(group);
+        double dx = x - anchor.x, dz = z - anchor.z;
+        // Que el grupo completo quede dentro de la habitación.
+        dx = Units.clamp(dx, -box.minX(), r.width() - box.maxX());
+        dz = Units.clamp(dz, -box.minZ(), r.length() - box.maxZ());
+
+        record Try(double dx, double dz) {}
+        List<Try> tries = new ArrayList<>();
+        List<Snapper.Box> others = new ArrayList<>();
+        if (magnet) {
+            Set<Furniture> members = identitySet(group);
+            for (Furniture f : project.furniture) if (!members.contains(f)) others.add(Snapper.Box.of(Footprint.of(f)));
+            Snapper.Result snap = Snapper.snap(box.shift(dx, dz), r.width(), r.length(), others);
+            // Pegado en los dos ejes; si así choca, pegado solo en uno.
+            if (snap.guideX() != null && snap.guideZ() != null) tries.add(new Try(dx + snap.dx(), dz + snap.dz()));
+            if (snap.guideX() != null) tries.add(new Try(dx + snap.dx(), dz));
+            if (snap.guideZ() != null) tries.add(new Try(dx, dz + snap.dz()));
+        }
+        tries.add(new Try(dx, dz));
+        tries.add(new Try(dx, 0));
+        tries.add(new Try(0, dz));
+        for (Try t : tries) {
+            List<Furniture> candidates = shifted(group, round(t.dx), round(t.dz));
+            if (checkGroup(group, candidates) != null) continue;
+            boolean moved = false;
+            for (int i = 0; i < group.size(); i++) {
+                moved |= candidates.get(i).x != group.get(i).x || candidates.get(i).z != group.get(i).z;
+            }
+            if (moved) applyGroup(group, candidates);
+            if (!magnet) return List.of();
+            // Guías de lo que quedó alineado en la posición final (al centímetro).
+            Snapper.Result now = Snapper.snap(boxOf(group), r.width(), r.length(), others);
+            List<Snapper.Guide> guides = new ArrayList<>();
+            if (now.guideX() != null && Math.abs(now.dx()) < 0.006) guides.add(now.guideX());
+            if (now.guideZ() != null && Math.abs(now.dz()) < 0.006) guides.add(now.guideZ());
+            return guides;
+        }
+        return null;
+    }
+
+    /**
+     * Gira el grupo alrededor de su centro, como si fuera un solo mueble. Si al girar se sale
+     * por una pared, se empuja hacia adentro. Devuelve un error o null.
+     */
+    public String rotateGroup(List<Furniture> group, double degrees) {
+        if (group.size() == 1) return rotateFurniture(group.get(0), degrees);
+        Furniture locked = firstLocked(group);
+        if (locked != null) return label(locked) + LOCKED;
+        Snapper.Box box = boxOf(group);
+        double cx = box.centerX(), cz = box.centerZ();
+        double a = Math.toRadians(degrees), c = Math.cos(a), s = Math.sin(a);
+        List<Furniture> candidates = new ArrayList<>();
+        for (Furniture f : group) {
+            Furniture k = f.copy();
+            double dx = f.x - cx, dz = f.z - cz;
+            // Mismo sentido de giro que la rotación de cada mueble (ver Footprint).
+            k.x = cx + dx * c + dz * s;
+            k.z = cz - dx * s + dz * c;
+            k.rotation = (((f.rotation + degrees) % 360) + 360) % 360;
+            candidates.add(k);
+        }
+        RoomDims r = project.room;
+        Snapper.Box turned = boxOf(candidates);
+        double sx = Units.clamp(0, -turned.minX(), r.width() - turned.maxX());
+        double sz = Units.clamp(0, -turned.minZ(), r.length() - turned.maxZ());
+        for (Furniture k : candidates) {
+            k.x = round(k.x + sx);
+            k.z = round(k.z + sz);
+        }
+        String err = checkGroup(group, candidates);
+        if (err == null) applyGroup(group, candidates);
+        return err;
+    }
+
+    /** Duplica el grupo en el lugar libre más cercano, conservando cómo están ubicados entre sí. */
+    public Outcome<List<Furniture>> duplicateGroup(List<Furniture> source) {
+        return placeGroup(source, false);
+    }
+
+    /**
+     * Agrega muebles copiados (de este u otro proyecto). Si su lugar original está libre se
+     * quedan ahí; si no, se buscan el lugar libre más cercano.
+     */
+    public Outcome<List<Furniture>> paste(List<Furniture> items) {
+        return placeGroup(items, true);
+    }
+
+    private Outcome<List<Furniture>> placeGroup(List<Furniture> items, boolean samePlaceAllowed) {
+        if (items.isEmpty()) return Outcome.fail("No hay muebles para agregar.");
+        List<Furniture> copies = new ArrayList<>();
+        for (Furniture item : items) {
+            Furniture c = item.copy();
+            c.id = ids.next(item.type);
+            c.locked = false;
+            c.x = round(c.x);
+            c.z = round(c.z);
+            copies.add(c);
+        }
+        RoomDims r = project.room;
+        // Desplazamientos en una cuadrícula de 10 cm, del más cercano al más lejano.
+        List<double[]> offsets = new ArrayList<>();
+        int nx = (int) Math.floor(r.width() * 10 + 1e-9), nz = (int) Math.floor(r.length() * 10 + 1e-9);
+        for (int i = -nx; i <= nx; i++) {
+            for (int j = -nz; j <= nz; j++) {
+                if (i == 0 && j == 0 && !samePlaceAllowed) continue;
+                offsets.add(new double[] {round(i * 0.1), round(j * 0.1)});
+            }
+        }
+        offsets.sort(Comparator.comparingDouble(o -> Math.hypot(o[0], o[1])));
+        for (double[] o : offsets) {
+            List<Furniture> candidates = shifted(copies, o[0], o[1]);
+            if (checkGroup(candidates, candidates) == null) {
+                project.furniture.addAll(candidates);
+                fire(Change.FURNITURE);
+                return Outcome.ok(candidates);
+            }
+        }
+        // Juntos no caben: se acomoda cada uno por separado (puede girarse).
+        List<Furniture> placed = new ArrayList<>();
+        List<String> failed = new ArrayList<>();
+        for (Furniture c : copies) {
+            Outcome<Furniture> out = placeNew(c, catalog.get(c.type).name(), c);
+            if (out.failed()) failed.add(catalog.get(c.type).name());
+            else placed.add(out.value());
+        }
+        if (placed.isEmpty()) return Outcome.fail("No hay espacio libre para " + String.join(", ", failed).toLowerCase() + ".");
+        if (!failed.isEmpty()) onWarning.accept("No hubo espacio para: " + String.join(", ", failed) + ".");
+        return Outcome.ok(placed);
     }
 }

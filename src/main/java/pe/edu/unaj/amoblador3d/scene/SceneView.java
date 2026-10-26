@@ -1,5 +1,8 @@
 package pe.edu.unaj.amoblador3d.scene;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javafx.animation.AnimationTimer;
 import javafx.geometry.Point3D;
@@ -25,6 +28,7 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.transform.Rotate;
 import pe.edu.unaj.amoblador3d.design.Design;
+import pe.edu.unaj.amoblador3d.design.Snapper;
 import pe.edu.unaj.amoblador3d.model.Footprint;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
@@ -59,7 +63,10 @@ public final class SceneView {
     private final FurnitureView furniture;
     private final Overlay overlay = new Overlay();
 
-    private Object selected;
+    /** Lo seleccionado: un elemento cualquiera o varios muebles. */
+    private List<Object> selection = List.of();
+    private boolean magnet = true;
+    private List<Snapper.Guide> guides = List.of();
     private boolean showDimensions = true;
     private boolean dirty = true;
 
@@ -68,7 +75,10 @@ public final class SceneView {
     private Point3D measureA, measureB, measureHover;
     private Consumer<String> onMeasure = text -> {};
 
-    private Consumer<Object> onSelect = e -> {};
+    /** (entidad, agregar): agregar = true con Shift o Ctrl (selección múltiple). */
+    private BiConsumer<Object, Boolean> onSelect = (e, add) -> {};
+    private Consumer<List<Furniture>> onBandSelect = list -> {};
+    private Consumer<String> onNotice = text -> {};
     private Runnable onDrag = () -> {};
     private Runnable onDragEnd = () -> {};
 
@@ -76,8 +86,12 @@ public final class SceneView {
     private double pressX, pressY, lastX, lastY;
     private Object pressEntity;
     private Furniture dragItem;
+    private List<Furniture> dragGroup = List.of();
     private double dragDx, dragDz;
     private boolean dragMoved;
+    // Selección con rectángulo (Shift + arrastrar)
+    private boolean bandArmed, banding;
+    private double bandX, bandY;
 
     public SceneView(Design design, ModelLibrary models, Consumer<String> onWarning) {
         this.design = design;
@@ -133,8 +147,23 @@ public final class SceneView {
         return root;
     }
 
-    public void setOnSelect(Consumer<Object> c) {
+    public void setOnSelect(BiConsumer<Object, Boolean> c) {
         onSelect = c;
+    }
+
+    /** Muebles dentro del rectángulo dibujado con Shift + arrastrar. */
+    public void setOnBandSelect(Consumer<List<Furniture>> c) {
+        onBandSelect = c;
+    }
+
+    /** Avisos breves para la barra de estado (p. ej. "está bloqueado"). */
+    public void setOnNotice(Consumer<String> c) {
+        onNotice = c;
+    }
+
+    /** Imán: al arrastrar, los muebles se pegan a paredes y a otros muebles. */
+    public void setMagnet(boolean on) {
+        magnet = on;
     }
 
     public void setOnDrag(Runnable r) {
@@ -169,9 +198,15 @@ public final class SceneView {
         redraw();
     }
 
-    public void setSelected(Object entity) {
-        selected = entity;
+    public void setSelection(List<Object> entities) {
+        selection = List.copyOf(entities);
         redraw();
+    }
+
+    private List<Furniture> selectedFurniture() {
+        List<Furniture> list = new ArrayList<>();
+        for (Object o : selection) if (o instanceof Furniture f) list.add(f);
+        return list;
     }
 
     public Mode mode() {
@@ -231,9 +266,11 @@ public final class SceneView {
 
     private void render() {
         dirty = false;
-        WallSide selectedWall = selected instanceof Surface s ? s.wallSide() : null;
+        WallSide selectedWall = selection.size() == 1 && selection.get(0) instanceof Surface s ? s.wallSide() : null;
         room.updateVisibility(cam.eye(), cam.mode == ViewCamera.Mode.PLAN, selectedWall);
-        overlay.draw(cam, design, lights, selected, showDimensions);
+        overlay.draw(cam, design, lights, selection, showDimensions);
+        overlay.drawGuides(guides);
+        if (banding) overlay.drawBand(pressX, pressY, bandX, bandY);
         if (measuring && measureA != null) overlay.drawMeasure(measureA, measureB != null ? measureB : measureHover);
     }
 
@@ -242,9 +279,9 @@ public final class SceneView {
      * que la pantalla. Sin el contorno de selección.
      */
     public WritableImage snapshot(double scale) {
-        Object previous = selected;
+        List<Object> previous = selection;
         boolean wasMeasuring = measuring;
-        selected = null;
+        selection = List.of();
         measuring = false;
         render();
         double w = root.getWidth(), h = root.getHeight();
@@ -269,14 +306,14 @@ public final class SceneView {
             g.drawImage(scene3d, 0, 0);
             g.save();
             g.scale(scale, scale);
-            overlay.drawOn(g, cam, design, lights, null, showDimensions);
+            overlay.drawOn(g, cam, design, lights, List.of(), showDimensions);
             g.restore();
             return canvas.snapshot(null, null);
         } finally {
             subScene.setWidth(w);
             subScene.setHeight(h);
             cam.setViewport(w, h);
-            selected = previous;
+            selection = previous;
             measuring = wasMeasuring;
             redraw();
         }
@@ -373,18 +410,37 @@ public final class SceneView {
             pressEntity = pick(e.getPickResult());
             dragItem = null;
             dragMoved = false;
+            bandArmed = banding = false;
             if (measuring) return; // al medir, el ratón no selecciona ni arrastra muebles
-            if (e.getButton() == MouseButton.PRIMARY && pressEntity instanceof Furniture f) {
+            if (e.getButton() != MouseButton.PRIMARY) return;
+            if (e.isShiftDown() || e.isShortcutDown()) {
+                // Clic: agrega o quita de la selección. Arrastrar: rectángulo de selección.
+                bandArmed = true;
+                bandX = e.getX();
+                bandY = e.getY();
+                return;
+            }
+            if (pressEntity instanceof Furniture f) {
                 // Diferencia entre el punto del piso clicado y el centro del mueble, para que
                 // no "salte" al centro del cursor al empezar a arrastrar.
                 Point3D p = cam.floorPoint(e.getX(), e.getY());
-                if (p != null) {
-                    dragItem = f;
-                    dragDx = f.x - p.getX();
-                    dragDz = f.z - p.getZ();
-                    onSelect.accept(f);
-                    subScene.setCursor(Cursor.CLOSED_HAND);
+                if (p == null) return;
+                // Si el mueble es parte de una selección múltiple, se arrastra todo el grupo.
+                List<Furniture> group = selectedFurniture();
+                if (group.size() < 2 || !group.contains(f)) {
+                    group = List.of(f);
+                    onSelect.accept(f, false);
                 }
+                Furniture locked = design.firstLocked(group);
+                if (locked != null) {
+                    onNotice.accept(design.label(locked) + " está bloqueado: no se puede mover.");
+                    return;
+                }
+                dragItem = f;
+                dragGroup = group;
+                dragDx = f.x - p.getX();
+                dragDz = f.z - p.getZ();
+                subScene.setCursor(Cursor.CLOSED_HAND);
             }
         });
 
@@ -392,12 +448,24 @@ public final class SceneView {
             double dx = e.getX() - lastX, dy = e.getY() - lastY;
             lastX = e.getX();
             lastY = e.getY();
+            if (bandArmed) {
+                bandX = e.getX();
+                bandY = e.getY();
+                banding = banding || Math.hypot(bandX - pressX, bandY - pressY) >= CLICK_TOLERANCE;
+                redraw();
+                return;
+            }
             if (dragItem != null) {
                 Point3D p = cam.floorPoint(e.getX(), e.getY());
-                if (p != null && design.moveFurniture(dragItem, p.getX() + dragDx, p.getZ() + dragDz)) {
+                if (p == null) return;
+                double beforeX = dragItem.x, beforeZ = dragItem.z;
+                List<Snapper.Guide> g = design.drag(dragGroup, dragItem, p.getX() + dragDx, p.getZ() + dragDz, magnet && !e.isAltDown());
+                guides = g == null ? List.of() : g;
+                if (dragItem.x != beforeX || dragItem.z != beforeZ) {
                     dragMoved = true;
                     onDrag.run();
                 }
+                redraw();
                 return;
             }
             boolean plan = cam.mode == ViewCamera.Mode.PLAN;
@@ -409,13 +477,28 @@ public final class SceneView {
         subScene.setOnMouseReleased(e -> {
             if (dragItem != null) {
                 dragItem = null;
+                dragGroup = List.of();
+                guides = List.of();
                 subScene.setCursor(Cursor.OPEN_HAND);
+                redraw();
                 if (dragMoved) onDragEnd.run();
                 return;
             }
-            if (e.getButton() == MouseButton.PRIMARY && Math.hypot(e.getX() - pressX, e.getY() - pressY) < CLICK_TOLERANCE) {
+            boolean click = Math.hypot(e.getX() - pressX, e.getY() - pressY) < CLICK_TOLERANCE;
+            if (bandArmed) {
+                bandArmed = false;
+                if (banding) {
+                    banding = false;
+                    onBandSelect.accept(furnitureInBand());
+                    redraw();
+                } else if (click) {
+                    onSelect.accept(pressEntity, true);
+                }
+                return;
+            }
+            if (e.getButton() == MouseButton.PRIMARY && click) {
                 if (measuring) measureClick(e.getX(), e.getY());
-                else onSelect.accept(pressEntity);
+                else onSelect.accept(pressEntity, false);
             }
         });
 
@@ -440,8 +523,21 @@ public final class SceneView {
             Object entity = pick(e.getPickResult());
             // Las paredes y el piso también se seleccionan, pero la mano solo aparece sobre objetos.
             boolean object = entity != null && !(entity instanceof Surface);
-            subScene.setCursor(entity instanceof Furniture ? Cursor.OPEN_HAND : object ? Cursor.HAND : Cursor.DEFAULT);
+            boolean movable = entity instanceof Furniture f && !f.locked;
+            subScene.setCursor(movable ? Cursor.OPEN_HAND : object ? Cursor.HAND : Cursor.DEFAULT);
         });
+    }
+
+    /** Muebles cuyo centro (a media altura) se ve dentro del rectángulo de selección. */
+    private List<Furniture> furnitureInBand() {
+        double x0 = Math.min(pressX, bandX), x1 = Math.max(pressX, bandX);
+        double y0 = Math.min(pressY, bandY), y1 = Math.max(pressY, bandY);
+        List<Furniture> inside = new ArrayList<>();
+        for (Furniture f : design.furniture()) {
+            javafx.geometry.Point2D s = cam.project(new Point3D(f.x, f.height / 2, f.z));
+            if (s != null && s.getX() >= x0 && s.getX() <= x1 && s.getY() >= y0 && s.getY() <= y1) inside.add(f);
+        }
+        return inside;
     }
 
     /** Sube por los padres del nodo clicado hasta encontrar a qué entidad pertenece. */

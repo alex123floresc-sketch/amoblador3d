@@ -173,8 +173,8 @@ public final class ProjectRepository {
             ps.executeBatch();
         }
 
-        sql = "INSERT INTO furniture (project_id, position, id, type, x, z, rotation, width, depth, height, color)"
-                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        sql = "INSERT INTO furniture (project_id, position, id, type, x, z, rotation, width, depth, height, color, locked)"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             int i = 0;
             for (Furniture f : p.furniture) {
@@ -190,6 +190,7 @@ public final class ProjectRepository {
                 ps.setDouble(10, f.height);
                 if (f.color != null) ps.setString(11, f.color);
                 else ps.setNull(11, Types.VARCHAR);
+                ps.setInt(12, f.locked ? 1 : 0);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -262,13 +263,16 @@ public final class ProjectRepository {
         } catch (IllegalArgumentException e) {
             throw new ProjectFormatException("El proyecto guardado tiene datos no válidos: " + e.getMessage());
         }
-        sql = "SELECT id, type, x, z, rotation, width, depth, height, color FROM furniture WHERE project_id = ? ORDER BY position";
+        sql = "SELECT id, type, x, z, rotation, width, depth, height, color, locked FROM furniture"
+                + " WHERE project_id = ? ORDER BY position";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    p.furniture.add(new Furniture(rs.getString(1), rs.getString(2), rs.getDouble(3), rs.getDouble(4),
-                            rs.getDouble(5), rs.getDouble(6), rs.getDouble(7), rs.getDouble(8), rs.getString(9)));
+                    Furniture f = new Furniture(rs.getString(1), rs.getString(2), rs.getDouble(3), rs.getDouble(4),
+                            rs.getDouble(5), rs.getDouble(6), rs.getDouble(7), rs.getDouble(8), rs.getString(9));
+                    f.locked = rs.getInt(10) != 0;
+                    p.furniture.add(f);
                 }
             }
         }

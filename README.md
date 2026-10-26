@@ -40,6 +40,10 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 - **Informe PDF** (Ctrl+Shift+P): planta con cotas, vista 3D, ventanas y puertas, muebles y presupuesto.
 - **Medir distancias** (tecla M): dos clics sobre el piso; los puntos se pegan a las paredes y a las
   esquinas de los muebles.
+- **Edición cómoda**: imán al arrastrar (se pega a paredes y a bordes o centros de otros muebles,
+  con guías; tecla G, Alt para soltarlo un momento), selección múltiple (Shift/Ctrl + clic,
+  rectángulo con Shift + arrastrar, Ctrl+A) para mover, girar, duplicar o eliminar en grupo,
+  copiar/cortar/pegar muebles entre proyectos (Ctrl+C/X/V) y bloquear muebles (L).
 - Deshacer/rehacer, vista 3D y planta 2D, cotas.
 
 ### Atajos
@@ -52,6 +56,10 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 | R / Shift+R | Girar el mueble 90° |
 | Q / E | Girar el mueble 15° |
 | Supr / Ctrl+D | Eliminar / Duplicar |
+| Ctrl+C / Ctrl+X / Ctrl+V | Copiar / Cortar / Pegar muebles |
+| Ctrl+A | Seleccionar todos los muebles |
+| Shift o Ctrl + clic, Shift + arrastrar | Agregar a la selección, rectángulo de selección |
+| L / G | Bloquear o desbloquear / Imán |
 | Ctrl+1 / Ctrl+2 | Vista 3D / Planta 2D |
 | Ctrl+P / Ctrl+Shift+P | Presupuesto / Informe PDF |
 | M | Medir distancias (Esc para terminar) |

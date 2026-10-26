@@ -16,7 +16,7 @@ import java.sql.Statement;
  * tablas en el futuro, se agrega un paso en {@link #migrate()} y se sube {@link #SCHEMA_VERSION}.
  */
 public final class Database implements AutoCloseable {
-    static final int SCHEMA_VERSION = 3;
+    static final int SCHEMA_VERSION = 4;
 
     private static final String[] SCHEMA_V1 = {
         """
@@ -110,8 +110,13 @@ public final class Database implements AutoCloseable {
         )""",
     };
 
+    /** v4: muebles bloqueados (no se mueven hasta desbloquearlos). */
+    private static final String[] SCHEMA_V4 = {
+        "ALTER TABLE furniture ADD COLUMN locked INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1))",
+    };
+
     /** Pasos de migración: el paso i lleva la base de la versión i a la i + 1. */
-    private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3};
+    private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4};
 
     private final Connection connection;
 

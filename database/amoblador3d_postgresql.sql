@@ -148,6 +148,7 @@ CREATE TABLE furniture (
     depth      DOUBLE PRECISION NOT NULL CHECK (depth > 0),
     height     DOUBLE PRECISION NOT NULL CHECK (height > 0),
     color      color_hex,                                    -- NULL: colores propios del modelo
+    locked     BOOLEAN          NOT NULL DEFAULT FALSE,      -- bloqueado: no se mueve
     PRIMARY KEY (project_id, id)
 );
 
@@ -280,14 +281,14 @@ SELECT p.id, v.*
            AS v(position, id, type, color, intensity, cast_shadow, x, y, z, window_id, elevation, deviation)
  WHERE p.name = 'Dormitorio de ejemplo';
 
-INSERT INTO furniture (project_id, position, id, type, x, z, rotation, width, depth, height, color)
+INSERT INTO furniture (project_id, position, id, type, x, z, rotation, width, depth, height, color, locked)
 SELECT p.id, v.*
   FROM project p,
-       (VALUES (0, 'cama-1',       'cama',       2.0, 1.6, 0, 1.40, 1.9, 0.90, '#8b6b4a'),
-               (1, 'escritorio-1', 'escritorio', 3.3, 1.7, 0, 1.20, 0.6, 0.75, '#d9c6a5'),
-               (2, 'silla-1',      'silla',      1.0, 1.7, 0, 0.45, 0.5, 0.90, '#6d4c33'),
-               (3, 'closet-1',     'closet',     3.3, 2.3, 0, 1.20, 0.6, 2.00, '#e8e2d6'))
-           AS v(position, id, type, x, z, rotation, width, depth, height, color)
+       (VALUES (0, 'cama-1',       'cama',       2.0, 1.6, 0, 1.40, 1.9, 0.90, '#8b6b4a', TRUE),
+               (1, 'escritorio-1', 'escritorio', 3.3, 1.7, 0, 1.20, 0.6, 0.75, '#d9c6a5', FALSE),
+               (2, 'silla-1',      'silla',      1.0, 1.7, 0, 0.45, 0.5, 0.90, '#6d4c33', FALSE),
+               (3, 'closet-1',     'closet',     3.3, 2.3, 0, 1.20, 0.6, 2.00, '#e8e2d6', FALSE))
+           AS v(position, id, type, x, z, rotation, width, depth, height, color, locked)
  WHERE p.name = 'Dormitorio de ejemplo';
 
 INSERT INTO price (kind, item, price) VALUES ('material', 'pintura', 70.00);

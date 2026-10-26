@@ -30,7 +30,7 @@ import pe.edu.unaj.amoblador3d.model.WallSide;
  *   "openings":  [ { "id", "type": "window"|"door", "wall", "offset", "width", "height", "sill" } ],
  *   "ambient":   0.6,
  *   "lights":    [ { "id", "type": "point"|"spot"|"sun", "color", "intensity", ... } ],
- *   "furniture": [ { "id", "type", "x", "z", "rotation", "width", "depth", "height", "color" } ]
+ *   "furniture": [ { "id", "type", "x", "z", "rotation", "width", "depth", "height", "color", "locked" } ]
  * }
  * </pre>
  * Se usa para exportar/importar proyectos y para las "fotos" de deshacer/rehacer.
@@ -121,10 +121,52 @@ public final class ProjectJson {
             j.addProperty("depth", f.depth);
             j.addProperty("height", f.height);
             if (f.color != null) j.addProperty("color", f.color);
+            if (f.locked) j.addProperty("locked", true);
             furniture.add(j);
         }
         root.add("furniture", furniture);
         return GSON.toJson(root);
+    }
+
+    private static JsonArray furnitureArray(List<Furniture> items) {
+        Project p = new Project();
+        p.furniture.addAll(items);
+        return JsonParser.parseString(write(p)).getAsJsonObject().getAsJsonArray("furniture");
+    }
+
+    /** Texto para el portapapeles con muebles copiados (se puede pegar en otro proyecto). */
+    public static String writeClipboard(List<Furniture> items) {
+        JsonObject root = new JsonObject();
+        root.addProperty("app", APP);
+        root.addProperty("clipboard", "furniture");
+        root.add("furniture", furnitureArray(items));
+        return GSON.toJson(root);
+    }
+
+    /** Muebles del portapapeles, o null si el texto no son muebles copiados de Amoblador3D. */
+    public static List<Furniture> readClipboard(String text) {
+        if (text == null || text.isBlank()) return null;
+        try {
+            JsonElement el = JsonParser.parseString(text);
+            if (!el.isJsonObject()) return null;
+            JsonObject root = el.getAsJsonObject();
+            if (!APP.equals(str(root, "app")) || !"furniture".equals(str(root, "clipboard"))) return null;
+            Project p = new Project();
+            for (JsonObject j : list(root, "furniture")) p.furniture.add(readFurniture(j));
+            ProjectValidator.validate(p); // mismos controles que al abrir un archivo
+            return p.furniture;
+        } catch (JsonParseException | ProjectFormatException | IllegalArgumentException | IllegalStateException
+                 | UnsupportedOperationException e) {
+            return null;
+        }
+    }
+
+    private static Furniture readFurniture(JsonObject j) {
+        Furniture f = new Furniture(str(j, "id"), str(j, "type"), num(j, "x", Double.NaN), num(j, "z", Double.NaN),
+                num(j, "rotation", 0), num(j, "width", Double.NaN), num(j, "depth", Double.NaN),
+                num(j, "height", Double.NaN), str(j, "color"));
+        f.locked = j.has("locked") && j.get("locked").isJsonPrimitive() && j.get("locked").getAsBoolean();
+        return f;
     }
 
     /** Lee y valida un proyecto. Lanza una excepción con un mensaje claro si no es válido. */
@@ -187,11 +229,7 @@ public final class ProjectJson {
                 l.deviation = num(j, "deviation", 20);
                 p.lights.add(l);
             }
-            for (JsonObject j : list(root, "furniture")) {
-                p.furniture.add(new Furniture(str(j, "id"), str(j, "type"), num(j, "x", Double.NaN), num(j, "z", Double.NaN),
-                        num(j, "rotation", 0), num(j, "width", Double.NaN), num(j, "depth", Double.NaN),
-                        num(j, "height", Double.NaN), str(j, "color")));
-            }
+            for (JsonObject j : list(root, "furniture")) p.furniture.add(readFurniture(j));
             ProjectValidator.validate(p);
             return p;
         } catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException e) {

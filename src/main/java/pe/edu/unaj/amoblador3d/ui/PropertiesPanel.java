@@ -125,6 +125,29 @@ final class PropertiesPanel {
         updating = true;
         for (Field f : fields) setControlValue(f, controls.get(f.key()));
         updating = false;
+        updateEnabled();
+        buildActions(); // p. ej. al bloquear un mueble se deshabilitan sus botones
+    }
+
+    /** Deshabilita los campos y el botón Eliminar que no se pueden usar (mueble bloqueado). */
+    private void updateEnabled() {
+        for (Map.Entry<String, Node> e : controls.entrySet()) e.getValue().setDisable(!editable.isEnabled(e.getKey()));
+        delete.setDisable(!editable.canDelete());
+        delete.setTooltip(editable.canDelete() ? null : new Tooltip("Desbloquéalo para poder eliminarlo"));
+    }
+
+    private void buildActions() {
+        actions.getChildren().clear();
+        for (Editable.Action a : editable.actions()) {
+            Button b = new Button(a.label());
+            if (a.tooltip() != null && !a.tooltip().isEmpty()) b.setTooltip(new Tooltip(a.tooltip()));
+            b.setOnAction(e -> applied(a.run().get()));
+            b.setDisable(!a.enabled());
+            b.setFocusTraversable(false);
+            actions.getChildren().add(b);
+        }
+        // Las paredes y el piso no se eliminan.
+        if (!(editable.entity() instanceof Surface)) actions.getChildren().add(delete);
     }
 
     /** Mismos campos, en el mismo orden y con las mismas opciones (los límites pueden cambiar). */
@@ -187,16 +210,8 @@ final class PropertiesPanel {
         if (row > 0) blocks.add(grid);
         updating = false;
         form.getChildren().setAll(blocks);
-
-        actions.getChildren().clear();
-        for (Editable.Action a : editable.actions()) {
-            Button b = new Button(a.label());
-            if (a.tooltip() != null && !a.tooltip().isEmpty()) b.setTooltip(new Tooltip(a.tooltip()));
-            b.setOnAction(e -> applied(a.run().get()));
-            actions.getChildren().add(b);
-        }
-        // Las paredes y el piso no se eliminan.
-        if (!(editable.entity() instanceof Surface)) actions.getChildren().add(delete);
+        updateEnabled();
+        buildActions();
 
         List<Node> children = new ArrayList<>(List.of(title));
         if (!subtitle.getText().isEmpty()) children.add(subtitle);

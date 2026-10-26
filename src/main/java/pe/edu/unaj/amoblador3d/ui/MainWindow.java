@@ -122,6 +122,8 @@ public final class MainWindow {
 
     private Long projectId;
     private String projectName = UNTITLED;
+    /** Lo seleccionado: un elemento o varios muebles. {@code selected} es el último elegido. */
+    private final List<Object> selection = new ArrayList<>();
     private Object selected;
     private boolean syncing; // evita que los controles reaccionen mientras los actualizamos nosotros
 
@@ -146,6 +148,8 @@ public final class MainWindow {
     private final ToggleButton view3d = new ToggleButton("Vista 3D"), viewPlan = new ToggleButton("Planta 2D");
     private final CheckBox dimensions = new CheckBox("Cotas");
     private final ToggleButton measure = new ToggleButton("Medir");
+    private final CheckBox magnet = new CheckBox("Imán");
+    private final CheckMenuItem magnetItem = new CheckMenuItem("Imán al arrastrar   (G)");
     private final CheckMenuItem measureItem = new CheckMenuItem("Medir distancias   (M)");
     private final CheckMenuItem dimensionsItem = new CheckMenuItem("Mostrar cotas");
     private final Label status = new Label();
@@ -175,7 +179,12 @@ public final class MainWindow {
                 },
                 buildEmptyState());
 
-        view.setOnSelect(this::select);
+        view.setOnSelect((entity, add) -> {
+            if (add) toggleSelect(entity);
+            else select(entity);
+        });
+        view.setOnBandSelect(this::addToSelection);
+        view.setOnNotice(message -> notify(message, Toast.Kind.ERROR));
         view.setOnDragEnd(history::commit);
         view.setOnMeasure(text -> {
             statusTimer.stop();
@@ -255,8 +264,14 @@ public final class MainWindow {
         redoItem.setAccelerator(KeyCombination.keyCombination("Shortcut+Y"));
         redoItem.setOnAction(e -> redo());
         Menu edit = new Menu("Editar", null, undoItem, redoItem, new SeparatorMenuItem(),
-                item("Duplicar mueble", "Shortcut+D", this::duplicateSelected),
-                item("Eliminar selección   (Supr)", null, () -> delete(selected)),
+                item("Cortar", "Shortcut+X", this::cut),
+                item("Copiar", "Shortcut+C", this::copy),
+                item("Pegar", "Shortcut+V", this::paste),
+                item("Duplicar", "Shortcut+D", this::duplicateSelected),
+                new SeparatorMenuItem(),
+                item("Seleccionar todos los muebles", "Shortcut+A", this::selectAllFurniture),
+                item("Bloquear / desbloquear   (L)", null, this::toggleLock),
+                item("Eliminar selección   (Supr)", null, this::deleteSelection),
                 item("Deseleccionar   (Esc)", null, () -> select(null)));
 
         RadioMenuItem menu3d = new RadioMenuItem("Vista 3D"), menuPlan = new RadioMenuItem("Planta 2D");
@@ -285,7 +300,8 @@ public final class MainWindow {
                 item("Informe PDF (planos y presupuesto)…", "Shortcut+Shift+P", this::exportPdf));
 
         measureItem.selectedProperty().bindBidirectional(measure.selectedProperty());
-        Menu tools = new Menu("Herramientas", null, measureItem);
+        magnetItem.selectedProperty().bindBidirectional(magnet.selectedProperty());
+        Menu tools = new Menu("Herramientas", null, measureItem, magnetItem);
 
         Menu help = new Menu("Ayuda", null,
                 item("Atajos de teclado", "F1", this::showShortcuts),
@@ -351,13 +367,18 @@ public final class MainWindow {
                 status.setText(defaultStatus());
             }
         });
+        magnet.setSelected(true);
+        magnet.setFocusTraversable(false);
+        magnet.setTooltip(new Tooltip("Al arrastrar, los muebles se pegan a las paredes y a otros muebles (G).\n"
+                + "Mantén Alt para soltar el imán un momento."));
+        magnet.selectedProperty().addListener((obs, o, on) -> view.setMagnet(on));
         Button budget = toolButton("Presupuesto", "Metrado y presupuesto (Ctrl+P)", this::showEstimate);
         Button pdf = toolButton("PDF", "Informe PDF con planos y presupuesto (Ctrl+Shift+P)", this::exportPdf);
 
         return new ToolBar(newButton, openButton, saveButton, new Separator(Orientation.VERTICAL),
                 undoButton, redoButton, new Separator(Orientation.VERTICAL),
                 segmented, dimensions, center, new Separator(Orientation.VERTICAL),
-                measure, budget, pdf, capture);
+                measure, magnet, budget, pdf, capture);
     }
 
     /**
@@ -442,7 +463,8 @@ public final class MainWindow {
                 • Arrastra un mueble para moverlo
                 • Flechas: mover 5 cm (Shift: 1 cm)
                 • R / Shift+R: girar 90° · Q / E: 15°
-                • Supr: eliminar · Ctrl+D: duplicar
+                • Shift + clic o rectángulo: varios muebles
+                • Supr: eliminar · Ctrl+D: duplicar · L: bloquear
                 • Ctrl+Z / Ctrl+Y: deshacer / rehacer
                 • F1: todos los atajos""");
         tips.getStyleClass().add("tips");
@@ -576,14 +598,27 @@ public final class MainWindow {
             @Override
             protected void updateItem(Object item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(empty || item == null ? null : design.label(item));
+                setText(empty || item == null ? null
+                        : design.label(item) + (item instanceof Furniture f && f.locked ? "  · bloqueado" : ""));
                 setGraphic(empty || item == null ? null : new Circle(5, Color.web(dotColor(item))));
             }
         });
-        items.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
-            if (!syncing && n != null) select(n);
+        items.getSelectionModel().setSelectionMode(javafx.scene.control.SelectionMode.MULTIPLE);
+        items.getSelectionModel().getSelectedItems().addListener((javafx.collections.ListChangeListener<Object>) c -> {
+            if (syncing) return;
+            List<Object> chosen = new ArrayList<>(items.getSelectionModel().getSelectedItems());
+            chosen.removeIf(java.util.Objects::isNull);
+            if (chosen.isEmpty()) return;
+            // Solo los muebles se seleccionan de a varios; si hay otra cosa, queda la última elegida.
+            if (chosen.size() > 1 && !chosen.stream().allMatch(o -> o instanceof Furniture)) {
+                Object last = items.getSelectionModel().getSelectedItem();
+                setSelection(last == null ? List.of() : List.of(last));
+            } else {
+                setSelection(chosen);
+            }
         });
-        Label hint = new Label("Clic para seleccionar · Supr para eliminar");
+        Label hint = new Label("Clic para seleccionar · Ctrl o Shift para varios muebles · Supr para eliminar");
+        hint.setWrapText(true);
         hint.getStyleClass().add("hint");
         VBox.setVgrow(items, Priority.ALWAYS);
         return new VBox(8, items, hint);
@@ -660,12 +695,13 @@ public final class MainWindow {
         else items.refresh();
         floorButton.setGraphic(swatch(design.floor()));
         for (WallSide side : WallSide.values()) wallButtons.get(side).setGraphic(swatch(design.wall(side)));
-        if (selected != null && list.contains(selected)) items.getSelectionModel().select(selected);
-        else items.getSelectionModel().clearSelection();
+        syncListSelection();
         syncing = false;
 
-        // Si lo seleccionado ya no existe (p. ej. el sol se eliminó con su ventana), deseleccionar.
-        if (selected != null && !design.entities().contains(selected)) select(null);
+        // Si algo seleccionado ya no existe (p. ej. el sol se eliminó con su ventana), se quita.
+        List<Object> alive = new ArrayList<>(selection);
+        alive.retainAll(design.entities());
+        if (alive.size() != selection.size()) setSelection(alive);
         else properties.refresh();
         updateSelectionInfo();
     }
@@ -677,18 +713,68 @@ public final class MainWindow {
     }
 
     private void select(Object entity) {
-        selected = entity;
-        view.setSelected(entity);
-        properties.show(entity == null ? null : Editors.of(design, entity, this::duplicate));
+        setSelection(entity == null ? List.of() : List.of(entity));
+    }
+
+    /** Shift/Ctrl + clic: agrega o quita un mueble de la selección. Lo que no es mueble se selecciona solo. */
+    private void toggleSelect(Object entity) {
+        if (!(entity instanceof Furniture f)) {
+            if (entity != null) select(entity);
+            return;
+        }
+        List<Object> next = new ArrayList<>(selectedFurniture());
+        if (!next.remove(f)) next.add(f);
+        setSelection(next);
+    }
+
+    /** Agrega muebles a la selección (rectángulo con Shift + arrastrar). */
+    private void addToSelection(List<Furniture> list) {
+        List<Object> next = new ArrayList<>(selectedFurniture());
+        for (Furniture f : list) if (!next.contains(f)) next.add(f);
+        setSelection(next);
+        if (!list.isEmpty()) notify(next.size() + " muebles seleccionados.");
+    }
+
+    private void selectAllFurniture() {
+        if (forwardToTextField(TextInputControl::selectAll)) return;
+        setSelection(new ArrayList<>(design.furniture()));
+    }
+
+    private void setSelection(List<?> entities) {
+        selection.clear();
+        selection.addAll(entities);
+        selected = selection.isEmpty() ? null : selection.get(selection.size() - 1);
+        view.setSelection(selection);
+        properties.show(editor());
         syncing = true;
-        if (entity != null && items.getItems().contains(entity)) items.getSelectionModel().select(entity);
-        else items.getSelectionModel().clearSelection();
+        syncListSelection();
         syncing = false;
         updateSelectionInfo();
     }
 
+    private Editable editor() {
+        if (selection.isEmpty()) return null;
+        if (selection.size() == 1) return Editors.of(design, selection.get(0), this::duplicate);
+        return Editors.group(design, selectedFurniture(), this::duplicateGroup);
+    }
+
+    private List<Furniture> selectedFurniture() {
+        List<Furniture> list = new ArrayList<>();
+        for (Object o : selection) if (o instanceof Furniture f) list.add(f);
+        return list;
+    }
+
+    private void syncListSelection() {
+        items.getSelectionModel().clearSelection();
+        for (Object o : selection) {
+            int i = items.getItems().indexOf(o);
+            if (i >= 0) items.getSelectionModel().select(i);
+        }
+    }
+
     private void updateSelectionInfo() {
-        selectionInfo.setText(selected == null ? "Nada seleccionado" : "Seleccionado: " + design.label(selected));
+        if (selection.size() > 1) selectionInfo.setText("Seleccionados: " + selection.size() + " muebles");
+        else selectionInfo.setText(selected == null ? "Nada seleccionado" : "Seleccionado: " + design.label(selected));
     }
 
     private void updateTitle() {
@@ -778,29 +864,126 @@ public final class MainWindow {
         return null;
     }
 
-    private void duplicateSelected() {
-        if (selected instanceof Furniture f) {
-            String err = duplicate(f);
-            if (err != null) notify(err, Toast.Kind.ERROR);
-        } else {
-            notify("Selecciona un mueble para duplicarlo.", Toast.Kind.ERROR);
-        }
+    /** Para el botón "Duplicar" de varios muebles. Devuelve un error o null. */
+    private String duplicateGroup(List<Furniture> group) {
+        Outcome<List<Furniture>> out = design.duplicateGroup(group);
+        if (out.failed()) return out.error();
+        history.commit();
+        setSelection(out.value());
+        return null;
     }
 
+    private void duplicateSelected() {
+        List<Furniture> group = selectedFurniture();
+        String err = group.isEmpty() ? "Selecciona uno o más muebles para duplicarlos."
+                : group.size() == 1 ? duplicate(group.get(0)) : duplicateGroup(group);
+        if (err != null) notify(err, Toast.Kind.ERROR);
+    }
+
+    private void deleteSelection() {
+        if (selection.size() > 1) delete(selectedFurniture());
+        else delete(selected);
+    }
+
+    /** Elimina un elemento o una lista de muebles (desde el panel de propiedades o con Supr). */
     private void delete(Object entity) {
         if (entity == null || entity instanceof Surface) return;
-        String label = design.label(entity);
-        design.remove(entity);
+        List<?> all = entity instanceof List<?> list ? list : List.of(entity);
+        if (all.isEmpty()) return;
+        for (Object o : all) {
+            if (o instanceof Furniture f && f.locked) {
+                notify(design.label(f) + " está bloqueado: desbloquéalo (L) para eliminarlo.", Toast.Kind.ERROR);
+                return;
+            }
+        }
+        String label = all.size() == 1 ? design.label(all.get(0)) : all.size() + " muebles";
+        for (Object o : all) design.remove(o);
         history.commit();
         select(null);
         notify("Se eliminó " + label + ".");
     }
 
     private void rotateSelected(double degrees) {
-        if (!(selected instanceof Furniture f)) return;
-        String err = design.rotateFurniture(f, degrees);
+        List<Furniture> group = selectedFurniture();
+        if (group.isEmpty()) return;
+        String err = design.rotateGroup(group, degrees);
         if (err != null) notify(err, Toast.Kind.ERROR);
         else history.commit();
+    }
+
+    /** L: bloquea los muebles seleccionados (o los desbloquea si ya lo estaban todos). */
+    private void toggleLock() {
+        List<Furniture> group = selectedFurniture();
+        if (group.isEmpty()) {
+            notify("Selecciona uno o más muebles para bloquearlos.", Toast.Kind.ERROR);
+            return;
+        }
+        boolean lock = !group.stream().allMatch(f -> f.locked);
+        design.setLocked(group, lock);
+        history.commit();
+        notify((group.size() == 1 ? design.label(group.get(0)) : group.size() + " muebles")
+                + (lock ? (group.size() == 1 ? " bloqueado." : " bloqueados.") : (group.size() == 1 ? " desbloqueado." : " desbloqueados.")));
+    }
+
+    // ---------------------------------------------------------------- Portapapeles
+
+    /** Si se está escribiendo en un campo, Ctrl+C/X/V/A son del campo. Devuelve true si se encargó el campo. */
+    private boolean forwardToTextField(Consumer<TextInputControl> action) {
+        if (stage.getScene().getFocusOwner() instanceof TextInputControl t) {
+            action.accept(t);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean copyToClipboard() {
+        List<Furniture> group = selectedFurniture();
+        if (group.isEmpty()) {
+            notify("Selecciona uno o más muebles para copiarlos.", Toast.Kind.ERROR);
+            return false;
+        }
+        javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+        content.putString(ProjectJson.writeClipboard(group));
+        javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+        return true;
+    }
+
+    private void copy() {
+        if (forwardToTextField(TextInputControl::copy)) return;
+        if (copyToClipboard()) notify("Copiado: " + selectionLabel() + ". Pega con Ctrl+V (también en otro proyecto).");
+    }
+
+    private void cut() {
+        if (forwardToTextField(TextInputControl::cut)) return;
+        List<Furniture> group = selectedFurniture();
+        if (design.firstLocked(group) != null) {
+            notify(design.label(design.firstLocked(group)) + " está bloqueado: no se puede cortar.", Toast.Kind.ERROR);
+            return;
+        }
+        if (!copyToClipboard()) return;
+        String label = selectionLabel();
+        for (Furniture f : group) design.remove(f);
+        history.commit();
+        select(null);
+        notify("Cortado: " + label + ".");
+    }
+
+    private void paste() {
+        if (forwardToTextField(TextInputControl::paste)) return;
+        List<Furniture> items = ProjectJson.readClipboard(javafx.scene.input.Clipboard.getSystemClipboard().getString());
+        if (items == null) {
+            notify("El portapapeles no tiene muebles copiados de Amoblador3D.", Toast.Kind.ERROR);
+            return;
+        }
+        handle(design.paste(items), pasted -> {
+            setSelection(pasted);
+            notify("Pegado: " + (pasted.size() == 1 ? design.label(pasted.get(0)) : pasted.size() + " muebles") + ".");
+        });
+    }
+
+    private String selectionLabel() {
+        List<Furniture> group = selectedFurniture();
+        return group.size() == 1 ? design.label(group.get(0)) : group.size() + " muebles";
     }
 
     private void undo() {
@@ -823,14 +1006,19 @@ public final class MainWindow {
 
     /** Aplica una "foto" del historial conservando la selección. */
     private void restore(String json) {
-        String id = selected != null ? Design.idOf(selected) : null;
+        List<String> ids = selection.stream().map(Design::idOf).toList();
         try {
             design.load(ProjectJson.read(json));
         } catch (ProjectFormatException e) {
             Dialogs.error(stage, "No se pudo deshacer", e.getMessage());
             return;
         }
-        select(id == null ? null : design.findById(id));
+        List<Object> again = new ArrayList<>();
+        for (String id : ids) {
+            Object e = design.findById(id);
+            if (e != null) again.add(e);
+        }
+        setSelection(again);
     }
 
     private void onKey(KeyEvent e) {
@@ -839,25 +1027,23 @@ public final class MainWindow {
         if (e.isShortcutDown() || e.isAltDown()) return;
         if (e.getCode() == KeyCode.ESCAPE && measure.isSelected()) measure.setSelected(false);
         else if (e.getCode() == KeyCode.M) measure.setSelected(!measure.isSelected());
-        else if (e.getCode() == KeyCode.DELETE || e.getCode() == KeyCode.BACK_SPACE) delete(selected);
+        else if (e.getCode() == KeyCode.G) magnet.setSelected(!magnet.isSelected());
+        else if (e.getCode() == KeyCode.L) toggleLock();
+        else if (e.getCode() == KeyCode.DELETE || e.getCode() == KeyCode.BACK_SPACE) deleteSelection();
         else if (e.getCode() == KeyCode.ESCAPE) select(null);
         else if (e.getCode() == KeyCode.R) rotateSelected(e.isShiftDown() ? 90 : -90);
         else if (e.getCode() == KeyCode.Q) rotateSelected(15);
         else if (e.getCode() == KeyCode.E) rotateSelected(-15);
-        else if (e.getCode().isArrowKey() && selected instanceof Furniture f) nudge(f, e.getCode(), e.isShiftDown() ? 0.01 : 0.05);
+        else if (e.getCode().isArrowKey() && !selectedFurniture().isEmpty()) nudge(e.getCode(), e.isShiftDown() ? 0.01 : 0.05);
         else return;
         e.consume();
     }
 
-    /** Mueve el mueble con las flechas (arriba = norte). Respeta las mismas reglas que el panel. */
-    private void nudge(Furniture f, KeyCode key, double step) {
-        Editable editor = Editors.of(design, f, this::duplicate);
-        String err = switch (key) {
-            case LEFT -> editor.set("x", Units.round(f.x - step));
-            case RIGHT -> editor.set("x", Units.round(f.x + step));
-            case UP -> editor.set("z", Units.round(f.z - step));
-            default -> editor.set("z", Units.round(f.z + step));
-        };
+    /** Mueve lo seleccionado con las flechas (arriba = norte). Varios muebles se mueven juntos. */
+    private void nudge(KeyCode key, double step) {
+        double dx = key == KeyCode.LEFT ? -step : key == KeyCode.RIGHT ? step : 0;
+        double dz = key == KeyCode.UP ? -step : key == KeyCode.DOWN ? step : 0;
+        String err = design.moveGroup(selectedFurniture(), dx, dz);
         if (err != null) {
             notify(err, Toast.Kind.ERROR);
             return;
@@ -1150,7 +1336,12 @@ public final class MainWindow {
                 Ctrl+N  Nuevo proyecto        Ctrl+O  Abrir
                 Ctrl+S  Guardar               Ctrl+Shift+S  Guardar como
                 Ctrl+Z  Deshacer              Ctrl+Y  Rehacer
-                Ctrl+D  Duplicar mueble       Supr  Eliminar selección
+                Ctrl+C / Ctrl+X / Ctrl+V  Copiar / Cortar / Pegar muebles
+                Ctrl+D  Duplicar              Supr  Eliminar selección
+                Ctrl+A  Seleccionar todos los muebles
+                Shift o Ctrl + clic  Agregar a la selección
+                Shift + arrastrar  Seleccionar con un rectángulo
+                L  Bloquear / desbloquear     G  Imán (Alt al arrastrar: sin imán)
                 R / Shift+R  Girar mueble 90°  Q / E  Girar 15°
                 Flechas  Mover 5 cm (Shift: 1 cm)    Esc  Deseleccionar
                 Ctrl+1  Vista 3D              Ctrl+2  Planta 2D
