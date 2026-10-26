@@ -16,8 +16,9 @@ import pe.edu.unaj.amoblador3d.catalog.CatalogEntry.Source;
 /**
  * Lee los modelos 3D que vienen con la aplicación: {@code src/main/resources/assets/catalog.json}.
  *
- * <p>Formato de cada entrada: {@code { "id", "name", "file", "width", "depth", "height", "rotation" }},
- * donde {@code file} es relativo a la carpeta {@code assets}.
+ * <p>Formato de cada entrada: {@code { "id", "name", "file", "width", "depth", "height", "rotation", "category" }},
+ * donde {@code file} es relativo a la carpeta {@code assets} y {@code category} es opcional
+ * (una de {@link Catalog#CATEGORIES}; por defecto "Decoración").
  */
 public final class BuiltinCatalog {
     private static final String ROOT = "/assets/";
@@ -63,7 +64,10 @@ public final class BuiltinCatalog {
             return null;
         }
         double rotation = m.has("rotation") ? number(m, "rotation") : 0;
-        return CatalogEntry.model(id, name, Source.BUILTIN, new Size(w, d, h), url, Double.isFinite(rotation) ? rotation : 0);
+        String category = string(m, "category");
+        if (category == null || !Catalog.CATEGORIES.contains(category)) category = Catalog.DECORATION;
+        return CatalogEntry.model(id, name, Source.BUILTIN, new Size(w, d, h), url, Double.isFinite(rotation) ? rotation : 0,
+                category);
     }
 
     private static String string(JsonObject o, String key) {

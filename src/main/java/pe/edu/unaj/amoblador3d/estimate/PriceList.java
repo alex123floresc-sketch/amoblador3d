@@ -65,6 +65,15 @@ public final class PriceList {
         furniture("silla", 120);
         furniture("closet", 1200);
         furniture("escritorio", 400);
+        furniture("mesa-noche", 180);
+        furniture("comoda", 600);
+        furniture("sillon", 1500);
+        furniture("rack-tv", 2500); // con televisor
+        furniture("librero", 350);
+        furniture("cocina", 1800);
+        furniture("refrigeradora", 2200);
+        furniture("inodoro", 350);
+        furniture("lavatorio", 250);
         DEFAULTS.put(BASEBOARD, 12.0); // por metro lineal
     }
 

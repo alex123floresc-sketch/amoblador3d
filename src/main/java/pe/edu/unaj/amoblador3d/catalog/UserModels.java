@@ -53,7 +53,7 @@ public final class UserModels {
             }
             try {
                 result.add(CatalogEntry.model(m.id(), m.name(), Source.USER,
-                        new Size(m.width(), m.depth(), m.height()), file.toUri().toURL(), m.rotation()));
+                        new Size(m.width(), m.depth(), m.height()), file.toUri().toURL(), m.rotation(), Catalog.IMPORTED));
             } catch (IOException e) {
                 warnings.add("\"" + m.name() + "\": ruta no válida.");
             }

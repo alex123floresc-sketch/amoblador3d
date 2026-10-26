@@ -27,9 +27,12 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 - **Habitación**: ancho, largo, alto y grosor de muro; ventanas y puertas que no se superponen.
 - **Paredes y piso**: 11 materiales (pintura, ladrillo, piedra, madera, cerámico, mármol,
   porcelanato, alfombra...) con texturas a escala real y cualquier color.
-- **Muebles**: paramétricos (cama, mesa, silla, closet, escritorio) con medidas y color editables,
-  y modelos 3D `.glb/.gltf` (incluidos o importados). No chocan entre sí, con las paredes ni con
-  el paso de las puertas.
+- **Muebles**: 14 paramétricos con medidas y color editables (cama, mesa de noche, cómoda, closet,
+  sofá, mueble de TV, librero, mesa, silla, mueble de cocina, refrigeradora, inodoro, lavatorio y
+  escritorio) y modelos 3D `.glb/.gltf` (incluidos o importados), agrupados por categoría y con
+  buscador. No chocan entre sí, con las paredes ni con el paso de las puertas.
+- **Plantillas** (*Archivo → Nuevo desde plantilla*, Ctrl+Shift+N): dormitorio, sala, comedor,
+  cocina, baño y oficina listos para empezar, con vista previa.
 - **Luces**: bombillas, focos y sol que entra por una ventana.
 - **Proyectos**: se guardan en SQLite con miniatura; también se exportan/importan como `.amob3d`
   (JSON) y la vista se exporta como PNG.
@@ -51,6 +54,7 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 | Tecla | Acción |
 |---|---|
 | Ctrl+N / Ctrl+O / Ctrl+S | Nuevo / Abrir / Guardar |
+| Ctrl+Shift+N | Nuevo desde plantilla |
 | Ctrl+Z / Ctrl+Y | Deshacer / Rehacer |
 | Flechas (Shift: más fino) | Mover el mueble 5 cm (1 cm) |
 | R / Shift+R | Girar el mueble 90° |
@@ -82,7 +86,7 @@ archivo, revisa sus medidas reales y listo. El modelo se copia a la carpeta de d
 
 ```json
 { "id": "mi-sillon", "name": "Sillón", "file": "models/mi-sillon.glb",
-  "width": 0.9, "depth": 0.85, "height": 0.95, "rotation": 0 }
+  "width": 0.9, "depth": 0.85, "height": 0.95, "rotation": 0, "category": "Sala" }
 ```
 
 | Campo | Significado |
@@ -92,6 +96,7 @@ archivo, revisa sus medidas reales y listo. El modelo se copia a la carpeta de d
 | `file` | Ruta del modelo, relativa a `assets/`. |
 | `width`, `depth`, `height` | Medidas **reales** en metros (ancho X, profundidad Z, alto Y). |
 | `rotation` | Grados para que el frente del modelo mire a +Z (0, 90, 180 o 270). |
+| `category` | Opcional: Dormitorio, Sala, Comedor, Cocina, Baño, Oficina o Decoración (por defecto). |
 
 3. Vuelve a compilar (`.\mvnw.cmd javafx:run`).
 
@@ -103,8 +108,9 @@ El modelo se escala a las medidas indicadas aunque haya sido modelado en centím
 
 ### Opción C: mueble paramétrico (por código)
 
-Crea su método en `scene/ParametricBuilder.java`, regístralo en `build` y declara sus medidas en
-`catalog/Catalog.java`. Regla: el mueble ocupa exactamente `x ∈ [-ancho/2, ancho/2]`,
+Crea su método en `scene/ParametricBuilder.java`, regístralo en `build`, declara sus medidas y su
+categoría en `catalog/Catalog.java` y su precio referencial en `estimate/PriceList.java`
+(`ParametricBuilderTest` revisa que quepa en sus medidas). Regla: el mueble ocupa exactamente `x ∈ [-ancho/2, ancho/2]`,
 `z ∈ [-prof/2, prof/2]`, `y ∈ [0, alto]`, con el frente hacia +Z.
 
 ## Formato del proyecto (.amob3d)

@@ -133,7 +133,8 @@ public final class MainWindow {
     private final Label roomError = new Label(), roomInfo = new Label();
     private final Slider ambient = new Slider(0, 2, Project.DEFAULT_AMBIENT);
     private final Label ambientValue = new Label();
-    private final FlowPane parametricButtons = new FlowPane(6, 6), modelButtons = new FlowPane(6, 6);
+    private final TextField catalogSearch = new TextField();
+    private final VBox catalogGroups = new VBox(12);
     private final ListView<Object> items = new ListView<>();
     private final Button floorButton = new Button("Piso");
     private final java.util.Map<WallSide, Button> wallButtons = new java.util.EnumMap<>(WallSide.class);
@@ -242,6 +243,7 @@ public final class MainWindow {
     private MenuBar buildMenu() {
         Menu file = new Menu("Archivo", null,
                 item("Nuevo proyecto", "Shortcut+N", this::newProject),
+                item("Nuevo desde plantilla…", "Shortcut+Shift+N", this::newFromTemplate),
                 item("Abrir…", "Shortcut+O", this::openProject),
                 new SeparatorMenuItem(),
                 item("Guardar", "Shortcut+S", this::save),
@@ -458,6 +460,8 @@ public final class MainWindow {
         quick.getStyleClass().add("subheading");
         Button walls = smallButton("Cambiar el material de las paredes", "Selecciona la pared norte", () -> select(design.wall(WallSide.NORTE)));
         Button floor = smallButton("Cambiar el piso", "Selecciona el piso", () -> select(design.floor()));
+        Button template = smallButton("Empezar desde una plantilla", "Dormitorio, sala, cocina, baño... (Ctrl+Shift+N)",
+                this::newFromTemplate);
         Label tips = new Label("""
                 Atajos útiles
                 • Arrastra un mueble para moverlo
@@ -469,7 +473,7 @@ public final class MainWindow {
                 • F1: todos los atajos""");
         tips.getStyleClass().add("tips");
         tips.setWrapText(true);
-        return new VBox(10, intro, quick, walls, floor, tips);
+        return new VBox(10, intro, quick, template, walls, floor, tips);
     }
 
     private static HBox row(Node... nodes) {
@@ -583,13 +587,21 @@ public final class MainWindow {
 
     private Node buildCatalog() {
         Button importButton = smallButton("Importar modelo .glb/.gltf…", "Agregar un modelo 3D al catálogo (Ctrl+I)", this::importModel);
-        Label hint = new Label("Clic para agregar en el lugar libre más cercano al centro. Clic derecho en un modelo importado para quitarlo.");
+        Label hint = new Label("Clic para agregar en el lugar libre más cercano al centro. Los marcados con «3D» son "
+                + "modelos con sus propios colores. Clic derecho en un modelo importado para quitarlo.");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
-        return new VBox(14,
-                group("Paramétricos (medidas y color editables)", parametricButtons),
-                group("Modelos 3D", new VBox(8, modelButtons, importButton)),
-                hint);
+        catalogSearch.setPromptText("Buscar mueble…");
+        catalogSearch.setTooltip(new Tooltip("Escribe parte del nombre (Esc para borrar)"));
+        catalogSearch.textProperty().addListener((obs, o, n) -> rebuildCatalogButtons());
+        catalogSearch.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ESCAPE) {
+                catalogSearch.clear();
+                view.node().requestFocus();
+                e.consume();
+            }
+        });
+        return new VBox(12, catalogSearch, catalogGroups, importButton, hint);
     }
 
     private Node buildItemList() {
@@ -640,25 +652,48 @@ public final class MainWindow {
         return bar;
     }
 
+    /** Botones del catálogo agrupados por categoría y filtrados por la búsqueda. */
     private void rebuildCatalogButtons() {
-        parametricButtons.getChildren().clear();
-        for (CatalogEntry e : catalog.list(CatalogEntry.Kind.PARAMETRIC)) parametricButtons.getChildren().add(catalogButton(e));
-        modelButtons.getChildren().clear();
-        for (CatalogEntry e : catalog.list(CatalogEntry.Kind.MODEL)) modelButtons.getChildren().add(catalogButton(e));
-        if (modelButtons.getChildren().isEmpty()) {
-            Label none = new Label("No hay modelos.");
+        catalogGroups.getChildren().clear();
+        String query = catalogSearch.getText();
+        for (String category : Catalog.CATEGORIES) {
+            List<CatalogEntry> entries = catalog.search(category, query);
+            if (entries.isEmpty()) continue;
+            // Dos columnas que ocupan todo el ancho (con o sin barra de desplazamiento).
+            GridPane buttons = new GridPane();
+            buttons.setHgap(6);
+            buttons.setVgap(6);
+            for (int i = 0; i < 2; i++) {
+                javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
+                col.setPercentWidth(50);
+                buttons.getColumnConstraints().add(col);
+            }
+            for (int i = 0; i < entries.size(); i++) {
+                Button b = catalogButton(entries.get(i));
+                b.setMaxWidth(Double.MAX_VALUE);
+                b.setPrefWidth(60); // el ancho lo reparte la cuadrícula
+                buttons.add(b, i % 2, i / 2);
+            }
+            catalogGroups.getChildren().add(group(category, buttons));
+        }
+        if (catalogGroups.getChildren().isEmpty()) {
+            Label none = new Label("Ningún mueble se llama «" + query.trim() + "».");
             none.getStyleClass().add("hint");
-            modelButtons.getChildren().add(none);
+            none.setWrapText(true);
+            catalogGroups.getChildren().add(none);
         }
     }
 
     private Button catalogButton(CatalogEntry e) {
         CatalogEntry.Size s = e.defaults();
-        Button b = new Button(e.name() + "\n" + Units.number(s.width()) + " × " + Units.number(s.depth()) + " m");
+        boolean model = e.kind() == CatalogEntry.Kind.MODEL;
+        Button b = new Button(e.name() + "\n" + Units.number(s.width()) + " × " + Units.number(s.depth()) + " m"
+                + (model ? "  · 3D" : ""));
         b.getStyleClass().add("catalog-button");
         b.setFocusTraversable(false);
         b.setTooltip(new Tooltip("Agregar " + e.name().toLowerCase() + " (" + Units.number(s.width()) + " x "
-                + Units.number(s.depth()) + " x " + Units.number(s.height()) + " m)"));
+                + Units.number(s.depth()) + " x " + Units.number(s.height()) + " m)"
+                + (model ? "\nModelo 3D: trae sus propios colores." : "\nMedidas y color editables.")));
         b.setOnAction(ev -> addFurniture(e.id()));
         if (e.source() == CatalogEntry.Source.USER) {
             MenuItem remove = new MenuItem("Quitar del catálogo…");
@@ -1074,6 +1109,13 @@ public final class MainWindow {
         notify("Proyecto nuevo.");
     }
 
+    /** Proyecto nuevo a partir de una habitación lista (dormitorio, sala, cocina...). */
+    private void newFromTemplate() {
+        if (!confirmDiscard()) return;
+        TemplatesDialog.show(stage, pe.edu.unaj.amoblador3d.design.Templates.all(catalog))
+                .ifPresent(choice -> loadProject(choice.project(), null, choice.name()));
+    }
+
     private void openProject() {
         if (!confirmDiscard()) return;
         ProjectsDialog.show(stage, projects, projectId).ifPresent(id -> {
@@ -1334,6 +1376,7 @@ public final class MainWindow {
     private void showShortcuts() {
         Dialogs.info(stage, "Atajos de teclado", "Atajos de teclado", """
                 Ctrl+N  Nuevo proyecto        Ctrl+O  Abrir
+                Ctrl+Shift+N  Nuevo desde plantilla
                 Ctrl+S  Guardar               Ctrl+Shift+S  Guardar como
                 Ctrl+Z  Deshacer              Ctrl+Y  Rehacer
                 Ctrl+C / Ctrl+X / Ctrl+V  Copiar / Cortar / Pegar muebles

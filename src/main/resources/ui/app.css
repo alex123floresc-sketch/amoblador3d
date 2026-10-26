@@ -113,7 +113,7 @@
 }
 
 .catalog-button {
-    -fx-pref-width: 128;
+    -fx-pref-width: 120;
     -fx-min-height: 46;
     -fx-text-alignment: center;
     -fx-alignment: center;
@@ -257,4 +257,8 @@
 .wrapping-cell-text {
     -fx-fill: #e6e8eb;
     -fx-font-size: 13px;
+}
+
+.text-field {
+    -fx-prompt-text-fill: #8b949e;
 }

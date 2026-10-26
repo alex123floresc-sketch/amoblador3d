@@ -7,7 +7,8 @@
       "width": 1.6,
       "depth": 0.85,
       "height": 0.85,
-      "rotation": 0
+      "rotation": 0,
+      "category": "Sala"
     },
     {
       "id": "lampara-pie",
@@ -16,7 +17,8 @@
       "width": 0.4,
       "depth": 0.4,
       "height": 1.6,
-      "rotation": 0
+      "rotation": 0,
+      "category": "Decoración"
     },
     {
       "id": "planta",
@@ -25,7 +27,8 @@
       "width": 0.6,
       "depth": 0.6,
       "height": 1.2,
-      "rotation": 0
+      "rotation": 0,
+      "category": "Decoración"
     }
   ]
 }
