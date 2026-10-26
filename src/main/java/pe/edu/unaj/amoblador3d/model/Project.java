@@ -22,6 +22,8 @@ public final class Project {
     public final List<Opening> openings = new ArrayList<>();
     public final List<Light> lights = new ArrayList<>();
     public final List<Furniture> furniture = new ArrayList<>();
+    /** Vistas de cámara guardadas por el usuario. */
+    public final List<CameraView> views = new ArrayList<>();
 
     public Project() {
         for (WallSide side : WallSide.values()) walls.put(side, Surface.wall(side));
@@ -36,6 +38,7 @@ public final class Project {
         for (Opening o : openings) p.openings.add(o.copy());
         for (Light l : lights) p.lights.add(l.copy());
         for (Furniture f : furniture) p.furniture.add(f.copy());
+        p.views.addAll(views); // CameraView es inmutable
         return p;
     }
 }

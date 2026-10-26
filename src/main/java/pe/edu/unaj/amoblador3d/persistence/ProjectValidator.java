@@ -44,6 +44,9 @@ public final class ProjectValidator {
             if (l.color == null || !COLOR.matcher(l.color).matches()) l.color = new Light(l.id, l.type).color;
             l.intensity = Units.clamp(l.intensity, 0, l.type.maxIntensity());
         }
+        // Vistas dañadas o con nombre repetido se descartan (no son motivo para no abrir el proyecto).
+        Set<String> names = new HashSet<>();
+        p.views.removeIf(v -> !v.isValid() || !names.add(v.name().trim().toLowerCase()));
         for (Furniture f : p.furniture) {
             checkId(f.id, ids);
             if (f.type == null || f.type.isBlank()) throw new ProjectFormatException("El mueble " + f.id + " no tiene tipo.");

@@ -11,11 +11,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.design.Design;
 import pe.edu.unaj.amoblador3d.estimate.PriceList;
+import pe.edu.unaj.amoblador3d.model.CameraView;
 import pe.edu.unaj.amoblador3d.model.LightType;
 import pe.edu.unaj.amoblador3d.model.Project;
 import pe.edu.unaj.amoblador3d.model.Surface;
@@ -147,6 +149,7 @@ class PersistenceTest {
             assertEquals(SurfaceMaterial.LADRILLO, p.walls.get(WallSide.NORTE).material);
             assertEquals(4, p.furniture.size());
             assertTrue(p.furniture.get(0).locked, "la cama del ejemplo está bloqueada");
+            assertEquals(List.of("Desde la puerta"), p.views.stream().map(CameraView::name).toList());
             assertEquals("window-1", p.lights.stream().filter(l -> l.type == LightType.SUN).findFirst().orElseThrow().windowId);
             Design design = new Design(new Catalog());
             assertTrue(design.load(p).isEmpty(), "el ejemplo no debería necesitar correcciones");
@@ -164,6 +167,44 @@ class PersistenceTest {
             long id = repo.save(null, "Con bloqueo", p, null);
             assertTrue(repo.load(id).furniture.get(0).locked);
         }
+    }
+
+    @Test
+    void lasVistasGuardadasSeConservan() throws Exception {
+        Design d = new Design(new Catalog());
+        d.loadDefault();
+        d.saveView(new CameraView("Desde la puerta", CameraView.Kind.WALK, 1.5, 1.6, 3.2, 0.3, -0.1, 0));
+        d.saveView(new CameraView("Planta", CameraView.Kind.PLAN, 2, 0, 1.75, 0, 0, 8));
+        d.saveView(new CameraView("  desde la PUERTA ", CameraView.Kind.ORBIT, 2, 1, 1.75, 0.5, 0.6, 9)); // reemplaza
+        assertEquals(2, d.views().size());
+        assertEquals(CameraView.Kind.ORBIT, d.views().get(0).kind());
+        assertEquals("desde la PUERTA", d.views().get(0).name());
+
+        Project p = d.snapshot();
+        assertEquals(p.views, ProjectJson.read(ProjectJson.write(p)).views);
+        try (Database db = new Database(dir.resolve("vistas.db"))) {
+            ProjectRepository repo = new ProjectRepository(db);
+            long id = repo.save(null, "Con vistas", p, null);
+            assertEquals(p.views, repo.load(id).views);
+            p.views.clear();
+            repo.save(id, "Con vistas", p, null); // al guardar de nuevo se reemplazan
+            assertTrue(repo.load(id).views.isEmpty());
+        }
+        d.removeView("Planta");
+        assertEquals(1, d.views().size());
+    }
+
+    @Test
+    void unaVistaDanadaSeDescartaSinPerderElProyecto() throws Exception {
+        String json = """
+                {"app":"Amoblador3D","version":1,
+                 "room":{"width":4,"length":3,"height":2.5,"wallThickness":0.15},
+                 "views":[{"name":"Buena","mode":"plan","x":2,"y":0,"z":1.5,"yaw":0,"pitch":0,"distance":8},
+                          {"name":"","mode":"3d"},{"name":"Rara","mode":"lateral"},
+                          {"name":"buena","mode":"walk","x":1,"y":1.6,"z":1,"yaw":0,"pitch":0,"distance":0}]}""";
+        Project p = ProjectJson.read(json);
+        assertEquals(1, p.views.size());
+        assertEquals("Buena", p.views.get(0).name());
     }
 
     @Test

@@ -6,7 +6,8 @@ import javafx.scene.PerspectiveCamera;
 import javafx.scene.transform.Affine;
 
 /**
- * Cámara de la vista 3D (órbita alrededor de un punto) y de la planta 2D (desde arriba).
+ * Cámara de la vista 3D (órbita alrededor de un punto), de la planta 2D (desde arriba) y del
+ * recorrido en primera persona (a la altura de los ojos).
  *
  * <p>Toda la matemática se hace en coordenadas del MUNDO (metros, Y hacia arriba, igual que
  * el proyecto). JavaFX usa Y hacia abajo; {@link SceneView} gira el mundo 180° en X, así que
@@ -16,14 +17,14 @@ import javafx.scene.transform.Affine;
  * las cotas encima y para saber en qué punto del piso está el ratón al arrastrar un mueble.
  */
 final class ViewCamera {
-    enum Mode { THREE_D, PLAN }
+    enum Mode { THREE_D, PLAN, WALK }
 
     /**
      * La planta usa una cámara en perspectiva MUY lejana y con un ángulo pequeñísimo: se ve
      * prácticamente sin perspectiva (como una cámara ortográfica) y funciona igual con los clics.
      */
     private static final double PLAN_DISTANCE = 1000;
-    private static final double FOV_3D = 50;
+    private static final double FOV_3D = 50, FOV_WALK = 70;
     private static final Point3D WORLD_UP = new Point3D(0, 1, 0);
     private static final Point3D NORTH = new Point3D(0, 0, -1);
 
@@ -42,6 +43,10 @@ final class ViewCamera {
     // Planta
     private Point3D planTarget = new Point3D(2, 0, 1.75);
     private double planViewSize = 10; // metros visibles en vertical
+
+    // Recorrido: posición de los ojos y hacia dónde se mira (giro 0 = norte; positivo = hacia el oeste)
+    private Point3D walkEye = new Point3D(2, 1.6, 3);
+    private double walkYaw, walkPitch;
 
     // Calculados en update()
     private Point3D eye = Point3D.ZERO, right = Point3D.ZERO, up = Point3D.ZERO, forward = Point3D.ZERO;
@@ -64,10 +69,10 @@ final class ViewCamera {
 
     /** Todo lo necesario para volver a dejar la cámara como estaba. */
     record State(Mode mode, Point3D target, double yaw, double pitch, double distance,
-                 Point3D planTarget, double planViewSize) {}
+                 Point3D planTarget, double planViewSize, Point3D walkEye, double walkYaw, double walkPitch) {}
 
     State state() {
-        return new State(mode, target, yaw, pitch, distance, planTarget, planViewSize);
+        return new State(mode, target, yaw, pitch, distance, planTarget, planViewSize, walkEye, walkYaw, walkPitch);
     }
 
     void restore(State s) {
@@ -78,6 +83,81 @@ final class ViewCamera {
         distance = s.distance();
         planTarget = s.planTarget();
         planViewSize = s.planViewSize();
+        walkEye = s.walkEye();
+        walkYaw = s.walkYaw();
+        walkPitch = s.walkPitch();
+        update();
+    }
+
+    // ---------------------------------------------------------------- Vista guardada
+
+    /**
+     * Datos de la vista actual para guardarla en el proyecto: en 3D el punto que se mira, el
+     * giro, la inclinación y la distancia; en planta el centro y los metros visibles; en el
+     * recorrido la posición de los ojos y hacia dónde se mira.
+     */
+    double[] values() {
+        return switch (mode) {
+            case THREE_D -> new double[] {target.getX(), target.getY(), target.getZ(), yaw, pitch, distance};
+            case PLAN -> new double[] {planTarget.getX(), 0, planTarget.getZ(), 0, 0, planViewSize};
+            case WALK -> new double[] {walkEye.getX(), walkEye.getY(), walkEye.getZ(), walkYaw, walkPitch, 0};
+        };
+    }
+
+    /** Lo contrario de {@link #values()}. */
+    void apply(Mode m, double x, double y, double z, double yawValue, double pitchValue, double dist) {
+        mode = m;
+        switch (m) {
+            case THREE_D -> {
+                target = new Point3D(x, y, z);
+                yaw = yawValue;
+                pitch = clamp(pitchValue, 0.03, Math.PI / 2 - 0.02);
+                distance = clamp(dist, 0.5, 100);
+            }
+            case PLAN -> {
+                planTarget = new Point3D(x, 0, z);
+                planViewSize = clamp(dist, 0.5, 60);
+            }
+            case WALK -> {
+                walkEye = new Point3D(x, y, z);
+                walkYaw = yawValue;
+                walkPitch = clamp(pitchValue, -1.2, 1.2);
+            }
+        }
+        update();
+    }
+
+    // ---------------------------------------------------------------- Recorrido
+
+    Point3D walkEye() {
+        return walkEye;
+    }
+
+    /** Pone los ojos en (x, altura, z) mirando con el giro indicado (0 = norte, π/2 = oeste). */
+    void walkTo(double x, double eyeHeight, double z, double yawRadians) {
+        walkEye = new Point3D(x, eyeHeight, z);
+        walkYaw = yawRadians;
+        walkPitch = 0;
+        update();
+    }
+
+    void setWalkEye(Point3D eye) {
+        walkEye = eye;
+        update();
+    }
+
+    /** Dirección horizontal hacia la que se mira (unitaria). */
+    Point3D walkForward() {
+        return new Point3D(-Math.sin(walkYaw), 0, -Math.cos(walkYaw));
+    }
+
+    /** Dirección horizontal a la derecha de la mirada. */
+    Point3D walkRight() {
+        return new Point3D(Math.cos(walkYaw), 0, -Math.sin(walkYaw));
+    }
+
+    void turn(double radians) {
+        walkYaw += radians;
         update();
     }
 
@@ -89,12 +169,23 @@ final class ViewCamera {
 
     void rotate(double dxPixels, double dyPixels) {
         if (mode == Mode.PLAN) return;
+        if (mode == Mode.WALK) {
+            // Arrastrar a la derecha gira la mirada a la derecha; hacia arriba, mira hacia arriba.
+            walkYaw -= dxPixels * 0.005;
+            walkPitch = clamp(walkPitch - dyPixels * 0.005, -1.2, 1.2);
+            update();
+            return;
+        }
         yaw -= dxPixels * 0.008;
         pitch = clamp(pitch + dyPixels * 0.008, 0.03, Math.PI / 2 - 0.02); // no bajar del piso
         update();
     }
 
     void pan(double dxPixels, double dyPixels) {
+        if (mode == Mode.WALK) {
+            rotate(dxPixels, dyPixels);
+            return;
+        }
         double k = metersPerPixel();
         Point3D move = right.multiply(-dxPixels * k).add(up.multiply(dyPixels * k));
         if (mode == Mode.PLAN) planTarget = planTarget.add(move.getX(), 0, move.getZ());
@@ -104,6 +195,7 @@ final class ViewCamera {
 
     /** factor < 1 acerca, > 1 aleja. */
     void zoom(double factor) {
+        if (mode == Mode.WALK) return; // en el recorrido la rueda avanza (ver SceneView)
         if (mode == Mode.PLAN) planViewSize = clamp(planViewSize * factor, 0.5, 60);
         else distance = clamp(distance * factor, 0.5, 100);
         update();
@@ -138,6 +230,15 @@ final class ViewCamera {
             fov = Math.toDegrees(2 * Math.atan(tanHalf));
             camera.setNearClip(PLAN_DISTANCE - 20);
             camera.setFarClip(PLAN_DISTANCE + 5);
+        } else if (mode == Mode.WALK) {
+            eye = walkEye;
+            double c = Math.cos(walkPitch);
+            forward = new Point3D(-Math.sin(walkYaw) * c, Math.sin(walkPitch), -Math.cos(walkYaw) * c);
+            upHint = WORLD_UP;
+            fov = FOV_WALK;
+            tanHalf = Math.tan(Math.toRadians(fov) / 2);
+            camera.setNearClip(0.03);
+            camera.setFarClip(200);
         } else {
             Point3D offset = new Point3D(Math.cos(pitch) * Math.sin(yaw), Math.sin(pitch), Math.cos(pitch) * Math.cos(yaw));
             eye = target.add(offset.multiply(distance));

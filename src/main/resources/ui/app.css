@@ -40,6 +40,10 @@
     -fx-background-radius: 5 0 0 5;
 }
 
+.toggle-button.segment-middle {
+    -fx-background-radius: 0;
+}
+
 .toggle-button.segment-right {
     -fx-background-radius: 0 5 5 0;
 }

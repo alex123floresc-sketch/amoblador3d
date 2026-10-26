@@ -16,7 +16,7 @@ import java.sql.Statement;
  * tablas en el futuro, se agrega un paso en {@link #migrate()} y se sube {@link #SCHEMA_VERSION}.
  */
 public final class Database implements AutoCloseable {
-    static final int SCHEMA_VERSION = 4;
+    static final int SCHEMA_VERSION = 5;
 
     private static final String[] SCHEMA_V1 = {
         """
@@ -115,8 +115,22 @@ public final class Database implements AutoCloseable {
         "ALTER TABLE furniture ADD COLUMN locked INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1))",
     };
 
+    /** v5: vistas de cámara guardadas en cada proyecto. */
+    private static final String[] SCHEMA_V5 = {
+        """
+        CREATE TABLE camera_view (
+            project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+            position   INTEGER NOT NULL,
+            name       TEXT    NOT NULL,
+            mode       TEXT    NOT NULL CHECK (mode IN ('3d', 'plan', 'walk')),
+            x REAL NOT NULL, y REAL NOT NULL, z REAL NOT NULL,
+            yaw REAL NOT NULL, pitch REAL NOT NULL, distance REAL NOT NULL,
+            PRIMARY KEY (project_id, position)
+        )""",
+    };
+
     /** Pasos de migración: el paso i lleva la base de la versión i a la i + 1. */
-    private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4};
+    private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5};
 
     private final Connection connection;
 

@@ -47,6 +47,12 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
   con guías; tecla G, Alt para soltarlo un momento), selección múltiple (Shift/Ctrl + clic,
   rectángulo con Shift + arrastrar, Ctrl+A) para mover, girar, duplicar o eliminar en grupo,
   copiar/cortar/pegar muebles entre proyectos (Ctrl+C/X/V) y bloquear muebles (L).
+- **Recorrido en primera persona** (Ctrl+3): caminar por la habitación a la altura de los ojos
+  (W/S o ↑/↓ avanzar, A/D de costado, ←/→ girar, arrastrar para mirar, Shift para correr), sin
+  atravesar paredes ni muebles.
+- **Vistas** (botón *Vistas*): guardar la vista actual con un nombre (se guarda con el proyecto),
+  volver a ella y ver la habitación desde cada puerta.
+- **Modo noche** (tecla N o pestaña *Luz*): sin sol y con poca luz ambiental, para ver las lámparas.
 - Deshacer/rehacer, vista 3D y planta 2D, cotas.
 
 ### Atajos
@@ -64,7 +70,8 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 | Ctrl+A | Seleccionar todos los muebles |
 | Shift o Ctrl + clic, Shift + arrastrar | Agregar a la selección, rectángulo de selección |
 | L / G | Bloquear o desbloquear / Imán |
-| Ctrl+1 / Ctrl+2 | Vista 3D / Planta 2D |
+| Ctrl+1 / Ctrl+2 / Ctrl+3 | Vista 3D / Planta 2D / Recorrido |
+| N | Modo noche |
 | Ctrl+P / Ctrl+Shift+P | Presupuesto / Informe PDF |
 | M | Medir distancias (Esc para terminar) |
 | F1 | Todos los atajos |
@@ -109,9 +116,9 @@ El modelo se escala a las medidas indicadas aunque haya sido modelado en centím
 ### Opción C: mueble paramétrico (por código)
 
 Crea su método en `scene/ParametricBuilder.java`, regístralo en `build`, declara sus medidas y su
-categoría en `catalog/Catalog.java` y su precio referencial en `estimate/PriceList.java`
-(`ParametricBuilderTest` revisa que quepa en sus medidas). Regla: el mueble ocupa exactamente `x ∈ [-ancho/2, ancho/2]`,
-`z ∈ [-prof/2, prof/2]`, `y ∈ [0, alto]`, con el frente hacia +Z.
+categoría en `catalog/Catalog.java` y su precio referencial en `estimate/PriceList.java`.
+Regla: el mueble ocupa exactamente `x ∈ [-ancho/2, ancho/2]`, `z ∈ [-prof/2, prof/2]`,
+`y ∈ [0, alto]`, con el frente hacia +Z (`ParametricBuilderTest` lo revisa).
 
 ## Formato del proyecto (.amob3d)
 

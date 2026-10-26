@@ -147,6 +147,13 @@ public final class MainWindow {
     private final MenuItem undoItem = new MenuItem("Deshacer"), redoItem = new MenuItem("Rehacer");
     private final ToggleGroup viewGroup = new ToggleGroup();
     private final ToggleButton view3d = new ToggleButton("Vista 3D"), viewPlan = new ToggleButton("Planta 2D");
+    private final ToggleButton viewWalk = new ToggleButton("Recorrido");
+    /** true mientras se cambia de modo desde el código (para no volver a encuadrar la cámara). */
+    private boolean modeSync;
+    private final CheckMenuItem nightItem = new CheckMenuItem("Modo noche   (N)");
+    private final ToggleButton nightToggle = new ToggleButton("Noche");
+    private final Menu viewsMenu = new Menu("Vistas");
+    private final javafx.scene.control.MenuButton viewsButton = new javafx.scene.control.MenuButton("Vistas");
     private final CheckBox dimensions = new CheckBox("Cotas");
     private final ToggleButton measure = new ToggleButton("Medir");
     private final CheckBox magnet = new CheckBox("Imán");
@@ -277,23 +284,29 @@ public final class MainWindow {
                 item("Deseleccionar   (Esc)", null, () -> select(null)));
 
         RadioMenuItem menu3d = new RadioMenuItem("Vista 3D"), menuPlan = new RadioMenuItem("Planta 2D");
+        RadioMenuItem menuWalk = new RadioMenuItem("Recorrido (primera persona)");
         menu3d.setAccelerator(KeyCombination.keyCombination("Shortcut+1"));
         menuPlan.setAccelerator(KeyCombination.keyCombination("Shortcut+2"));
+        menuWalk.setAccelerator(KeyCombination.keyCombination("Shortcut+3"));
         ToggleGroup menuGroup = new ToggleGroup();
         menu3d.setToggleGroup(menuGroup);
         menuPlan.setToggleGroup(menuGroup);
+        menuWalk.setToggleGroup(menuGroup);
         menu3d.setSelected(true);
         menu3d.setOnAction(e -> view3d.setSelected(true));
         menuPlan.setOnAction(e -> viewPlan.setSelected(true));
+        menuWalk.setOnAction(e -> viewWalk.setSelected(true));
         viewGroup.selectedToggleProperty().addListener((obs, o, n) -> {
             if (n == null) return;
-            (n == viewPlan ? menuPlan : menu3d).setSelected(true);
+            (n == viewPlan ? menuPlan : n == viewWalk ? menuWalk : menu3d).setSelected(true);
         });
+        nightItem.setSelected(false);
+        nightItem.selectedProperty().bindBidirectional(nightToggle.selectedProperty());
         dimensionsItem.setAccelerator(KeyCombination.keyCombination("Shortcut+M"));
         dimensionsItem.setSelected(true);
         dimensionsItem.selectedProperty().bindBidirectional(dimensions.selectedProperty());
-        Menu viewMenu = new Menu("Ver", null, menu3d, menuPlan, new SeparatorMenuItem(), dimensionsItem,
-                item("Centrar cámara", "Shortcut+0", view::frameRoom),
+        Menu viewMenu = new Menu("Ver", null, menu3d, menuPlan, menuWalk, new SeparatorMenuItem(), dimensionsItem,
+                item("Centrar cámara", "Shortcut+0", view::frameRoom), nightItem, viewsMenu,
                 new SeparatorMenuItem(),
                 item("Pantalla completa", "F11", () -> stage.setFullScreen(!stage.isFullScreen())));
 
@@ -333,23 +346,39 @@ public final class MainWindow {
         redoButton.setFocusTraversable(false);
         view3d.setFocusTraversable(false);
         viewPlan.setFocusTraversable(false);
+        viewWalk.setFocusTraversable(false);
         dimensions.setFocusTraversable(false);
         view3d.setToggleGroup(viewGroup);
         viewPlan.setToggleGroup(viewGroup);
+        viewWalk.setToggleGroup(viewGroup);
         view3d.setSelected(true);
         view3d.setTooltip(new Tooltip("Ctrl+1"));
         viewPlan.setTooltip(new Tooltip("Ctrl+2"));
+        viewWalk.setTooltip(new Tooltip("Caminar por la habitación a la altura de los ojos (Ctrl+3)\n"
+                + "W/S o ↑/↓: avanzar · A/D: de costado · ←/→: girar · arrastrar: mirar · Shift: correr"));
         view3d.getStyleClass().add("segment-left");
-        viewPlan.getStyleClass().add("segment-right");
+        viewPlan.getStyleClass().add("segment-middle");
+        viewWalk.getStyleClass().add("segment-right");
         viewGroup.selectedToggleProperty().addListener((obs, o, n) -> {
             if (n == null) {
                 o.setSelected(true); // siempre hay una vista elegida
                 return;
             }
-            view.setMode(n == viewPlan ? SceneView.Mode.PLAN : SceneView.Mode.THREE_D);
+            if (modeSync) return;
+            SceneView.Mode mode = n == viewPlan ? SceneView.Mode.PLAN : n == viewWalk ? SceneView.Mode.WALK : SceneView.Mode.THREE_D;
+            view.setMode(mode);
             view.frameRoom();
+            if (mode == SceneView.Mode.WALK) {
+                view.node().requestFocus();
+                statusTimer.stop();
+                status.setText(WALK_HELP);
+            } else {
+                status.setText(defaultStatus());
+            }
         });
-        HBox segmented = new HBox(view3d, viewPlan);
+        HBox segmented = new HBox(view3d, viewPlan, viewWalk);
+        viewsButton.setFocusTraversable(false);
+        viewsButton.setTooltip(new Tooltip("Guardar la vista actual o volver a una vista guardada"));
 
         dimensions.setSelected(true);
         dimensions.setTooltip(new Tooltip("Mostrar u ocultar las medidas (Ctrl+M)"));
@@ -379,7 +408,7 @@ public final class MainWindow {
 
         return new ToolBar(newButton, openButton, saveButton, new Separator(Orientation.VERTICAL),
                 undoButton, redoButton, new Separator(Orientation.VERTICAL),
-                segmented, dimensions, center, new Separator(Orientation.VERTICAL),
+                segmented, dimensions, center, viewsButton, new Separator(Orientation.VERTICAL),
                 measure, magnet, budget, pdf, capture);
     }
 
@@ -571,7 +600,18 @@ public final class MainWindow {
                 + " luces como máximo. El sol entra por una ventana y dibuja su mancha de luz en el piso.");
         info.getStyleClass().add("hint");
         info.setWrapText(true);
+        nightToggle.setFocusTraversable(false);
+        nightToggle.setMaxWidth(Double.MAX_VALUE);
+        nightToggle.setTooltip(new Tooltip("Sin sol y con poca luz ambiental: se ven las bombillas y focos (N)"));
+        nightToggle.selectedProperty().addListener((obs, o, on) -> {
+            view.setNight(on);
+            notify(on ? "Modo noche: solo las luces artificiales." : "Modo día.");
+        });
+        Label nightHint = new Label("Solo cambia cómo se ve: no se guarda en el proyecto.");
+        nightHint.getStyleClass().add("hint");
+        nightHint.setWrapText(true);
         return new VBox(14,
+                group("Día o noche", new VBox(6, nightToggle, nightHint)),
                 group("Luz ambiental", new VBox(6, label, ambient)),
                 group("Agregar luces", new VBox(6, row(
                         smallButton("+ Bombilla", "Luz puntual", () -> addLight(LightType.POINT)),
@@ -728,6 +768,7 @@ public final class MainWindow {
         // (antes se reconstruía en cada movimiento al arrastrar y el scroll volvía arriba).
         if (!sameItems(items.getItems(), list)) items.getItems().setAll(list);
         else items.refresh();
+        rebuildViewsMenu();
         floorButton.setGraphic(swatch(design.floor()));
         for (WallSide side : WallSide.values()) wallButtons.get(side).setGraphic(swatch(design.wall(side)));
         syncListSelection();
@@ -1063,6 +1104,7 @@ public final class MainWindow {
         if (e.getCode() == KeyCode.ESCAPE && measure.isSelected()) measure.setSelected(false);
         else if (e.getCode() == KeyCode.M) measure.setSelected(!measure.isSelected());
         else if (e.getCode() == KeyCode.G) magnet.setSelected(!magnet.isSelected());
+        else if (e.getCode() == KeyCode.N) nightToggle.setSelected(!nightToggle.isSelected());
         else if (e.getCode() == KeyCode.L) toggleLock();
         else if (e.getCode() == KeyCode.DELETE || e.getCode() == KeyCode.BACK_SPACE) deleteSelection();
         else if (e.getCode() == KeyCode.ESCAPE) select(null);
@@ -1247,6 +1289,82 @@ public final class MainWindow {
         }
     }
 
+    // ---------------------------------------------------------------- Vistas de cámara
+
+    private static final String WALK_HELP = "Recorrido: W/S o ↑/↓ avanzar · A/D de costado · ←/→ girar · "
+            + "arrastra para mirar · rueda: un paso · Shift: correr";
+
+    /** El menú "Vistas" (en Ver y en la barra): guardar, vistas guardadas, desde cada puerta y eliminar. */
+    private void rebuildViewsMenu() {
+        for (List<MenuItem> target : List.of(viewsMenu.getItems(), viewsButton.getItems())) {
+            target.clear();
+            target.add(item("Guardar vista actual…", null, this::saveCurrentView));
+            List<pe.edu.unaj.amoblador3d.model.CameraView> saved = design.views();
+            if (!saved.isEmpty()) {
+                target.add(new SeparatorMenuItem());
+                for (var v : saved) target.add(item(v.name(), null, () -> goToView(v)));
+            }
+            List<Opening> doors = design.openings().stream().filter(o -> o.type == OpeningType.DOOR).toList();
+            if (!doors.isEmpty()) {
+                target.add(new SeparatorMenuItem());
+                for (Opening d : doors) target.add(item("Desde " + design.label(d).toLowerCase(), null, () -> walkFromDoor(d)));
+            }
+            if (!saved.isEmpty()) {
+                Menu remove = new Menu("Eliminar vista");
+                for (var v : saved) {
+                    remove.getItems().add(item(v.name(), null, () -> {
+                        design.removeView(v.name());
+                        history.commit();
+                        notify("Se eliminó la vista \"" + v.name() + "\".");
+                    }));
+                }
+                target.add(new SeparatorMenuItem());
+                target.add(remove);
+            }
+        }
+    }
+
+    private void saveCurrentView() {
+        commitEdits();
+        String suggestion = switch (view.mode()) {
+            case PLAN -> "Planta";
+            case WALK -> "Recorrido";
+            default -> "Vista 3D";
+        } + " " + (design.views().size() + 1);
+        Dialogs.askText(stage, "Guardar vista", "Nombre de la vista (se guarda con el proyecto)", suggestion).ifPresent(name -> {
+            boolean replaces = design.views().stream().anyMatch(v -> v.name().equalsIgnoreCase(name.trim()));
+            design.saveView(view.currentView(name));
+            history.commit();
+            notify((replaces ? "Se actualizó la vista \"" : "Vista guardada: \"") + name.trim() + "\".");
+        });
+    }
+
+    private void goToView(pe.edu.unaj.amoblador3d.model.CameraView v) {
+        view.showView(v);
+        syncModeToggle();
+        if (view.mode() == SceneView.Mode.WALK) view.node().requestFocus();
+        notify("Vista: " + v.name());
+    }
+
+    private void walkFromDoor(Opening door) {
+        view.walkFromDoor(door);
+        syncModeToggle();
+        view.node().requestFocus();
+        statusTimer.stop();
+        status.setText(WALK_HELP);
+    }
+
+    /** Marca el botón del modo actual sin volver a encuadrar la cámara. */
+    private void syncModeToggle() {
+        modeSync = true;
+        switch (view.mode()) {
+            case PLAN -> viewPlan.setSelected(true);
+            case WALK -> viewWalk.setSelected(true);
+            default -> view3d.setSelected(true);
+        }
+        modeSync = false;
+    }
+
     // ---------------------------------------------------------------- Presupuesto e informe
 
     private Estimate estimate() {
@@ -1388,6 +1506,8 @@ public final class MainWindow {
                 R / Shift+R  Girar mueble 90°  Q / E  Girar 15°
                 Flechas  Mover 5 cm (Shift: 1 cm)    Esc  Deseleccionar
                 Ctrl+1  Vista 3D              Ctrl+2  Planta 2D
+                Ctrl+3  Recorrido: W/S/A/D caminar, ←/→ girar, Shift correr
+                N  Modo noche
                 Ctrl+M  Cotas                 Ctrl+0  Centrar cámara
                 Ctrl+E  Exportar imagen       Ctrl+I  Importar modelo 3D
                 Ctrl+P  Presupuesto           Ctrl+Shift+P  Informe PDF

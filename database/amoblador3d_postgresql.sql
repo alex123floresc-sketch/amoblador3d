@@ -164,6 +164,17 @@ CREATE TABLE catalog_model (
     created_at TIMESTAMPTZ      NOT NULL DEFAULT now()
 );
 
+-- Vistas de cámara guardadas (ver el script SQLite para el significado de cada número).
+CREATE TABLE camera_view (
+    project_id BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    position   INTEGER          NOT NULL,
+    name       VARCHAR(60)      NOT NULL,
+    mode       VARCHAR(4)       NOT NULL CHECK (mode IN ('3d', 'plan', 'walk')),
+    x DOUBLE PRECISION NOT NULL, y DOUBLE PRECISION NOT NULL, z DOUBLE PRECISION NOT NULL,
+    yaw DOUBLE PRECISION NOT NULL, pitch DOUBLE PRECISION NOT NULL, distance DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (project_id, position)
+);
+
 -- Precios que el usuario cambió en el presupuesto (soles). Los referenciales están en
 -- el código (estimate/PriceList.java); aquí solo van los cambiados.
 CREATE TABLE price (
@@ -289,6 +300,11 @@ SELECT p.id, v.*
                (2, 'silla-1',      'silla',      1.0, 1.7, 0, 0.45, 0.5, 0.90, '#6d4c33', FALSE),
                (3, 'closet-1',     'closet',     3.3, 2.3, 0, 1.20, 0.6, 2.00, '#e8e2d6', FALSE))
            AS v(position, id, type, x, z, rotation, width, depth, height, color, locked)
+ WHERE p.name = 'Dormitorio de ejemplo';
+
+INSERT INTO camera_view (project_id, position, name, mode, x, y, z, yaw, pitch, distance)
+SELECT p.id, 0, 'Desde la puerta', 'walk', 2.0, 1.6, 2.9, 0.0, 0.0, 0.0
+  FROM project p
  WHERE p.name = 'Dormitorio de ejemplo';
 
 INSERT INTO price (kind, item, price) VALUES ('material', 'pintura', 70.00);

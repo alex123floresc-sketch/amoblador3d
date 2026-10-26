@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.catalog.CatalogEntry;
+import pe.edu.unaj.amoblador3d.model.CameraView;
 import pe.edu.unaj.amoblador3d.model.Footprint;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
@@ -42,7 +43,7 @@ public final class Design {
     public static final int MAX_ACTIVE_LIGHTS = 3;
 
     /** Qué parte cambió, para que la vista 3D reconstruya solo eso. */
-    public enum Change { ROOM, SURFACES, LIGHTS, FURNITURE }
+    public enum Change { ROOM, SURFACES, LIGHTS, FURNITURE, VIEWS }
 
     private final Catalog catalog;
     private final IdGenerator ids = new IdGenerator();
@@ -76,6 +77,36 @@ public final class Design {
 
     public List<Furniture> furniture() {
         return List.copyOf(project.furniture);
+    }
+
+    public List<CameraView> views() {
+        return List.copyOf(project.views);
+    }
+
+    /** Guarda una vista de cámara (si ya hay una con ese nombre, la reemplaza). */
+    public void saveView(CameraView view) {
+        String name = view.name() == null ? "" : view.name().trim();
+        if (name.length() > CameraView.MAX_NAME) name = name.substring(0, CameraView.MAX_NAME);
+        CameraView v = new CameraView(name, view.kind(), view.x(), view.y(), view.z(), view.yaw(), view.pitch(), view.distance());
+        if (!v.isValid()) throw new IllegalArgumentException("La vista no es válida.");
+        int i = indexOfView(v.name());
+        if (i >= 0) project.views.set(i, v);
+        else project.views.add(v);
+        fire(Change.VIEWS);
+    }
+
+    public void removeView(String name) {
+        int i = indexOfView(name);
+        if (i < 0) return;
+        project.views.remove(i);
+        fire(Change.VIEWS);
+    }
+
+    private int indexOfView(String name) {
+        for (int i = 0; i < project.views.size(); i++) {
+            if (project.views.get(i).name().equalsIgnoreCase(name.trim())) return i;
+        }
+        return -1;
     }
 
     public Surface floor() {
@@ -159,7 +190,7 @@ public final class Design {
         for (Object e : entities()) ids.register(idOf(e));
         List<String> warnings = fitOpenings();
         warnings.addAll(refreshSunLights());
-        fire(Change.ROOM, Change.SURFACES, Change.LIGHTS, Change.FURNITURE);
+        fire(Change.ROOM, Change.SURFACES, Change.LIGHTS, Change.FURNITURE, Change.VIEWS);
         return warnings;
     }
 

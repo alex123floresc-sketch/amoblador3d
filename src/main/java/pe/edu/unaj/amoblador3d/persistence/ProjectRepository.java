@@ -9,6 +9,7 @@ import java.sql.Types;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import pe.edu.unaj.amoblador3d.model.CameraView;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
@@ -88,7 +89,7 @@ public final class ProjectRepository {
                     ps.setLong(9, projectId);
                     if (ps.executeUpdate() == 0) throw new SQLException("El proyecto ya no existe en la base de datos.");
                 }
-                for (String table : List.of("surface", "opening", "light", "furniture")) {
+                for (String table : List.of("surface", "opening", "light", "furniture", "camera_view")) {
                     try (PreparedStatement ps = c.prepareStatement("DELETE FROM " + table + " WHERE project_id = ?")) {
                         ps.setLong(1, projectId);
                         ps.executeUpdate();
@@ -195,6 +196,26 @@ public final class ProjectRepository {
             }
             ps.executeBatch();
         }
+
+        sql = "INSERT INTO camera_view (project_id, position, name, mode, x, y, z, yaw, pitch, distance)"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            int i = 0;
+            for (CameraView v : p.views) {
+                ps.setLong(1, projectId);
+                ps.setInt(2, i++);
+                ps.setString(3, v.name());
+                ps.setString(4, v.kind().id());
+                ps.setDouble(5, v.x());
+                ps.setDouble(6, v.y());
+                ps.setDouble(7, v.z());
+                ps.setDouble(8, v.yaw());
+                ps.setDouble(9, v.pitch());
+                ps.setDouble(10, v.distance());
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
     }
 
     /** Lee un proyecto completo y lo valida. Devuelve null si no existe. */
@@ -273,6 +294,20 @@ public final class ProjectRepository {
                             rs.getDouble(5), rs.getDouble(6), rs.getDouble(7), rs.getDouble(8), rs.getString(9));
                     f.locked = rs.getInt(10) != 0;
                     p.furniture.add(f);
+                }
+            }
+        }
+        sql = "SELECT name, mode, x, y, z, yaw, pitch, distance FROM camera_view WHERE project_id = ? ORDER BY position";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    try {
+                        p.views.add(new CameraView(rs.getString(1), CameraView.Kind.fromId(rs.getString(2)), rs.getDouble(3),
+                                rs.getDouble(4), rs.getDouble(5), rs.getDouble(6), rs.getDouble(7), rs.getDouble(8)));
+                    } catch (IllegalArgumentException ignored) {
+                        // tipo de vista desconocido: se descarta
+                    }
                 }
             }
         }

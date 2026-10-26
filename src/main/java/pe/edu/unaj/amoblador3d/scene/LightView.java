@@ -35,8 +35,12 @@ final class LightView {
     private static final double POINT_SCALE = 0.35;
     private static final double SPOT_SCALE = 0.15;
     private static final double SUN_LUX_FOR_FULL = 5;
+    /** Fracción de la luz ambiental que queda de noche. */
+    private static final double NIGHT_AMBIENT = 0.25;
 
     final Group group = new Group();
+    /** De noche no hay sol y la luz ambiental baja: se ven las bombillas y los focos. */
+    private boolean night;
     private final AmbientLight ambient = new AmbientLight();
     private final List<SunInfo> suns = new ArrayList<>();
 
@@ -51,15 +55,21 @@ final class LightView {
         return suns;
     }
 
+    void setNight(boolean on) {
+        night = on;
+    }
+
     void rebuild(Design design) {
         group.getChildren().setAll(ambient);
         suns.clear();
-        ambient.setColor(Color.gray(Math.min(1, design.ambient() * AMBIENT_SCALE)));
+        ambient.setColor(Color.gray(Math.min(1, design.ambient() * AMBIENT_SCALE * (night ? NIGHT_AMBIENT : 1))));
         for (Light l : design.lights()) {
             switch (l.type) {
                 case POINT -> addPoint(l);
                 case SPOT -> addSpot(l);
-                case SUN -> addSun(design, l);
+                case SUN -> {
+                    if (!night) addSun(design, l);
+                }
             }
         }
     }

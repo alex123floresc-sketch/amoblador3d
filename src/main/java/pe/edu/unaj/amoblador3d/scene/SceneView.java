@@ -1,7 +1,9 @@
 package pe.edu.unaj.amoblador3d.scene;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javafx.animation.AnimationTimer;
@@ -15,6 +17,8 @@ import javafx.scene.SubScene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.WritableImage;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
@@ -29,8 +33,11 @@ import javafx.scene.paint.Stop;
 import javafx.scene.transform.Rotate;
 import pe.edu.unaj.amoblador3d.design.Design;
 import pe.edu.unaj.amoblador3d.design.Snapper;
+import pe.edu.unaj.amoblador3d.model.CameraView;
 import pe.edu.unaj.amoblador3d.model.Footprint;
 import pe.edu.unaj.amoblador3d.model.Furniture;
+import pe.edu.unaj.amoblador3d.model.Opening;
+import pe.edu.unaj.amoblador3d.model.OpeningType;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
 import pe.edu.unaj.amoblador3d.model.Surface;
 import pe.edu.unaj.amoblador3d.model.WallSide;
@@ -52,7 +59,14 @@ public final class SceneView {
     private static final LinearGradient BACKGROUND = new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
             new Stop(0, Color.web("#46505c")), new Stop(0.55, Color.web("#2b3036")), new Stop(1, Color.web("#1d2125")));
 
-    public enum Mode { THREE_D, PLAN }
+    /** Vista 3D (órbita), planta y recorrido en primera persona. */
+    public enum Mode { THREE_D, PLAN, WALK }
+
+    /** Fondo de noche: casi negro, con un poco de azul arriba. */
+    private static final LinearGradient NIGHT = new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
+            new Stop(0, Color.web("#141b2b")), new Stop(1, Color.web("#07090d")));
+    /** Recorrido: velocidad al caminar (m/s), giro con las flechas (rad/s) y "radio" de la persona (m). */
+    private static final double WALK_SPEED = 1.4, TURN_SPEED = 1.8, BODY = 0.2;
 
     private final Design design;
     private final StackPane root = new StackPane();
@@ -68,6 +82,11 @@ public final class SceneView {
     private boolean magnet = true;
     private List<Snapper.Guide> guides = List.of();
     private boolean showDimensions = true;
+    private boolean night;
+    /** Teclas de movimiento apretadas en el recorrido. */
+    private final Set<KeyCode> walkKeys = EnumSet.noneOf(KeyCode.class);
+    private boolean running;
+    private long lastFrame;
     private boolean dirty = true;
 
     // Herramienta de medir: A y B son los extremos (B = null mientras se elige el segundo punto).
@@ -130,9 +149,13 @@ public final class SceneView {
         furniture.sync(design);
 
         installMouse();
+        installWalkKeys();
         new AnimationTimer() {
             @Override
             public void handle(long now) {
+                double dt = lastFrame == 0 ? 0 : Math.min(0.05, (now - lastFrame) / 1e9);
+                lastFrame = now;
+                if (cam.mode == ViewCamera.Mode.WALK && !walkKeys.isEmpty()) walkStep(dt);
                 if (dirty) render();
             }
         }.start();
@@ -210,12 +233,34 @@ public final class SceneView {
     }
 
     public Mode mode() {
-        return cam.mode == ViewCamera.Mode.PLAN ? Mode.PLAN : Mode.THREE_D;
+        return switch (cam.mode) {
+            case PLAN -> Mode.PLAN;
+            case WALK -> Mode.WALK;
+            default -> Mode.THREE_D;
+        };
     }
 
     public void setMode(Mode mode) {
-        cam.mode = mode == Mode.PLAN ? ViewCamera.Mode.PLAN : ViewCamera.Mode.THREE_D;
+        cam.mode = switch (mode) {
+            case PLAN -> ViewCamera.Mode.PLAN;
+            case WALK -> ViewCamera.Mode.WALK;
+            default -> ViewCamera.Mode.THREE_D;
+        };
+        walkKeys.clear();
         cam.update();
+        redraw();
+    }
+
+    public boolean isNight() {
+        return night;
+    }
+
+    /** Modo noche: sin sol, poca luz ambiental y fondo oscuro (solo se ve; no cambia el proyecto). */
+    public void setNight(boolean on) {
+        night = on;
+        lights.setNight(on);
+        lights.rebuild(design);
+        root.setBackground(new Background(new BackgroundFill(on ? NIGHT : BACKGROUND, null, null)));
         redraw();
     }
 
@@ -230,6 +275,10 @@ public final class SceneView {
 
     /** Encuadra la habitación completa (incluye el grosor de los muros). */
     public void frameRoom() {
+        if (cam.mode == ViewCamera.Mode.WALK) {
+            startWalk();
+            return;
+        }
         RoomDims r = design.room();
         double t = r.wallThickness();
         cam.frame(-t, 0, -t, r.width() + t, r.height(), r.length() + t);
@@ -268,7 +317,7 @@ public final class SceneView {
         dirty = false;
         WallSide selectedWall = selection.size() == 1 && selection.get(0) instanceof Surface s ? s.wallSide() : null;
         room.updateVisibility(cam.eye(), cam.mode == ViewCamera.Mode.PLAN, selectedWall);
-        overlay.draw(cam, design, lights, selection, showDimensions);
+        overlay.draw(cam, design, lights, selection, showDimensions && cam.mode != ViewCamera.Mode.WALK);
         overlay.drawGuides(guides);
         if (banding) overlay.drawBand(pressX, pressY, bandX, bandY);
         if (measuring && measureA != null) overlay.drawMeasure(measureA, measureB != null ? measureB : measureHover);
@@ -301,12 +350,12 @@ public final class SceneView {
             // Fondo + escena 3D + cotas (dibujadas con la cámara del tamaño de la pantalla, escaladas).
             Canvas canvas = new Canvas(width, height);
             GraphicsContext g = canvas.getGraphicsContext2D();
-            g.setFill(BACKGROUND);
+            g.setFill(night ? NIGHT : BACKGROUND);
             g.fillRect(0, 0, width, height);
             g.drawImage(scene3d, 0, 0);
             g.save();
             g.scale(scale, scale);
-            overlay.drawOn(g, cam, design, lights, List.of(), showDimensions);
+            overlay.drawOn(g, cam, design, lights, List.of(), showDimensions && cam.mode != ViewCamera.Mode.WALK);
             g.restore();
             return canvas.snapshot(null, null);
         } finally {
@@ -337,7 +386,7 @@ public final class SceneView {
 
     /** Imagen 3D: la vista actual si se está en 3D; si no, la vista 3D encuadrada. */
     public WritableImage viewImage(double scale) {
-        if (cam.mode == ViewCamera.Mode.THREE_D) return snapshot(scale);
+        if (cam.mode != ViewCamera.Mode.PLAN) return snapshot(scale); // vista 3D o recorrido: lo que se ve
         ViewCamera.State state = cam.state();
         cam.mode = ViewCamera.Mode.THREE_D;
         frameRoom();
@@ -347,6 +396,123 @@ public final class SceneView {
             cam.restore(state);
             redraw();
         }
+    }
+
+    // ---------------------------------------------------------------- Recorrido
+
+    /** Altura de los ojos: 1,60 m, o menos si el techo es bajo. */
+    private double eyeHeight() {
+        return Math.min(1.6, design.room().height() - 0.25);
+    }
+
+    /** Empieza el recorrido en la primera puerta (o en el centro si no hay puertas). */
+    private void startWalk() {
+        for (Opening o : design.openings()) {
+            if (o.type == OpeningType.DOOR) {
+                walkFromDoor(o);
+                return;
+            }
+        }
+        RoomDims r = design.room();
+        cam.walkTo(r.width() / 2, eyeHeight(), r.length() - 0.5, 0);
+        cam.setWalkEye(walkable(cam.walkEye(), cam.walkEye()));
+        redraw();
+    }
+
+    /** Recorrido parado en una puerta, mirando hacia dentro de la habitación. */
+    public void walkFromDoor(Opening door) {
+        cam.mode = ViewCamera.Mode.WALK;
+        WallFrame wall = WallFrame.of(door.wall, design.room());
+        Point3D n = wall.interiorNormal();
+        Point3D at = wall.point(door.offset + door.width / 2, 0, -0.6); // 60 cm dentro de la habitación
+        cam.walkTo(at.getX(), eyeHeight(), at.getZ(), Math.atan2(-n.getX(), -n.getZ()));
+        redraw();
+    }
+
+    /**
+     * Hasta dónde se puede caminar de {@code from} hacia {@code to} sin atravesar paredes ni
+     * muebles. Si choca, intenta deslizarse solo en X o solo en Z (como al arrastrar muebles).
+     */
+    private Point3D walkable(Point3D from, Point3D to) {
+        for (Point3D p : new Point3D[] {to, new Point3D(to.getX(), to.getY(), from.getZ()), new Point3D(from.getX(), to.getY(), to.getZ())}) {
+            if (free(p.getX(), p.getZ())) return p;
+        }
+        return free(from.getX(), from.getZ()) ? from : to; // si ya estaba "dentro" de algo, que pueda salir
+    }
+
+    private boolean free(double x, double z) {
+        RoomDims r = design.room();
+        if (x < BODY || z < BODY || x > r.width() - BODY || z > r.length() - BODY) return false;
+        Footprint body = new Footprint(x, z, BODY, BODY, 0);
+        for (Furniture f : design.furniture()) if (Footprint.of(f).overlaps(body)) return false;
+        return true;
+    }
+
+    private static boolean isWalkKey(KeyCode k) {
+        return switch (k) {
+            case W, A, S, D, UP, DOWN, LEFT, RIGHT -> true;
+            default -> false;
+        };
+    }
+
+    /** W/S o ↑/↓ avanzan, A/D se mueven de costado, ←/→ giran; con Shift se corre. */
+    private void installWalkKeys() {
+        root.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+            if (cam.mode != ViewCamera.Mode.WALK || !isWalkKey(e.getCode()) || e.isShortcutDown() || e.isAltDown()) return;
+            walkKeys.add(e.getCode());
+            running = e.isShiftDown();
+            e.consume();
+        });
+        root.addEventHandler(KeyEvent.KEY_RELEASED, e -> {
+            if (walkKeys.remove(e.getCode())) e.consume();
+            running = e.isShiftDown();
+        });
+        root.focusedProperty().addListener((obs, o, focused) -> {
+            if (!focused) walkKeys.clear();
+        });
+    }
+
+    private void walkStep(double dt) {
+        double turn = (walkKeys.contains(KeyCode.LEFT) ? 1 : 0) - (walkKeys.contains(KeyCode.RIGHT) ? 1 : 0);
+        if (turn != 0) cam.turn(turn * TURN_SPEED * dt);
+        double ahead = (has(KeyCode.W, KeyCode.UP) ? 1 : 0)
+                - (has(KeyCode.S, KeyCode.DOWN) ? 1 : 0);
+        double side = (walkKeys.contains(KeyCode.D) ? 1 : 0) - (walkKeys.contains(KeyCode.A) ? 1 : 0);
+        if (ahead != 0 || side != 0) {
+            Point3D dir = cam.walkForward().multiply(ahead).add(cam.walkRight().multiply(side)).normalize();
+            Point3D to = cam.walkEye().add(dir.multiply(WALK_SPEED * (running ? 2 : 1) * dt));
+            cam.setWalkEye(walkable(cam.walkEye(), to));
+        }
+        redraw();
+    }
+
+    private boolean has(KeyCode a, KeyCode b) {
+        return walkKeys.contains(a) || walkKeys.contains(b);
+    }
+
+    // ---------------------------------------------------------------- Vistas guardadas
+
+    /** La vista actual con un nombre, para guardarla en el proyecto. */
+    public CameraView currentView(String name) {
+        double[] v = cam.values();
+        CameraView.Kind kind = switch (cam.mode) {
+            case PLAN -> CameraView.Kind.PLAN;
+            case WALK -> CameraView.Kind.WALK;
+            default -> CameraView.Kind.ORBIT;
+        };
+        return new CameraView(name, kind, v[0], v[1], v[2], v[3], v[4], v[5]);
+    }
+
+    /** Lleva la cámara a una vista guardada (también cambia de modo si hace falta). */
+    public void showView(CameraView v) {
+        ViewCamera.Mode m = switch (v.kind()) {
+            case PLAN -> ViewCamera.Mode.PLAN;
+            case WALK -> ViewCamera.Mode.WALK;
+            default -> ViewCamera.Mode.THREE_D;
+        };
+        walkKeys.clear();
+        cam.apply(m, v.x(), v.y(), v.z(), v.yaw(), v.pitch(), v.distance());
+        redraw();
     }
 
     // ---------------------------------------------------------------- Medir
@@ -504,6 +670,13 @@ public final class SceneView {
 
         subScene.setOnScroll(e -> {
             if (e.getDeltaY() == 0) return;
+            if (cam.mode == ViewCamera.Mode.WALK) {
+                // En el recorrido la rueda avanza o retrocede 30 cm.
+                Point3D step = cam.walkForward().multiply(e.getDeltaY() > 0 ? 0.3 : -0.3);
+                cam.setWalkEye(walkable(cam.walkEye(), cam.walkEye().add(step)));
+                redraw();
+                return;
+            }
             zoom(e.getDeltaY() > 0 ? 0.9 : 1 / 0.9);
         });
 

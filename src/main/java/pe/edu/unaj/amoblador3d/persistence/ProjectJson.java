@@ -9,6 +9,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import java.util.ArrayList;
 import java.util.List;
+import pe.edu.unaj.amoblador3d.model.CameraView;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
@@ -30,7 +31,8 @@ import pe.edu.unaj.amoblador3d.model.WallSide;
  *   "openings":  [ { "id", "type": "window"|"door", "wall", "offset", "width", "height", "sill" } ],
  *   "ambient":   0.6,
  *   "lights":    [ { "id", "type": "point"|"spot"|"sun", "color", "intensity", ... } ],
- *   "furniture": [ { "id", "type", "x", "z", "rotation", "width", "depth", "height", "color", "locked" } ]
+ *   "furniture": [ { "id", "type", "x", "z", "rotation", "width", "depth", "height", "color", "locked" } ],
+ *   "views":     [ { "name", "mode": "3d"|"plan"|"walk", "x", "y", "z", "yaw", "pitch", "distance" } ]
  * }
  * </pre>
  * Se usa para exportar/importar proyectos y para las "fotos" de deshacer/rehacer.
@@ -125,6 +127,23 @@ public final class ProjectJson {
             furniture.add(j);
         }
         root.add("furniture", furniture);
+
+        if (!p.views.isEmpty()) {
+            JsonArray views = new JsonArray();
+            for (CameraView v : p.views) {
+                JsonObject j = new JsonObject();
+                j.addProperty("name", v.name());
+                j.addProperty("mode", v.kind().id());
+                j.addProperty("x", v.x());
+                j.addProperty("y", v.y());
+                j.addProperty("z", v.z());
+                j.addProperty("yaw", v.yaw());
+                j.addProperty("pitch", v.pitch());
+                j.addProperty("distance", v.distance());
+                views.add(j);
+            }
+            root.add("views", views);
+        }
         return GSON.toJson(root);
     }
 
@@ -230,6 +249,15 @@ public final class ProjectJson {
                 p.lights.add(l);
             }
             for (JsonObject j : list(root, "furniture")) p.furniture.add(readFurniture(j));
+            // Las vistas son un extra: una dañada se descarta sin impedir abrir el proyecto.
+            for (JsonObject j : list(root, "views")) {
+                try {
+                    p.views.add(new CameraView(str(j, "name"), CameraView.Kind.fromId(str(j, "mode")), num(j, "x", 0),
+                            num(j, "y", 0), num(j, "z", 0), num(j, "yaw", 0), num(j, "pitch", 0), num(j, "distance", 0)));
+                } catch (IllegalArgumentException ignored) {
+                    // tipo de vista desconocido
+                }
+            }
             ProjectValidator.validate(p);
             return p;
         } catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException e) {
