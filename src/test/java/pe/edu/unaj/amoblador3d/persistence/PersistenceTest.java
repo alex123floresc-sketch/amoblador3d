@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.design.Design;
+import pe.edu.unaj.amoblador3d.estimate.PriceList;
 import pe.edu.unaj.amoblador3d.model.LightType;
 import pe.edu.unaj.amoblador3d.model.Project;
 import pe.edu.unaj.amoblador3d.model.Surface;
@@ -148,6 +149,23 @@ class PersistenceTest {
             assertEquals("window-1", p.lights.stream().filter(l -> l.type == LightType.SUN).findFirst().orElseThrow().windowId);
             Design design = new Design(new Catalog());
             assertTrue(design.load(p).isEmpty(), "el ejemplo no debería necesitar correcciones");
+            assertEquals(70, new PriceRepository(db).load().get(PriceList.Key.material(SurfaceMaterial.PINTURA)), 1e-9);
+        }
+    }
+
+    @Test
+    void losPreciosDelUsuarioSeGuardanYSeRestablecen() throws Exception {
+        try (Database db = new Database(dir.resolve("precios.db"))) {
+            PriceRepository repo = new PriceRepository(db);
+            PriceList.Key chair = PriceList.Key.furniture("silla");
+            repo.save(chair, 150);
+            repo.save(chair, 99.5); // actualiza, no duplica
+            PriceList prices = repo.load();
+            assertEquals(99.5, prices.get(chair), 1e-9);
+            assertTrue(prices.isCustom(chair));
+            assertEquals(PriceList.defaultPrice(PriceList.BASEBOARD), prices.get(PriceList.BASEBOARD), 1e-9);
+            repo.resetAll();
+            assertEquals(PriceList.defaultPrice(chair), repo.load().get(chair), 1e-9);
         }
     }
 }

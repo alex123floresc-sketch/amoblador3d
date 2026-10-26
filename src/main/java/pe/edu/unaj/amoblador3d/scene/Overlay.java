@@ -28,6 +28,7 @@ import pe.edu.unaj.amoblador3d.util.Units;
 final class Overlay {
     private static final Color DIM = Color.web("#ffd166");
     private static final Color SELECT = Color.web("#4f9cf9");
+    private static final Color MEASURE = Color.web("#ff6b9a");
     private static final Font LABEL_FONT = Font.font("System", FontWeight.BOLD, 12);
 
     final Canvas canvas = new Canvas();
@@ -35,9 +36,15 @@ final class Overlay {
     private ViewCamera cam;
 
     void draw(ViewCamera cam, Design design, LightView lights, Object selected, boolean showDimensions) {
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawOn(gc, cam, design, lights, selected, showDimensions);
+    }
+
+    /** Dibuja en otro lienzo (para exportar imágenes más grandes que la pantalla). */
+    void drawOn(GraphicsContext gc, ViewCamera cam, Design design, LightView lights, Object selected, boolean showDimensions) {
         this.cam = cam;
-        g = canvas.getGraphicsContext2D();
-        g.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        g = gc;
         RoomDims r = design.room();
         boolean plan = cam.mode == ViewCamera.Mode.PLAN;
 
@@ -54,6 +61,25 @@ final class Overlay {
             if (!plan) dimension(p(0, 0, r.length()), p(0, r.height(), r.length()), p(-1, 0, 0), gap); // alto
         }
         if (selected != null) drawSelection(r, lights, selected, plan);
+    }
+
+    /** Línea de la herramienta de medir entre dos puntos del piso, con su distancia. */
+    void drawMeasure(Point3D a, Point3D b) {
+        Point3D lift = p(0, 0.02, 0); // un poco sobre el piso para que no lo tape en 3D
+        Point2D sa = cam.project(a.add(lift));
+        if (sa != null) {
+            g.setFill(MEASURE);
+            g.fillOval(sa.getX() - 4, sa.getY() - 4, 8, 8);
+        }
+        if (b == null) return;
+        g.setStroke(MEASURE);
+        g.setLineWidth(2.2);
+        g.setLineDashes(8, 5);
+        line(a.add(lift), b.add(lift));
+        g.setLineDashes();
+        Point2D sb = cam.project(b.add(lift));
+        if (sb != null) g.fillOval(sb.getX() - 4, sb.getY() - 4, 8, 8);
+        if (a.distance(b) > 0.005) label(a.midpoint(b).add(lift), Units.meters(a.distance(b)));
     }
 
     private static Point3D p(double x, double y, double z) {

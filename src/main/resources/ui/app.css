@@ -247,3 +247,14 @@
 .view-controls .button:hover {
     -fx-background-color: #2f6fcacc;
 }
+
+.estimate-total {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 10 0 0;
+}
+
+.wrapping-cell-text {
+    -fx-fill: #e6e8eb;
+    -fx-font-size: 13px;
+}

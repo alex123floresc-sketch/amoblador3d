@@ -35,6 +35,12 @@
       <artifactId>gson</artifactId>
       <version>2.10.1</version>
     </dependency>
+    <!-- PDF: informe del proyecto con planos y presupuesto -->
+    <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+      <version>3.0.5</version>
+    </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>

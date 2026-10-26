@@ -163,6 +163,15 @@ CREATE TABLE catalog_model (
     created_at TIMESTAMPTZ      NOT NULL DEFAULT now()
 );
 
+-- Precios que el usuario cambió en el presupuesto (soles). Los referenciales están en
+-- el código (estimate/PriceList.java); aquí solo van los cambiados.
+CREATE TABLE price (
+    kind  VARCHAR(10)   NOT NULL CHECK (kind IN ('material', 'furniture', 'extra')),
+    item  VARCHAR(60)   NOT NULL,
+    price NUMERIC(10,2) NOT NULL CHECK (price >= 0),
+    PRIMARY KEY (kind, item)
+);
+
 -- -----------------------------------------------------------------------------
 -- Reglas en triggers
 -- -----------------------------------------------------------------------------
@@ -280,6 +289,8 @@ SELECT p.id, v.*
                (3, 'closet-1',     'closet',     3.3, 2.3, 0, 1.20, 0.6, 2.00, '#e8e2d6'))
            AS v(position, id, type, x, z, rotation, width, depth, height, color)
  WHERE p.name = 'Dormitorio de ejemplo';
+
+INSERT INTO price (kind, item, price) VALUES ('material', 'pintura', 70.00);
 
 COMMIT;
 

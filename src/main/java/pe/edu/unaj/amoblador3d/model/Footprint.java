@@ -46,6 +46,17 @@ public record Footprint(double x, double z, double hw, double hd, double angle) 
         return true;
     }
 
+    /** Las 4 esquinas en el mundo: {x, z} de cada una, en orden. */
+    public double[][] corners() {
+        double[][] a = axes();
+        double[][] result = new double[4][];
+        int i = 0;
+        for (double[] s : new double[][] {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}}) {
+            result[i++] = new double[] {x + s[0] * hw * a[0][0] + s[1] * hd * a[1][0], z + s[0] * hw * a[0][1] + s[1] * hd * a[1][1]};
+        }
+        return result;
+    }
+
     /** Mitad del ancho (X) de la caja alineada a los ejes que envuelve el rectángulo. */
     public double halfExtentX() {
         return hw * Math.abs(Math.cos(angle)) + hd * Math.abs(Math.sin(angle));

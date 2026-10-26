@@ -62,6 +62,25 @@ final class ViewCamera {
         return eye;
     }
 
+    /** Todo lo necesario para volver a dejar la cámara como estaba. */
+    record State(Mode mode, Point3D target, double yaw, double pitch, double distance,
+                 Point3D planTarget, double planViewSize) {}
+
+    State state() {
+        return new State(mode, target, yaw, pitch, distance, planTarget, planViewSize);
+    }
+
+    void restore(State s) {
+        mode = s.mode();
+        target = s.target();
+        yaw = s.yaw();
+        pitch = s.pitch();
+        distance = s.distance();
+        planTarget = s.planTarget();
+        planViewSize = s.planViewSize();
+        update();
+    }
+
     /** Metros por píxel en el punto que mira la cámara (para que mover/arrastrar siga al ratón). */
     private double metersPerPixel() {
         double d = mode == Mode.PLAN ? PLAN_DISTANCE : distance;

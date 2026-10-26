@@ -9,6 +9,8 @@ import javafx.scene.Node;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.SubScene;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -22,12 +24,13 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.transform.Rotate;
-import javafx.scene.transform.Scale;
 import pe.edu.unaj.amoblador3d.design.Design;
+import pe.edu.unaj.amoblador3d.model.Footprint;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
 import pe.edu.unaj.amoblador3d.model.Surface;
 import pe.edu.unaj.amoblador3d.model.WallSide;
+import pe.edu.unaj.amoblador3d.util.Units;
 
 /**
  * Vista 3D: une la habitación, las luces, los muebles y la capa de cotas, y atiende el ratón.
@@ -59,6 +62,11 @@ public final class SceneView {
     private Object selected;
     private boolean showDimensions = true;
     private boolean dirty = true;
+
+    // Herramienta de medir: A y B son los extremos (B = null mientras se elige el segundo punto).
+    private boolean measuring;
+    private Point3D measureA, measureB, measureHover;
+    private Consumer<String> onMeasure = text -> {};
 
     private Consumer<Object> onSelect = e -> {};
     private Runnable onDrag = () -> {};
@@ -137,6 +145,30 @@ public final class SceneView {
         onDragEnd = r;
     }
 
+    /** Recibe el texto de la medición ("Distancia: 2,35 m") cada vez que cambia. */
+    public void setOnMeasure(Consumer<String> c) {
+        onMeasure = c;
+    }
+
+    public boolean isMeasuring() {
+        return measuring;
+    }
+
+    /**
+     * Activa o desactiva la herramienta de medir: cada par de clics sobre el piso mide la
+     * distancia entre ellos. Los puntos se pegan a las paredes y a las esquinas de los muebles.
+     */
+    public void setMeasuring(boolean on) {
+        measuring = on;
+        clearMeasure();
+        subScene.setCursor(on ? Cursor.CROSSHAIR : Cursor.DEFAULT);
+    }
+
+    public void clearMeasure() {
+        measureA = measureB = measureHover = null;
+        redraw();
+    }
+
     public void setSelected(Object entity) {
         selected = entity;
         redraw();
@@ -202,6 +234,7 @@ public final class SceneView {
         WallSide selectedWall = selected instanceof Surface s ? s.wallSide() : null;
         room.updateVisibility(cam.eye(), cam.mode == ViewCamera.Mode.PLAN, selectedWall);
         overlay.draw(cam, design, lights, selected, showDimensions);
+        if (measuring && measureA != null) overlay.drawMeasure(measureA, measureB != null ? measureB : measureHover);
     }
 
     /**
@@ -210,15 +243,124 @@ public final class SceneView {
      */
     public WritableImage snapshot(double scale) {
         Object previous = selected;
+        boolean wasMeasuring = measuring;
         selected = null;
+        measuring = false;
         render();
-        SnapshotParameters params = new SnapshotParameters();
-        params.setTransform(new Scale(scale, scale));
-        params.setFill(Color.web("#2b3036"));
-        WritableImage image = root.snapshot(params, null);
-        selected = previous;
+        double w = root.getWidth(), h = root.getHeight();
+        int width = (int) Math.round(w * scale), height = (int) Math.round(h * scale);
+        try {
+            // La escena 3D se dibuja directamente al tamaño final. (Antes se escalaba la imagen
+            // de la pantalla y JavaFX agrandaba también la distancia a las luces: las paredes
+            // salían más oscuras que en pantalla.)
+            subScene.setWidth(width);
+            subScene.setHeight(height);
+            cam.setViewport(width, height);
+            SnapshotParameters params = new SnapshotParameters();
+            params.setFill(Color.TRANSPARENT);
+            WritableImage scene3d = subScene.snapshot(params, null);
+            cam.setViewport(w, h);
+
+            // Fondo + escena 3D + cotas (dibujadas con la cámara del tamaño de la pantalla, escaladas).
+            Canvas canvas = new Canvas(width, height);
+            GraphicsContext g = canvas.getGraphicsContext2D();
+            g.setFill(BACKGROUND);
+            g.fillRect(0, 0, width, height);
+            g.drawImage(scene3d, 0, 0);
+            g.save();
+            g.scale(scale, scale);
+            overlay.drawOn(g, cam, design, lights, null, showDimensions);
+            g.restore();
+            return canvas.snapshot(null, null);
+        } finally {
+            subScene.setWidth(w);
+            subScene.setHeight(h);
+            cam.setViewport(w, h);
+            selected = previous;
+            measuring = wasMeasuring;
+            redraw();
+        }
+    }
+
+    /** Imagen de la planta completa con cotas (para el informe), sin cambiar lo que ve el usuario. */
+    public WritableImage planImage(double scale) {
+        ViewCamera.State state = cam.state();
+        boolean dims = showDimensions;
+        cam.mode = ViewCamera.Mode.PLAN;
+        frameRoom();
+        showDimensions = true;
+        try {
+            return snapshot(scale);
+        } finally {
+            showDimensions = dims;
+            cam.restore(state);
+            redraw();
+        }
+    }
+
+    /** Imagen 3D: la vista actual si se está en 3D; si no, la vista 3D encuadrada. */
+    public WritableImage viewImage(double scale) {
+        if (cam.mode == ViewCamera.Mode.THREE_D) return snapshot(scale);
+        ViewCamera.State state = cam.state();
+        cam.mode = ViewCamera.Mode.THREE_D;
+        frameRoom();
+        try {
+            return snapshot(scale);
+        } finally {
+            cam.restore(state);
+            redraw();
+        }
+    }
+
+    // ---------------------------------------------------------------- Medir
+
+    private static final double SNAP_WALL = 0.06, SNAP_CORNER = 0.1;
+
+    /** Punto del piso bajo el ratón, pegado a una esquina de mueble o a una pared si está cerca. */
+    private Point3D measurePoint(double sx, double sy) {
+        Point3D p = cam.floorPoint(sx, sy);
+        if (p == null) return null;
+        RoomDims r = design.room();
+        double x = p.getX(), z = p.getZ();
+        double best = SNAP_CORNER;
+        double[] corner = null;
+        for (Furniture f : design.furniture()) {
+            for (double[] c : Footprint.of(f).corners()) {
+                double d = Math.hypot(c[0] - x, c[1] - z);
+                if (d < best) {
+                    best = d;
+                    corner = c;
+                }
+            }
+        }
+        if (corner != null) return new Point3D(corner[0], 0, corner[1]);
+        return new Point3D(snap(x, r.width()), 0, snap(z, r.length()));
+    }
+
+    private static double snap(double v, double max) {
+        if (Math.abs(v) < SNAP_WALL) return 0;
+        if (Math.abs(v - max) < SNAP_WALL) return max;
+        return v;
+    }
+
+    private void measureClick(double sx, double sy) {
+        Point3D p = measurePoint(sx, sy);
+        if (p == null) return;
+        if (measureA == null || measureB != null) {
+            measureA = p;
+            measureB = null;
+            measureHover = p;
+            onMeasure.accept("Medir: haz clic en el segundo punto (Esc para terminar).");
+        } else {
+            measureB = p;
+            onMeasure.accept(measureText(measureA, measureB));
+        }
         redraw();
-        return image;
+    }
+
+    static String measureText(Point3D a, Point3D b) {
+        return "Distancia: " + Units.meters(a.distance(b)) + "   (X: " + Units.meters(Math.abs(b.getX() - a.getX()))
+                + " · Z: " + Units.meters(Math.abs(b.getZ() - a.getZ())) + ")";
     }
 
     // ---------------------------------------------------------------- Ratón
@@ -231,6 +373,7 @@ public final class SceneView {
             pressEntity = pick(e.getPickResult());
             dragItem = null;
             dragMoved = false;
+            if (measuring) return; // al medir, el ratón no selecciona ni arrastra muebles
             if (e.getButton() == MouseButton.PRIMARY && pressEntity instanceof Furniture f) {
                 // Diferencia entre el punto del piso clicado y el centro del mueble, para que
                 // no "salte" al centro del cursor al empezar a arrastrar.
@@ -271,7 +414,8 @@ public final class SceneView {
                 return;
             }
             if (e.getButton() == MouseButton.PRIMARY && Math.hypot(e.getX() - pressX, e.getY() - pressY) < CLICK_TOLERANCE) {
-                onSelect.accept(pressEntity);
+                if (measuring) measureClick(e.getX(), e.getY());
+                else onSelect.accept(pressEntity);
             }
         });
 
@@ -282,6 +426,17 @@ public final class SceneView {
 
         // Cambiar el cursor al pasar sobre algo seleccionable.
         subScene.addEventHandler(MouseEvent.MOUSE_MOVED, e -> {
+            if (measuring) {
+                if (measureA != null && measureB == null) {
+                    Point3D p = measurePoint(e.getX(), e.getY());
+                    if (p != null) {
+                        measureHover = p;
+                        onMeasure.accept(measureText(measureA, p));
+                        redraw();
+                    }
+                }
+                return;
+            }
             Object entity = pick(e.getPickResult());
             // Las paredes y el piso también se seleccionan, pero la mano solo aparece sobre objetos.
             boolean object = entity != null && !(entity instanceof Surface);

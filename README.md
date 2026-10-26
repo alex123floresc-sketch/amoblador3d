@@ -33,6 +33,13 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 - **Luces**: bombillas, focos y sol que entra por una ventana.
 - **Proyectos**: se guardan en SQLite con miniatura; también se exportan/importan como `.amob3d`
   (JSON) y la vista se exporta como PNG.
+- **Metrado y presupuesto** (*Proyecto → Metrado y presupuesto*, Ctrl+P): m² de piso y de paredes
+  sin ventanas ni puertas, galones de pintura (2 manos), rollos de papel tapiz, m² de cerámico o
+  madera con 10 % de desperdicio, metros de zócalo y los muebles. Los precios son referenciales en
+  soles, se cambian con doble clic y se guardan para todos los proyectos. Se exporta a CSV (Excel).
+- **Informe PDF** (Ctrl+Shift+P): planta con cotas, vista 3D, ventanas y puertas, muebles y presupuesto.
+- **Medir distancias** (tecla M): dos clics sobre el piso; los puntos se pegan a las paredes y a las
+  esquinas de los muebles.
 - Deshacer/rehacer, vista 3D y planta 2D, cotas.
 
 ### Atajos
@@ -46,6 +53,8 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 | Q / E | Girar el mueble 15° |
 | Supr / Ctrl+D | Eliminar / Duplicar |
 | Ctrl+1 / Ctrl+2 | Vista 3D / Planta 2D |
+| Ctrl+P / Ctrl+Shift+P | Presupuesto / Informe PDF |
+| M | Medir distancias (Esc para terminar) |
 | F1 | Todos los atajos |
 
 Ratón en 3D: botón izquierdo gira, derecho mueve, rueda acerca. Arrastra un mueble para moverlo.

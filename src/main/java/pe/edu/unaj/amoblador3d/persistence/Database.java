@@ -16,7 +16,7 @@ import java.sql.Statement;
  * tablas en el futuro, se agrega un paso en {@link #migrate()} y se sube {@link #SCHEMA_VERSION}.
  */
 public final class Database implements AutoCloseable {
-    static final int SCHEMA_VERSION = 2;
+    static final int SCHEMA_VERSION = 3;
 
     private static final String[] SCHEMA_V1 = {
         """
@@ -99,6 +99,20 @@ public final class Database implements AutoCloseable {
         )""",
     };
 
+    /** v3: precios que el usuario cambió en el presupuesto (los demás son los referenciales). */
+    private static final String[] SCHEMA_V3 = {
+        """
+        CREATE TABLE price (
+            kind  TEXT NOT NULL CHECK (kind IN ('material', 'furniture', 'extra')),
+            item  TEXT NOT NULL,
+            price REAL NOT NULL CHECK (price >= 0),
+            PRIMARY KEY (kind, item)
+        )""",
+    };
+
+    /** Pasos de migración: el paso i lleva la base de la versión i a la i + 1. */
+    private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3};
+
     private final Connection connection;
 
     public Database(Path file) throws SQLException {
@@ -149,20 +163,13 @@ public final class Database implements AutoCloseable {
         if (version > SCHEMA_VERSION) {
             throw new SQLException("La base de datos fue creada con una versión más nueva de Amoblador3D.");
         }
-        if (version < 1) {
+        for (int v = version; v < SCHEMA_VERSION; v++) {
+            String[] step = STEPS[v];
+            int next = v + 1;
             transaction(c -> {
                 try (Statement st = c.createStatement()) {
-                    for (String sql : SCHEMA_V1) st.execute(sql);
-                    st.execute("PRAGMA user_version = 1");
-                }
-                return null;
-            });
-        }
-        if (version < 2) {
-            transaction(c -> {
-                try (Statement st = c.createStatement()) {
-                    for (String sql : SCHEMA_V2) st.execute(sql);
-                    st.execute("PRAGMA user_version = 2");
+                    for (String sql : step) st.execute(sql);
+                    st.execute("PRAGMA user_version = " + next);
                 }
                 return null;
             });

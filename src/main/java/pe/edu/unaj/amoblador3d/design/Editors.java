@@ -48,6 +48,14 @@ public final class Editors {
 
     private Editors() {}
 
+    /** Nombre del color si es uno de los sugeridos ("Blanco hueso"), o el código "#rrggbb". */
+    public static String colorName(String color) {
+        for (List<Option> list : List.of(WALL_COLORS, FLOOR_COLORS, FURNITURE_COLORS)) {
+            for (Option o : list) if (o.value().equalsIgnoreCase(color)) return o.label();
+        }
+        return color;
+    }
+
     public static Editable of(Design design, Object entity, DuplicateHandler onDuplicate) {
         if (entity instanceof Opening o) return new OpeningEditor(design, o);
         if (entity instanceof Light l) return new LightEditor(design, l);

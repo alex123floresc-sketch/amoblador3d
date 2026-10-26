@@ -1,5 +1,5 @@
 -- =============================================================================
--- Amoblador3D: base de datos SQLite (esquema v2)
+-- Amoblador3D: base de datos SQLite (esquema v3)
 --
 -- Es el mismo esquema que la aplicación crea sola al arrancar
 -- (src/main/java/pe/edu/unaj/amoblador3d/persistence/Database.java), más un
@@ -91,8 +91,17 @@ CREATE TABLE surface (
     PRIMARY KEY (project_id, id)
 );
 
+-- v3: precios que el usuario cambió en el presupuesto. Solo se guardan los que difieren de
+-- los referenciales (los referenciales están en el código: estimate/PriceList.java).
+CREATE TABLE price (
+    kind  TEXT NOT NULL CHECK (kind IN ('material', 'furniture', 'extra')),
+    item  TEXT NOT NULL,
+    price REAL NOT NULL CHECK (price >= 0),
+    PRIMARY KEY (kind, item)
+);
+
 -- La aplicación lee este número para saber que las tablas ya están creadas.
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;
 
 -- -----------------------------------------------------------------------------
 -- Proyecto de ejemplo: dormitorio de 4 x 3.5 m
@@ -120,5 +129,8 @@ INSERT INTO furniture (project_id, position, id, type, x, z, rotation, width, de
     (1, 1, 'escritorio-1', 'escritorio', 3.3, 1.7, 0, 1.20, 0.6, 0.75, '#d9c6a5'),
     (1, 2, 'silla-1',      'silla',      1.0, 1.7, 0, 0.45, 0.5, 0.90, '#6d4c33'),
     (1, 3, 'closet-1',     'closet',     3.3, 2.3, 0, 1.20, 0.6, 2.00, '#e8e2d6');
+
+-- Precio cambiado por el usuario: la pintura mate a S/ 70 el galón.
+INSERT INTO price (kind, item, price) VALUES ('material', 'pintura', 70.0);
 
 COMMIT;

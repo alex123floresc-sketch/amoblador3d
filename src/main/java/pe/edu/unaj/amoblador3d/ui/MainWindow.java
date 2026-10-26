@@ -68,6 +68,9 @@ import pe.edu.unaj.amoblador3d.design.Design;
 import pe.edu.unaj.amoblador3d.design.Editable;
 import pe.edu.unaj.amoblador3d.design.Editors;
 import pe.edu.unaj.amoblador3d.design.History;
+import pe.edu.unaj.amoblador3d.estimate.Estimate;
+import pe.edu.unaj.amoblador3d.estimate.PriceList;
+import pe.edu.unaj.amoblador3d.estimate.Quantities;
 import pe.edu.unaj.amoblador3d.gltf.GltfLoader;
 import pe.edu.unaj.amoblador3d.gltf.ModelData;
 import pe.edu.unaj.amoblador3d.model.Furniture;
@@ -80,9 +83,11 @@ import pe.edu.unaj.amoblador3d.model.RoomDims;
 import pe.edu.unaj.amoblador3d.model.Surface;
 import pe.edu.unaj.amoblador3d.model.SurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.WallSide;
+import pe.edu.unaj.amoblador3d.persistence.PriceRepository;
 import pe.edu.unaj.amoblador3d.persistence.ProjectFormatException;
 import pe.edu.unaj.amoblador3d.persistence.ProjectJson;
 import pe.edu.unaj.amoblador3d.persistence.ProjectRepository;
+import pe.edu.unaj.amoblador3d.report.ProjectReport;
 import pe.edu.unaj.amoblador3d.scene.ModelLibrary;
 import pe.edu.unaj.amoblador3d.scene.SceneView;
 import pe.edu.unaj.amoblador3d.scene.SurfacePreview;
@@ -106,6 +111,8 @@ public final class MainWindow {
     private final Catalog catalog;
     private final UserModels userModels;
     private final ProjectRepository projects;
+    private final PriceRepository priceRepository;
+    private final PriceList prices;
     private final ModelLibrary models;
     private final HostServices host;
     private final Design design;
@@ -138,17 +145,21 @@ public final class MainWindow {
     private final ToggleGroup viewGroup = new ToggleGroup();
     private final ToggleButton view3d = new ToggleButton("Vista 3D"), viewPlan = new ToggleButton("Planta 2D");
     private final CheckBox dimensions = new CheckBox("Cotas");
+    private final ToggleButton measure = new ToggleButton("Medir");
+    private final CheckMenuItem measureItem = new CheckMenuItem("Medir distancias   (M)");
     private final CheckMenuItem dimensionsItem = new CheckMenuItem("Mostrar cotas");
     private final Label status = new Label();
     private final Label selectionInfo = new Label();
     private final PauseTransition statusTimer = new PauseTransition(Duration.seconds(6));
 
     public MainWindow(Stage stage, Catalog catalog, UserModels userModels, ProjectRepository projects,
-                      ModelLibrary models, HostServices host) {
+                      PriceRepository priceRepository, PriceList prices, ModelLibrary models, HostServices host) {
         this.stage = stage;
         this.catalog = catalog;
         this.userModels = userModels;
         this.projects = projects;
+        this.priceRepository = priceRepository;
+        this.prices = prices;
         this.models = models;
         this.host = host;
 
@@ -166,6 +177,10 @@ public final class MainWindow {
 
         view.setOnSelect(this::select);
         view.setOnDragEnd(history::commit);
+        view.setOnMeasure(text -> {
+            statusTimer.stop();
+            status.setText(text);
+        });
         design.addListener(changes -> designChanged());
 
         BorderPane root = new BorderPane();
@@ -265,11 +280,18 @@ public final class MainWindow {
                 new SeparatorMenuItem(),
                 item("Pantalla completa", "F11", () -> stage.setFullScreen(!stage.isFullScreen())));
 
+        Menu projectMenu = new Menu("Proyecto", null,
+                item("Metrado y presupuesto…", "Shortcut+P", this::showEstimate),
+                item("Informe PDF (planos y presupuesto)…", "Shortcut+Shift+P", this::exportPdf));
+
+        measureItem.selectedProperty().bindBidirectional(measure.selectedProperty());
+        Menu tools = new Menu("Herramientas", null, measureItem);
+
         Menu help = new Menu("Ayuda", null,
                 item("Atajos de teclado", "F1", this::showShortcuts),
                 item("Acerca de Amoblador3D", null, () -> Dialogs.info(stage, "Acerca de", APP_NAME,
                         "Diseñador de interiores 3D con medidas reales.\nJavaFX + SQLite.\nDatos en: " + userModels.root().getParent())));
-        return new MenuBar(file, edit, viewMenu, help);
+        return new MenuBar(file, edit, projectMenu, viewMenu, tools, help);
     }
 
     private static MenuItem item(String label, String accelerator, Runnable action) {
@@ -317,9 +339,25 @@ public final class MainWindow {
         Button center = toolButton("Centrar", "Encuadrar la habitación (Ctrl+0)", view::frameRoom);
         Button capture = toolButton("Captura", "Exportar imagen PNG (Ctrl+E)", this::exportImage);
 
+        measure.setFocusTraversable(false);
+        measure.setTooltip(new Tooltip("Medir distancias sobre el piso (M). Esc para terminar."));
+        measure.selectedProperty().addListener((obs, o, on) -> {
+            view.setMeasuring(on);
+            if (on) {
+                select(null);
+                statusTimer.stop();
+                status.setText("Medir: haz clic en el primer punto del piso (se pega a paredes y esquinas de muebles).");
+            } else {
+                status.setText(defaultStatus());
+            }
+        });
+        Button budget = toolButton("Presupuesto", "Metrado y presupuesto (Ctrl+P)", this::showEstimate);
+        Button pdf = toolButton("PDF", "Informe PDF con planos y presupuesto (Ctrl+Shift+P)", this::exportPdf);
+
         return new ToolBar(newButton, openButton, saveButton, new Separator(Orientation.VERTICAL),
                 undoButton, redoButton, new Separator(Orientation.VERTICAL),
-                segmented, dimensions, center, capture);
+                segmented, dimensions, center, new Separator(Orientation.VERTICAL),
+                measure, budget, pdf, capture);
     }
 
     /**
@@ -606,8 +644,10 @@ public final class MainWindow {
         roomLength.setText(Units.number(r.length()));
         roomHeight.setText(Units.number(r.height()));
         roomWall.setText(Units.number(r.wallThickness()));
-        roomInfo.setText("Área: " + Units.number(Units.round(r.width() * r.length())) + " m²   ·   Volumen: "
-                + Units.number(Units.round(r.width() * r.length() * r.height())) + " m³");
+        Quantities q = Quantities.of(design.snapshot());
+        roomInfo.setText("Piso: " + Units.number(Units.round(q.floorArea())) + " m²   ·   Paredes: "
+                + Units.number(Units.round(q.wallNetTotal())) + " m²\nVolumen: " + Units.number(Units.round(q.volume()))
+                + " m³   ·   Perímetro: " + Units.meters(q.perimeter()));
         ambient.setValue(design.ambient());
         ambientValue.setText(Units.number(design.ambient()));
 
@@ -797,7 +837,9 @@ public final class MainWindow {
         // Mientras se escribe en un campo, las teclas son del campo.
         if (stage.getScene().getFocusOwner() instanceof TextInputControl) return;
         if (e.isShortcutDown() || e.isAltDown()) return;
-        if (e.getCode() == KeyCode.DELETE || e.getCode() == KeyCode.BACK_SPACE) delete(selected);
+        if (e.getCode() == KeyCode.ESCAPE && measure.isSelected()) measure.setSelected(false);
+        else if (e.getCode() == KeyCode.M) measure.setSelected(!measure.isSelected());
+        else if (e.getCode() == KeyCode.DELETE || e.getCode() == KeyCode.BACK_SPACE) delete(selected);
         else if (e.getCode() == KeyCode.ESCAPE) select(null);
         else if (e.getCode() == KeyCode.R) rotateSelected(e.isShiftDown() ? 90 : -90);
         else if (e.getCode() == KeyCode.Q) rotateSelected(15);
@@ -977,6 +1019,39 @@ public final class MainWindow {
         }
     }
 
+    // ---------------------------------------------------------------- Presupuesto e informe
+
+    private Estimate estimate() {
+        return Estimate.of(design.snapshot(), catalog, prices);
+    }
+
+    private void showEstimate() {
+        commitEdits();
+        EstimateDialog.show(stage, projectName, this::estimate, prices, priceRepository, this::exportPdf);
+    }
+
+    /** Informe PDF con la planta, la vista 3D, los muebles y el presupuesto. */
+    private void exportPdf() {
+        commitEdits();
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Guardar informe PDF");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Documento PDF (*.pdf)", "*.pdf"));
+        chooser.setInitialFileName(projectName + ".pdf");
+        File file = chooser.showSaveDialog(stage);
+        if (file == null) return;
+        try {
+            Project p = design.snapshot();
+            byte[] plan = Png.encode(view.planImage(2));
+            byte[] view3d = Png.encode(view.viewImage(2));
+            new ProjectReport(projectName, p, Estimate.of(p, catalog, prices), plan, view3d, design::label).write(file.toPath());
+        } catch (IOException | RuntimeException e) {
+            Dialogs.error(stage, "No se pudo crear el informe", e.getMessage());
+            return;
+        }
+        notify("Informe guardado: " + file.getName());
+        if (Dialogs.confirm(stage, "Informe guardado", file.getAbsolutePath(), "Abrir")) host.showDocument(file.toURI().toString());
+    }
+
     // ---------------------------------------------------------------- Catálogo
 
     private void importModel() {
@@ -1081,6 +1156,8 @@ public final class MainWindow {
                 Ctrl+1  Vista 3D              Ctrl+2  Planta 2D
                 Ctrl+M  Cotas                 Ctrl+0  Centrar cámara
                 Ctrl+E  Exportar imagen       Ctrl+I  Importar modelo 3D
+                Ctrl+P  Presupuesto           Ctrl+Shift+P  Informe PDF
+                M  Medir distancias (Esc para terminar)
 
                 Ratón (3D): botón izquierdo gira, derecho mueve, rueda acerca.
                 Arrastra un mueble para moverlo; clic en una pared o el piso para cambiar su material.""");

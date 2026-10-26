@@ -34,6 +34,14 @@ public final class Units {
         return f.format(value);
     }
 
+    /** 1234.5 -> "S/ 1,234.50" (soles, con el formato de es-PE). */
+    public static String money(double value) {
+        NumberFormat f = NumberFormat.getNumberInstance(LOCALE);
+        f.setMinimumFractionDigits(2);
+        f.setMaximumFractionDigits(2);
+        return "S/ " + f.format(value);
+    }
+
     /** Lee un número escrito con punto o coma decimal. Devuelve null si no es válido. */
     public static Double parse(String text) {
         if (text == null) return null;

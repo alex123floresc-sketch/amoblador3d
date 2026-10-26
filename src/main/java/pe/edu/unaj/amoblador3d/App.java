@@ -11,9 +11,11 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.catalog.UserModels;
+import pe.edu.unaj.amoblador3d.estimate.PriceList;
 import pe.edu.unaj.amoblador3d.persistence.AppPaths;
 import pe.edu.unaj.amoblador3d.persistence.CatalogRepository;
 import pe.edu.unaj.amoblador3d.persistence.Database;
+import pe.edu.unaj.amoblador3d.persistence.PriceRepository;
 import pe.edu.unaj.amoblador3d.persistence.ProjectRepository;
 import pe.edu.unaj.amoblador3d.scene.ModelLibrary;
 import pe.edu.unaj.amoblador3d.ui.MainWindow;
@@ -38,9 +40,19 @@ public final class App extends Application {
         Catalog catalog = new Catalog();
         catalog.setModels(MainWindow.loadModels(userModels, warnings));
 
+        PriceRepository priceRepository = new PriceRepository(db);
+        PriceList prices;
+        try {
+            prices = priceRepository.load();
+        } catch (SQLException e) {
+            prices = new PriceList();
+            warnings.add("No se pudieron leer tus precios; se usan los referenciales: " + e.getMessage());
+        }
+
         var icon = App.class.getResourceAsStream("/icon.png");
         if (icon != null) stage.getIcons().add(new Image(icon));
-        new MainWindow(stage, catalog, userModels, new ProjectRepository(db), new ModelLibrary(), getHostServices())
+        new MainWindow(stage, catalog, userModels, new ProjectRepository(db), priceRepository, prices,
+                        new ModelLibrary(), getHostServices())
                 .show(warnings);
     }
 
