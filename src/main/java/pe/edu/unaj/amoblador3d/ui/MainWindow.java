@@ -7,8 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import javafx.animation.PauseTransition;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -63,7 +66,16 @@ import javafx.util.Duration;
 import pe.edu.unaj.amoblador3d.catalog.BuiltinCatalog;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.catalog.CatalogEntry;
+import pe.edu.unaj.amoblador3d.catalog.CustomDesign;
 import pe.edu.unaj.amoblador3d.catalog.UserModels;
+import pe.edu.unaj.amoblador3d.persistence.DesignRepository;
+import pe.edu.unaj.amoblador3d.scene.FurnitureShapes;
+import pe.edu.unaj.amoblador3d.scene.Thumbnails;
+import pe.edu.unaj.amoblador3d.scene.HomeView;
+import pe.edu.unaj.amoblador3d.model.Home;
+import pe.edu.unaj.amoblador3d.persistence.HomeJson;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import pe.edu.unaj.amoblador3d.design.Design;
 import pe.edu.unaj.amoblador3d.design.Editable;
 import pe.edu.unaj.amoblador3d.design.Editors;
@@ -112,6 +124,7 @@ public final class MainWindow {
     private final Stage stage;
     private final Catalog catalog;
     private final UserModels userModels;
+    private final DesignRepository designs;
     private final ProjectRepository projects;
     private final PriceRepository priceRepository;
     private final PriceList prices;
@@ -124,6 +137,19 @@ public final class MainWindow {
 
     private Long projectId;
     private String projectName = UNTITLED;
+    /** La casa: todos los ambientes. El que se decora ({@code active}) vive en {@link #design}. */
+    private Home home;
+    private int active;
+    /** Vista "Casa completa": todos los ambientes juntos, para armar la distribución. */
+    private final HomeView homeView;
+    private boolean houseMode;
+    private Home.Space houseSelected;
+    private final HBox spaceBar = new HBox(6);
+    private final TabPane sidebarTabs = new TabPane();
+    /** Botones que acompañan al mueble seleccionado en la vista 3D. */
+    private final HBox floatingBar = new HBox(4);
+    private final ToggleButton houseToggle = new ToggleButton("🏠  Casa completa");
+    private final HomePanel.Host homeHost = new HomeHost();
     /** Lo seleccionado: un elemento o varios muebles. {@code selected} es el último elegido. */
     private final List<Object> selection = new ArrayList<>();
     private Object selected;
@@ -136,7 +162,11 @@ public final class MainWindow {
     private final Slider ambient = new Slider(0, 2, Project.DEFAULT_AMBIENT);
     private final Label ambientValue = new Label();
     private final TextField catalogSearch = new TextField();
-    private final VBox catalogGroups = new VBox(12);
+    private final VBox catalogGroups = new VBox(14);
+    private final FlowPane categoryChips = new FlowPane();
+    /** Categoría elegida en el catálogo (null = todas). */
+    private String catalogCategory;
+    private final Thumbnails thumbnails;
     private final ListView<Object> items = new ListView<>();
     private final Button floorButton = new Button("Piso");
     private final Button ceilingButton = new Button("Techo"), baseboardButton = new Button("Zócalo");
@@ -146,7 +176,7 @@ public final class MainWindow {
     private boolean nudging;
 
     // Barra superior y de estado
-    private final Button undoButton = new Button("↶ Deshacer"), redoButton = new Button("↷ Rehacer");
+    private final Button undoButton = new Button("↶"), redoButton = new Button("↷");
     private final MenuItem undoItem = new MenuItem("Deshacer"), redoItem = new MenuItem("Rehacer");
     private final ToggleGroup viewGroup = new ToggleGroup();
     private final ToggleButton view3d = new ToggleButton("Vista 3D"), viewPlan = new ToggleButton("Planta 2D");
@@ -158,7 +188,7 @@ public final class MainWindow {
     private final Menu viewsMenu = new Menu("Vistas");
     private final javafx.scene.control.MenuButton viewsButton = new javafx.scene.control.MenuButton("Vistas");
     private final CheckBox dimensions = new CheckBox("Cotas");
-    private final ToggleButton measure = new ToggleButton("Medir");
+    private final ToggleButton measure = new ToggleButton("📏 Medir");
     private final CheckBox magnet = new CheckBox("Imán");
     private final CheckMenuItem magnetItem = new CheckMenuItem("Imán al arrastrar   (G)");
     private final CheckMenuItem measureItem = new CheckMenuItem("Medir distancias   (M)");
@@ -173,11 +203,13 @@ public final class MainWindow {
     private String lastAutosave;
     private boolean autosaveFailed;
 
-    public MainWindow(Stage stage, Catalog catalog, UserModels userModels, ProjectRepository projects,
+    public MainWindow(Stage stage, Catalog catalog, UserModels userModels, DesignRepository designs, ProjectRepository projects,
                       PriceRepository priceRepository, PriceList prices, ModelLibrary models, HostServices host) {
         this.stage = stage;
         this.catalog = catalog;
         this.userModels = userModels;
+        this.designs = designs;
+        this.thumbnails = new Thumbnails(models);
         this.projects = projects;
         this.priceRepository = priceRepository;
         this.prices = prices;
@@ -187,8 +219,17 @@ public final class MainWindow {
         design = new Design(catalog);
         design.setWarningHandler(this::warn);
         design.loadDefault();
+        home = Home.of(design.snapshot(), "Ambiente 1");
         view = new SceneView(design, models, this::warn);
-        history = new History(() -> ProjectJson.write(design.snapshot()), this::restore, this::updateTitle);
+        homeView = new HomeView(catalog, models);
+        homeView.setOnSelect(this::selectSpace);
+        homeView.setOnOpen(s -> switchSpace(home.spaces.indexOf(s)));
+        homeView.setOnMoved(this::spaceMoved);
+        homeView.setOnStatus(text -> {
+            statusTimer.stop();
+            status.setText(text);
+        });
+        history = new History(() -> HomeJson.write(currentHome()), this::restore, this::updateTitle);
         properties = new PropertiesPanel(history::commit, this::delete,
                 id -> {
                     SurfaceMaterial m = SurfaceMaterial.fromId(id);
@@ -203,6 +244,8 @@ public final class MainWindow {
         view.setOnBandSelect(this::addToSelection);
         view.setOnNotice(message -> notify(message, Toast.Kind.ERROR));
         view.setOnDragEnd(history::commit);
+        properties.setOnPending(history::markPending);
+        properties.setHeader(this::propertiesHeader);
         view.setOnMeasure(text -> {
             statusTimer.stop();
             status.setText(text);
@@ -254,7 +297,7 @@ public final class MainWindow {
             view.frameRoom();
             // Corrección: antes el foco empezaba en el campo "Ancho" y R, Supr o las flechas no hacían nada.
             view.node().requestFocus();
-            offerRecovery();
+            if (!offerRecovery() && WelcomeDialog.enabled()) showWelcome();
         });
         if (!startupWarnings.isEmpty()) warn(String.join("\n", startupWarnings));
     }
@@ -274,6 +317,7 @@ public final class MainWindow {
                 item("Exportar archivo .amob3d…", null, this::exportFile),
                 item("Exportar imagen PNG…", "Shortcut+E", this::exportImage),
                 new SeparatorMenuItem(),
+                item("Diseñador de muebles…", "Shortcut+Shift+D", this::openDesigner),
                 item("Importar modelo 3D (.glb/.gltf)…", "Shortcut+I", this::importModel),
                 item("Abrir carpeta de modelos importados", null, this::openModelsFolder),
                 item("Recargar catálogo", null, this::reloadCatalog),
@@ -320,7 +364,8 @@ public final class MainWindow {
         dimensionsItem.setSelected(true);
         dimensionsItem.selectedProperty().bindBidirectional(dimensions.selectedProperty());
         Menu viewMenu = new Menu("Ver", null, menu3d, menuPlan, menuWalk, new SeparatorMenuItem(), dimensionsItem,
-                item("Centrar cámara", "Shortcut+0", view::frameRoom), nightItem, viewsMenu,
+                item("Centrar cámara", "Shortcut+0", this::frameView),
+                item("Casa completa (todos los ambientes)", "Shortcut+4", () -> showHouse(!houseMode)), nightItem, viewsMenu,
                 new SeparatorMenuItem(),
                 item("Pantalla completa", "F11", () -> stage.setFullScreen(!stage.isFullScreen())));
 
@@ -330,9 +375,11 @@ public final class MainWindow {
 
         measureItem.selectedProperty().bindBidirectional(measure.selectedProperty());
         magnetItem.selectedProperty().bindBidirectional(magnet.selectedProperty());
-        Menu tools = new Menu("Herramientas", null, measureItem, magnetItem);
+        Menu tools = new Menu("Herramientas", null, item("Diseñador de muebles…", null, this::openDesigner),
+                new SeparatorMenuItem(), measureItem, magnetItem);
 
         Menu help = new Menu("Ayuda", null,
+                item("Pantalla de bienvenida…", null, this::showWelcome),
                 item("Atajos de teclado", "F1", this::showShortcuts),
                 item("Acerca de Amoblador3D", null, () -> Dialogs.info(stage, "Acerca de", APP_NAME,
                         "Diseñador de interiores 3D con medidas reales.\nJavaFX + SQLite.\nDatos en: " + userModels.root().getParent())));
@@ -347,9 +394,9 @@ public final class MainWindow {
     }
 
     private ToolBar buildToolbar() {
-        Button newButton = toolButton("Nuevo", "Nuevo proyecto (Ctrl+N)", this::newProject);
-        Button openButton = toolButton("Abrir", "Abrir proyecto (Ctrl+O)", this::openProject);
-        Button saveButton = toolButton("Guardar", "Guardar (Ctrl+S)", this::save);
+        Button newButton = toolButton("＋ Nuevo", "Nuevo proyecto (Ctrl+N)", this::newProject);
+        Button openButton = toolButton("📂 Abrir", "Abrir proyecto (Ctrl+O)", this::openProject);
+        Button saveButton = toolButton("💾 Guardar", "Guardar (Ctrl+S)", this::save);
         saveButton.getStyleClass().add("primary");
         undoButton.setTooltip(new Tooltip("Deshacer (Ctrl+Z)"));
         undoButton.setOnAction(e -> undo());
@@ -379,6 +426,13 @@ public final class MainWindow {
                 return;
             }
             if (modeSync) return;
+            if (houseMode) {
+                if (n != viewWalk) {
+                    homeView.setPlan(n == viewPlan);
+                    return;
+                }
+                showHouse(false); // el recorrido es dentro del ambiente que se decora
+            }
             SceneView.Mode mode = n == viewPlan ? SceneView.Mode.PLAN : n == viewWalk ? SceneView.Mode.WALK : SceneView.Mode.THREE_D;
             view.setMode(mode);
             view.frameRoom();
@@ -397,8 +451,8 @@ public final class MainWindow {
         dimensions.setSelected(true);
         dimensions.setTooltip(new Tooltip("Mostrar u ocultar las medidas (Ctrl+M)"));
         dimensions.selectedProperty().addListener((obs, o, n) -> view.setDimensionsVisible(n));
-        Button center = toolButton("Centrar", "Encuadrar la habitación (Ctrl+0)", view::frameRoom);
-        Button capture = toolButton("Captura", "Exportar imagen PNG (Ctrl+E)", this::exportImage);
+        Button center = toolButton("⤢", "Encuadrar la vista (Ctrl+0)", this::frameView);
+        Button capture = toolButton("📷", "Captura: exportar imagen PNG (Ctrl+E)", this::exportImage);
 
         measure.setFocusTraversable(false);
         measure.setTooltip(new Tooltip("Medir distancias sobre el piso (M). Esc para terminar."));
@@ -417,13 +471,16 @@ public final class MainWindow {
         magnet.setTooltip(new Tooltip("Al arrastrar, los muebles se pegan a las paredes y a otros muebles (G).\n"
                 + "Mantén Alt para soltar el imán un momento."));
         magnet.selectedProperty().addListener((obs, o, on) -> view.setMagnet(on));
-        Button budget = toolButton("Presupuesto", "Metrado y presupuesto (Ctrl+P)", this::showEstimate);
-        Button pdf = toolButton("PDF", "Informe PDF con planos y presupuesto (Ctrl+Shift+P)", this::exportPdf);
+        Button budget = toolButton("💰 Presupuesto", "Metrado y presupuesto (Ctrl+P)", this::showEstimate);
+        Button pdf = toolButton("📄 PDF", "Informe PDF con planos y presupuesto (Ctrl+Shift+P)", this::exportPdf);
+        Button designer = toolButton("✎ Diseñar mueble", "Diseñador de muebles: crea tu propio mueble pieza por pieza (Ctrl+Shift+D)",
+                this::openDesigner);
+        designer.getStyleClass().add("accent");
 
         return new ToolBar(newButton, openButton, saveButton, new Separator(Orientation.VERTICAL),
                 undoButton, redoButton, new Separator(Orientation.VERTICAL),
                 segmented, dimensions, center, viewsButton, new Separator(Orientation.VERTICAL),
-                measure, magnet, budget, pdf, capture);
+                measure, magnet, new Separator(Orientation.VERTICAL), designer, budget, pdf, capture);
     }
 
     /**
@@ -440,17 +497,18 @@ public final class MainWindow {
 
     /** Panel izquierdo en pestañas: antes era una sola columna larga y los muebles quedaban fuera de la vista. */
     private Node buildSidebar() {
-        TabPane tabs = new TabPane(
-                tab("Muebles", buildCatalog()),
-                tab("Habitación", new VBox(14,
+        TabPane tabs = sidebarTabs;
+        tabs.getTabs().setAll(
+                tab("🛋 Muebles", buildCatalog()),
+                tab("📐 Ambiente", new VBox(14,
                         group("Medidas", buildRoomForm()),
                         group("Paredes, piso y techo", buildSurfaceButtons()),
                         group("Ventanas y puertas", row(
                                 smallButton("+ Ventana", "Agrega una ventana en el primer lugar libre", () -> addOpening(OpeningType.WINDOW)),
                                 smallButton("+ Puerta", "Agrega una puerta en el primer lugar libre", () -> addOpening(OpeningType.DOOR)))),
                         group("Columnas y forma", buildColumnButtons()))),
-                tab("Luz", buildLightingControls()),
-                tab("Lista", buildItemList()));
+                tab("💡 Luz", buildLightingControls()),
+                tab("☰ Lista", buildItemList()));
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getStyleClass().add("sidebar-tabs");
         tabs.setPrefWidth(310);
@@ -480,31 +538,401 @@ public final class MainWindow {
 
     /** Vista 3D con los avisos flotantes y los botones de zoom encima. */
     private Node buildViewport() {
-        StackPane viewport = new StackPane(view.node());
+        homeView.node().setVisible(false);
+        StackPane viewport = new StackPane(view.node(), homeView.node());
         viewport.setMinSize(0, 0);
+        installCatalogDrop(viewport);
         toast = new Toast(viewport);
-        Button zoomIn = toolButton("+", "Acercar (rueda del ratón)", () -> view.zoom(0.8));
-        Button zoomOut = toolButton("−", "Alejar (rueda del ratón)", () -> view.zoom(1.25));
-        Button center = toolButton("⤢", "Encuadrar la habitación (Ctrl+0)", view::frameRoom);
+        Button zoomIn = toolButton("+", "Acercar (rueda del ratón)", () -> {
+            if (houseMode) homeView.zoom(0.8);
+            else view.zoom(0.8);
+        });
+        Button zoomOut = toolButton("−", "Alejar (rueda del ratón)", () -> {
+            if (houseMode) homeView.zoom(1.25);
+            else view.zoom(1.25);
+        });
+        Button center = toolButton("⤢", "Encuadrar (Ctrl+0)", this::frameView);
         VBox controls = new VBox(4, zoomIn, zoomOut, center);
         controls.getStyleClass().add("view-controls");
         controls.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         StackPane.setAlignment(controls, Pos.BOTTOM_RIGHT);
         StackPane.setMargin(controls, new Insets(0, 12, 12, 0));
         viewport.getChildren().add(controls);
-        return viewport;
+        floatingBar.getStyleClass().add("floating-bar");
+        floatingBar.setManaged(false);
+        floatingBar.setVisible(false);
+        viewport.getChildren().add(floatingBar);
+        view.setOnRendered(this::placeFloatingBar);
+        houseToggle.getStyleClass().add("house-toggle");
+        houseToggle.setFocusTraversable(false);
+        houseToggle.setTooltip(new Tooltip("Ver todos los ambientes juntos para armar la casa (Ctrl+4)"));
+        houseToggle.setOnAction(e -> showHouse(houseToggle.isSelected()));
+        spaceBar.setAlignment(Pos.CENTER_LEFT);
+        javafx.scene.control.ScrollPane tabs = new javafx.scene.control.ScrollPane(spaceBar);
+        tabs.setFitToHeight(true);
+        tabs.setVbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.NEVER);
+        tabs.setHbarPolicy(javafx.scene.control.ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        tabs.getStyleClass().add("space-scroll");
+        HBox.setHgrow(tabs, Priority.ALWAYS);
+        HBox bar = new HBox(8, houseToggle, new Separator(Orientation.VERTICAL), tabs);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.getStyleClass().add("space-bar");
+        refreshSpaces();
+        BorderPane withBar = new BorderPane(viewport);
+        withBar.setTop(bar);
+        withBar.setMinSize(0, 0);
+        return withBar;
     }
+
+    /** Cabecera del panel de propiedades de un mueble: su miniatura, categoría y ayuda de las asas. */
+    private Node propertiesHeader(Object entity) {
+        if (entity instanceof Home) return HomePanel.summary(homeHost);
+        if (entity instanceof Home.Space s) return spaceSummary(s);
+        if (!(entity instanceof Furniture f)) return null;
+        CatalogEntry e = catalog.get(f.type);
+        ImageView image = new ImageView();
+        image.setFitWidth(Thumbnails.WIDTH * 0.8);
+        image.setFitHeight(Thumbnails.HEIGHT * 0.8);
+        image.setPreserveRatio(true);
+        Image thumb = thumbnails.of(e, image::setImage);
+        if (thumb != null) image.setImage(thumb);
+        Label category = new Label(e.category());
+        category.getStyleClass().add("card-badge");
+        Label help = new Label(f.locked ? "🔒 Bloqueado: desbloquéalo para editarlo."
+                : "En la vista 3D arrastra las asas: ○ estiran, ◇ cambia el alto y ⟳ gira.");
+        help.getStyleClass().add("hint");
+        help.setWrapText(true);
+        VBox text = new VBox(6, category, help);
+        HBox.setHgrow(text, Priority.ALWAYS);
+        HBox box = new HBox(10, image, text);
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.getStyleClass().add("properties-header");
+        return box;
+    }
+
+    // ---------------------------------------------------------------- Ambientes y casa completa
+
+    /** La casa con el ambiente que se está decorando al día. */
+    private Home currentHome() {
+        home.spaces.get(active).project = design.snapshot();
+        return home;
+    }
+
+    private String spaceSuffix() {
+        return home.spaces.size() > 1 ? " - " + home.spaces.get(active).name : "";
+    }
+
+    /** Barra de ambientes: una pestaña por ambiente y el botón para agregar. */
+    private void refreshSpaces() {
+        spaceBar.getChildren().clear();
+        ToggleGroup group = new ToggleGroup();
+        for (int i = 0; i < home.spaces.size(); i++) {
+            Home.Space s = home.spaces.get(i);
+            int index = i;
+            RoomDims r = s.project.room;
+            ToggleButton tab = new ToggleButton(s.name);
+            tab.getStyleClass().add("space-tab");
+            tab.setToggleGroup(group);
+            tab.setFocusTraversable(false);
+            tab.setSelected(!houseMode && i == active);
+            tab.setTooltip(new Tooltip(s.name + " · " + Units.number(r.width()) + " × " + Units.number(r.length()) + " m"
+                    + "\nClic: decorar · Clic derecho: renombrar, duplicar o eliminar"));
+            tab.setOnAction(e -> switchSpace(index));
+            MenuItem rename = new MenuItem("Renombrar…");
+            rename.setOnAction(e -> renameSpace(s));
+            MenuItem copy = new MenuItem("Duplicar");
+            copy.setOnAction(e -> {
+                String err = duplicateSpace(s);
+                if (err != null) notify(err, Toast.Kind.ERROR);
+            });
+            MenuItem inHouse = new MenuItem("Ver en la casa");
+            inHouse.setOnAction(e -> {
+                showHouse(true);
+                selectSpace(s);
+                homeView.select(s);
+            });
+            MenuItem remove = new MenuItem("Eliminar ambiente…");
+            remove.setDisable(home.spaces.size() < 2);
+            remove.setOnAction(e -> deleteSpace(s));
+            tab.setContextMenu(new ContextMenu(rename, copy, inHouse, new SeparatorMenuItem(), remove));
+            spaceBar.getChildren().add(tab);
+        }
+        javafx.scene.control.MenuButton add = new javafx.scene.control.MenuButton("＋ Ambiente");
+        add.getStyleClass().add("space-add");
+        add.setFocusTraversable(false);
+        add.setTooltip(new Tooltip("Agregar otro ambiente a la casa: vacío o desde una plantilla"));
+        MenuItem empty = new MenuItem("Vacío (3,5 × 3 m)");
+        empty.setOnAction(e -> addEmptySpace());
+        add.getItems().addAll(empty, new SeparatorMenuItem());
+        for (pe.edu.unaj.amoblador3d.design.Templates.Template t : pe.edu.unaj.amoblador3d.design.Templates.all(catalog)) {
+            MenuItem item = new MenuItem(t.name());
+            item.setOnAction(e -> addSpace(t.build().get(), t.name()));
+            add.getItems().add(item);
+        }
+        add.getItems().add(new SeparatorMenuItem());
+        MenuItem copyCurrent = new MenuItem("Copia de «" + home.spaces.get(active).name + "»");
+        copyCurrent.setOnAction(e -> {
+            String err = duplicateSpace(home.spaces.get(active));
+            if (err != null) notify(err, Toast.Kind.ERROR);
+        });
+        add.getItems().add(copyCurrent);
+        spaceBar.getChildren().add(add);
+        houseToggle.setSelected(houseMode);
+        updateTitle();
+    }
+
+    /** Pasa a decorar otro ambiente (lo que se hizo en el actual queda guardado en la casa). */
+    private void switchSpace(int index) {
+        if (index < 0 || index >= home.spaces.size()) return;
+        commitEdits();
+        if (index != active) {
+            currentHome();
+            select(null);
+            measure.setSelected(false);
+            active = index;
+            List<String> warnings = design.load(home.spaces.get(index).project);
+            if (!warnings.isEmpty()) warn(String.join("\n", warnings));
+        }
+        showHouse(false);
+        refreshSpaces();
+        view.frameRoom();
+        notify("Decorando: " + home.spaces.get(index).name);
+    }
+
+    /** Muestra u oculta la vista de la casa completa. */
+    private void showHouse(boolean on) {
+        if (on == houseMode) {
+            houseToggle.setSelected(on);
+            return;
+        }
+        commitEdits();
+        houseMode = on;
+        houseToggle.setSelected(on);
+        view.node().setVisible(!on);
+        homeView.node().setVisible(on);
+        if (on) {
+            select(null);
+            measure.setSelected(false);
+            houseSelected = null;
+            homeView.setPlan(viewPlan.isSelected());
+            homeView.show(currentHome());
+            homeView.select(null);
+            homeView.frame();
+            showHousePanel();
+            statusTimer.stop();
+            status.setText("Casa completa: clic en un ambiente para elegirlo, arrástralo para moverlo, doble clic para decorarlo.");
+        } else {
+            houseSelected = null;
+            properties.show(editor());
+            status.setText(defaultStatus());
+        }
+        refreshSpaces();
+    }
+
+    /** Se soltó un ambiente que se arrastró en la vista de la casa. */
+    private void spaceMoved() {
+        history.commit();
+        properties.refresh();
+    }
+
+    private void selectSpace(Home.Space s) {
+        houseSelected = s;
+        showHousePanel();
+    }
+
+    private void showHousePanel() {
+        properties.show(houseSelected == null ? HomePanel.overview(homeHost) : HomePanel.space(homeHost, houseSelected));
+    }
+
+    private void frameView() {
+        if (houseMode) homeView.frame();
+        else view.frameRoom();
+    }
+
+    /** Resumen de un ambiente en la casa: área, muebles y presupuesto. */
+    private Node spaceSummary(Home.Space s) {
+        RoomDims r = s.project.room;
+        Label info = new Label(Units.number(Units.round(r.width() * r.length())) + " m² · " + s.project.furniture.size()
+                + (s.project.furniture.size() == 1 ? " mueble" : " muebles") + " · " + s.project.openings.size()
+                + " puertas y ventanas\nPresupuesto: " + Units.money(homeHost.total(s)));
+        info.setWrapText(true);
+        Label hint = new Label("Arrástralo en la vista para moverlo: sus muros se pegan a los de los demás ambientes.");
+        hint.setWrapText(true);
+        hint.getStyleClass().add("hint");
+        VBox box = new VBox(6, info, hint);
+        box.getStyleClass().add("properties-header");
+        return box;
+    }
+
+    private void addEmptySpace() {
+        Project p = new Project();
+        p.room = new RoomDims(3.5, 3, design.room().height(), design.room().wallThickness());
+        addSpace(p, "Ambiente");
+    }
+
+    /** Agrega un ambiente pegado a la casa y pasa a decorarlo. */
+    private void addSpace(Project p, String name) {
+        if (home.spaces.size() >= Home.MAX_SPACES) {
+            notify("Una casa puede tener hasta " + Home.MAX_SPACES + " ambientes.", Toast.Kind.ERROR);
+            return;
+        }
+        currentHome();
+        double[] spot = home.freeSpot(p);
+        home.spaces.add(new Home.Space(home.nextId(), home.uniqueName(name), spot[0], spot[1], p));
+        history.commit();
+        boolean wasHouse = houseMode;
+        switchSpace(home.spaces.size() - 1);
+        if (wasHouse) {
+            showHouse(true);
+            selectSpace(home.spaces.get(home.spaces.size() - 1));
+            homeView.select(houseSelected);
+        }
+    }
+
+    /** Copia del ambiente (con sus muebles), pegada a la casa. Devuelve un error o null. */
+    private String duplicateSpace(Home.Space s) {
+        if (home.spaces.size() >= Home.MAX_SPACES) return "Una casa puede tener hasta " + Home.MAX_SPACES + " ambientes.";
+        currentHome();
+        addSpace(s.project.copy(), s.name);
+        return null;
+    }
+
+    private void renameSpace(Home.Space s) {
+        Dialogs.askText(stage, "Renombrar ambiente", "Nombre del ambiente", s.name).ifPresent(name -> {
+            String n = name.length() > Home.MAX_NAME ? name.substring(0, Home.MAX_NAME) : name;
+            for (Home.Space o : home.spaces) {
+                if (o != s && o.name.equalsIgnoreCase(n)) {
+                    notify("Ya hay un ambiente llamado «" + n + "».", Toast.Kind.ERROR);
+                    return;
+                }
+            }
+            s.name = n;
+            history.commit();
+            refreshSpaces();
+            if (houseMode) {
+                homeView.show(currentHome());
+                showHousePanel();
+            }
+        });
+    }
+
+    private void deleteSpace(Home.Space s) {
+        if (home.spaces.size() < 2) return;
+        String detail = s.project.furniture.isEmpty() ? "Se quitará de la casa (puedes deshacerlo con Ctrl+Z)."
+                : "Tiene " + s.project.furniture.size() + " muebles. Puedes deshacerlo con Ctrl+Z.";
+        if (!Dialogs.confirm(stage, "¿Eliminar «" + s.name + "»?", detail, "Eliminar")) return;
+        currentHome();
+        int index = home.spaces.indexOf(s);
+        home.spaces.remove(index);
+        if (index < active) active--;
+        else if (index == active) active = Math.min(active, home.spaces.size() - 1);
+        select(null);
+        design.load(home.spaces.get(active).project);
+        history.commit();
+        if (houseMode) {
+            houseSelected = null;
+            homeView.show(home);
+            showHousePanel();
+        }
+        refreshSpaces();
+        notify("Se eliminó «" + s.name + "».");
+    }
+
+    /** Acciones del panel de la casa completa. */
+    private final class HomeHost implements HomePanel.Host {
+        @Override
+        public Home home() {
+            return home;
+        }
+
+        @Override
+        public void open(Home.Space s) {
+            switchSpace(home.spaces.indexOf(s));
+        }
+
+        @Override
+        public void rename(Home.Space s) {
+            renameSpace(s);
+        }
+
+        @Override
+        public String duplicate(Home.Space s) {
+            return duplicateSpace(s);
+        }
+
+        @Override
+        public void delete(Home.Space s) {
+            deleteSpace(s);
+        }
+
+        @Override
+        public String resize(Home.Space s, RoomDims dims) {
+            String err = dims.validate();
+            if (err != null) return err;
+            // Se acomoda en una copia: si se encimaría con otro ambiente, no se aplica.
+            Design d = new Design(catalog);
+            d.load(s.project);
+            List<String> warnings = d.setRoom(dims);
+            Project resized = d.snapshot();
+            double t = dims.wallThickness();
+            double[] box = {s.x - t, s.z - t, s.x + dims.width() + t, s.z + dims.length() + t};
+            for (Home.Space o : home.spaces) {
+                if (o != s && Home.overlaps(box, o.outer())) return "Se encimaría con «" + o.name + "».";
+            }
+            s.project = resized;
+            if (home.spaces.indexOf(s) == active) design.load(resized);
+            homeView.show(home);
+            homeView.select(s);
+            if (!warnings.isEmpty()) warn(String.join("\n", warnings));
+            return null;
+        }
+
+        @Override
+        public String move(Home.Space s, double x, double z) {
+            double nx = Units.round(x), nz = Units.round(z);
+            Home.Space other = home.collision(s, nx, nz);
+            if (other != null) return "Se encimaría con «" + other.name + "».";
+            s.x = nx;
+            s.z = nz;
+            homeView.moved(s);
+            return null;
+        }
+
+        @Override
+        public void addEmpty() {
+            addEmptySpace();
+        }
+
+        @Override
+        public void frame() {
+            homeView.frame();
+        }
+
+        @Override
+        public double total(Home.Space s) {
+            Project p = home.spaces.indexOf(s) == active ? design.snapshot() : s.project;
+            return Estimate.of(p, catalog, prices).total();
+        }
+    }
+
 
     /** Lo que muestra el panel derecho cuando no hay nada seleccionado. */
     private Node buildEmptyState() {
         Label intro = new Label("Haz clic en una pared, el piso, una ventana, una luz o un mueble para ver y cambiar sus propiedades.");
         intro.setWrapText(true);
         intro.getStyleClass().add("hint");
-        Label quick = new Label("Para empezar");
-        quick.getStyleClass().add("subheading");
-        Button walls = smallButton("Cambiar el material de las paredes", "Selecciona la pared norte", () -> select(design.wall(WallSide.NORTE)));
-        Button floor = smallButton("Cambiar el piso", "Selecciona el piso", () -> select(design.floor()));
-        Button template = smallButton("Empezar desde una plantilla", "Dormitorio, sala, cocina, baño... (Ctrl+Shift+N)",
+        Label quick = new Label("CÓMO EMPEZAR");
+        quick.getStyleClass().add("section-title");
+        quick.setMaxWidth(Double.MAX_VALUE);
+        Node step1 = step("1", "Da forma a tu ambiente", "Medidas, paredes, piso, puertas y ventanas", "Ir a Ambiente",
+                () -> sidebarTabs.getSelectionModel().select(1));
+        Node step2 = step("2", "Agrega muebles", "Haz clic en uno del catálogo o arrástralo a la habitación", "Ir a Muebles",
+                () -> sidebarTabs.getSelectionModel().select(0));
+        Node step3 = step("3", "Arma tu casa", "Suma dormitorios, cocina, baño… y júntalos muro con muro", "Ver la casa",
+                () -> showHouse(true));
+        Button walls = smallButton("🎨 Cambiar el material de las paredes", "Selecciona la pared norte", () -> select(design.wall(WallSide.NORTE)));
+        Button floor = smallButton("▤ Cambiar el piso", "Selecciona el piso", () -> select(design.floor()));
+        Button template = smallButton("▦ Empezar desde una plantilla", "Dormitorio, sala, cocina, baño... (Ctrl+Shift+N)",
                 this::newFromTemplate);
         Label tips = new Label("""
                 Atajos útiles
@@ -517,7 +945,80 @@ public final class MainWindow {
                 • F1: todos los atajos""");
         tips.getStyleClass().add("tips");
         tips.setWrapText(true);
-        return new VBox(10, intro, quick, template, walls, floor, tips);
+        return new VBox(10, quick, step1, step2, step3, intro, template, walls, floor, tips);
+    }
+
+    /** Un paso numerado de la guía para empezar, con su botón. */
+    private Node step(String number, String title, String text, String button, Runnable action) {
+        Label n = new Label(number);
+        n.getStyleClass().add("step-number");
+        n.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        Label t = new Label(title);
+        t.getStyleClass().add("card-name");
+        Label d = new Label(text);
+        d.getStyleClass().add("hint");
+        d.setWrapText(true);
+        Button b = toolButton(button + " →", text, action);
+        b.getStyleClass().add("step-button");
+        VBox texts = new VBox(3, t, d, b);
+        HBox.setHgrow(texts, Priority.ALWAYS);
+        HBox box = new HBox(10, n, texts);
+        box.getStyleClass().add("step");
+        return box;
+    }
+
+    // ---------------------------------------------------------------- Barra flotante del mueble
+
+    /** Coloca (o esconde) los botones que acompañan al mueble seleccionado. */
+    private void placeFloatingBar() {
+        Furniture f = !houseMode && selection.size() == 1 && selection.get(0) instanceof Furniture x ? x : null;
+        javafx.geometry.Point2D p = f == null ? null : view.screenAbove(f);
+        if (p == null) {
+            floatingBar.setVisible(false);
+            return;
+        }
+        if (floatingBar.getUserData() != f || floatingBar.getProperties().get("locked") != Boolean.valueOf(f.locked)) {
+            buildFloatingBar(f);
+        }
+        floatingBar.applyCss();
+        floatingBar.autosize();
+        double w = floatingBar.getWidth(), h = floatingBar.getHeight();
+        double vw = view.node().getLayoutBounds().getWidth(), vh = view.node().getLayoutBounds().getHeight();
+        double x = Math.max(6, Math.min(p.getX() - w / 2, vw - w - 6)), y = Math.max(6, Math.min(p.getY() - h - 28, vh - h - 6));
+        floatingBar.relocate(x, y);
+        floatingBar.setVisible(true);
+    }
+
+    private void buildFloatingBar(Furniture f) {
+        floatingBar.setUserData(f);
+        floatingBar.getProperties().put("locked", f.locked);
+        floatingBar.getChildren().clear();
+        CatalogEntry e = catalog.get(f.type);
+        boolean free = !f.locked;
+        floatingBar.getChildren().add(floatButton("⟲", "Girar a la izquierda (Shift+R)", free, () -> rotateSelected(90)));
+        floatingBar.getChildren().add(floatButton("⟳", "Girar a la derecha (R)", free, () -> rotateSelected(-90)));
+        floatingBar.getChildren().add(floatButton("⧉", "Duplicar (Ctrl+D)", true, this::duplicateSelected));
+        if (e.kind() == CatalogEntry.Kind.PARAMETRIC || e.kind() == CatalogEntry.Kind.CUSTOM) {
+            floatingBar.getChildren().add(floatButton("✎", "Diseñar a partir de este mueble", true, () -> {
+                String err = designFrom(f);
+                if (err != null) notify(err, Toast.Kind.ERROR);
+            }));
+        }
+        floatingBar.getChildren().add(floatButton(f.locked ? "🔒" : "🔓", f.locked ? "Desbloquear (L)" : "Bloquear (L)", true,
+                this::toggleLock));
+        Button del = floatButton("🗑", "Eliminar (Supr)", free, this::deleteSelection);
+        del.getStyleClass().add("float-danger");
+        floatingBar.getChildren().add(del);
+    }
+
+    private Button floatButton(String icon, String tooltip, boolean enabled, Runnable action) {
+        Button b = toolButton(icon, tooltip, () -> {
+            action.run();
+            view.node().requestFocus();
+        });
+        b.getStyleClass().add("float-button");
+        b.setDisable(!enabled);
+        return b;
     }
 
     private static HBox row(Node... nodes) {
@@ -665,11 +1166,14 @@ public final class MainWindow {
 
     private Node buildCatalog() {
         Button importButton = smallButton("Importar modelo .glb/.gltf…", "Agregar un modelo 3D al catálogo (Ctrl+I)", this::importModel);
-        Label hint = new Label("Clic para agregar en el lugar libre más cercano al centro. Los marcados con «3D» son "
-                + "modelos con sus propios colores. Clic derecho en un modelo importado para quitarlo.");
+        Button designButton = smallButton("✎  Diseñar un mueble nuevo",
+                "Crea tu propio mueble con piezas: medidas, colores y acabados a tu gusto (Ctrl+Shift+D)", this::openDesigner);
+        designButton.getStyleClass().addAll("primary", "big-action");
+        Label hint = new Label("Haz clic en un mueble para agregarlo, o arrástralo hasta el lugar de la habitación donde lo "
+                + "quieres. Clic derecho en tus diseños («✎») o modelos importados para editarlos o quitarlos.");
         hint.getStyleClass().add("hint");
         hint.setWrapText(true);
-        catalogSearch.setPromptText("Buscar mueble…");
+        catalogSearch.setPromptText("🔍  Buscar mueble…");
         catalogSearch.setTooltip(new Tooltip("Escribe parte del nombre (Esc para borrar)"));
         catalogSearch.textProperty().addListener((obs, o, n) -> rebuildCatalogButtons());
         catalogSearch.setOnKeyPressed(e -> {
@@ -679,7 +1183,177 @@ public final class MainWindow {
                 e.consume();
             }
         });
-        return new VBox(12, catalogSearch, catalogGroups, importButton, hint);
+        categoryChips.setHgap(5);
+        categoryChips.setVgap(5);
+        categoryChips.getStyleClass().add("category-chips");
+        return new VBox(10, designButton, catalogSearch, categoryChips, catalogGroups, importButton, hint);
+    }
+
+    /** Pestañas de categoría (siempre visibles) y tarjetas con la miniatura de cada mueble. */
+    private void rebuildCatalogButtons() {
+        String query = catalogSearch.getText();
+        // Chips: "Todos" y cada categoría que tiene algo, con cuántos muebles hay.
+        categoryChips.getChildren().clear();
+        ToggleGroup chips = new ToggleGroup();
+        List<String> available = new ArrayList<>();
+        for (String category : Catalog.CATEGORIES) if (!catalog.search(category, "").isEmpty()) available.add(category);
+        if (catalogCategory != null && !available.contains(catalogCategory)) catalogCategory = null;
+        List<String> chipNames = new ArrayList<>();
+        chipNames.add(null);
+        chipNames.addAll(available);
+        for (String category : chipNames) {
+            int count = category == null ? 0 : catalog.search(category, "").size();
+            ToggleButton chip = new ToggleButton(category == null ? "Todos" : category + "  " + count);
+            chip.getStyleClass().add("chip");
+            chip.setToggleGroup(chips);
+            chip.setFocusTraversable(false);
+            chip.setSelected(java.util.Objects.equals(category, catalogCategory));
+            chip.setOnAction(e -> {
+                catalogCategory = category;
+                rebuildCatalogButtons();
+            });
+            categoryChips.getChildren().add(chip);
+        }
+
+        catalogGroups.getChildren().clear();
+        for (String category : Catalog.CATEGORIES) {
+            if (catalogCategory != null && !category.equals(catalogCategory)) continue;
+            List<CatalogEntry> entries = catalog.search(category, query);
+            if (entries.isEmpty()) continue;
+            // Dos columnas que ocupan todo el ancho (con o sin barra de desplazamiento).
+            GridPane cards = new GridPane();
+            cards.setHgap(8);
+            cards.setVgap(8);
+            for (int i = 0; i < 2; i++) {
+                javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
+                col.setPercentWidth(50);
+                cards.getColumnConstraints().add(col);
+            }
+            for (int i = 0; i < entries.size(); i++) {
+                Button card = catalogCard(entries.get(i));
+                card.setMaxWidth(Double.MAX_VALUE);
+                cards.add(card, i % 2, i / 2);
+            }
+            Label title = new Label(category.toUpperCase());
+            title.getStyleClass().add("section-title");
+            title.setMaxWidth(Double.MAX_VALUE);
+            catalogGroups.getChildren().add(new VBox(8, title, cards));
+        }
+        if (catalogGroups.getChildren().isEmpty()) {
+            Label none = new Label("Ningún mueble se llama «" + query.trim() + "»"
+                    + (catalogCategory != null ? " en " + catalogCategory + "." : "."));
+            none.getStyleClass().add("hint");
+            none.setWrapText(true);
+            catalogGroups.getChildren().add(none);
+        }
+    }
+
+    /** Prefijo de lo que se arrastra desde el catálogo hasta la vista 3D. */
+    private static final String DRAG_PREFIX = "amoblador3d:mueble:";
+
+    /** Tarjeta de un mueble: miniatura 3D, nombre y medidas. Clic para agregar, arrastrar para ubicar. */
+    private Button catalogCard(CatalogEntry e) {
+        CatalogEntry.Size s = e.defaults();
+        boolean model = e.kind() == CatalogEntry.Kind.MODEL, custom = e.kind() == CatalogEntry.Kind.CUSTOM;
+        ImageView image = new ImageView();
+        image.setFitWidth(Thumbnails.WIDTH);
+        image.setFitHeight(Thumbnails.HEIGHT);
+        image.setPreserveRatio(true);
+        image.setSmooth(true);
+        Image thumb = thumbnails.of(e, image::setImage);
+        if (thumb != null) image.setImage(thumb);
+        StackPane picture = new StackPane(image);
+        picture.setMinSize(Thumbnails.WIDTH, Thumbnails.HEIGHT);
+        picture.setPrefSize(Thumbnails.WIDTH, Thumbnails.HEIGHT);
+        picture.getStyleClass().add("card-picture");
+        if (model || custom) {
+            Label badge = new Label(model ? "3D" : "✎ MÍO");
+            badge.getStyleClass().addAll("card-badge", custom ? "badge-custom" : "badge-model");
+            StackPane.setAlignment(badge, Pos.TOP_RIGHT);
+            picture.getChildren().add(badge);
+        }
+        Label name = new Label(e.name());
+        name.getStyleClass().add("card-name");
+        Label size = new Label(Units.number(s.width()) + " × " + Units.number(s.depth()) + " × " + Units.number(s.height()) + " m");
+        size.getStyleClass().add("card-size");
+        VBox content = new VBox(4, picture, name, size);
+        content.setAlignment(Pos.CENTER);
+        Button card = new Button(null, content);
+        card.getStyleClass().add("catalog-card");
+        if (custom) card.getStyleClass().add("catalog-custom");
+        card.setFocusTraversable(false);
+        card.setTooltip(new Tooltip("Clic: agregar " + e.name().toLowerCase() + "\nArrastrar: ponerlo donde lo sueltes"
+                + (model ? "\nModelo 3D: trae sus propios colores; se puede teñir."
+                        : custom ? "\nDiseñado por ti. Clic derecho para editarlo." : "\nMedidas, colores y acabado editables.")));
+        card.setOnAction(ev -> addFurniture(e.id()));
+        // Se agranda un poco al pasar el ratón.
+        javafx.animation.ScaleTransition grow = new javafx.animation.ScaleTransition(Duration.millis(120), card);
+        card.setOnMouseEntered(ev -> {
+            grow.stop();
+            grow.setToX(1.04);
+            grow.setToY(1.04);
+            grow.playFromStart();
+        });
+        card.setOnMouseExited(ev -> {
+            grow.stop();
+            grow.setToX(1);
+            grow.setToY(1);
+            grow.playFromStart();
+        });
+        card.setOnDragDetected(ev -> {
+            javafx.scene.input.Dragboard db = card.startDragAndDrop(javafx.scene.input.TransferMode.COPY);
+            javafx.scene.input.ClipboardContent content2 = new javafx.scene.input.ClipboardContent();
+            content2.putString(DRAG_PREFIX + e.id());
+            db.setContent(content2);
+            if (image.getImage() != null) db.setDragView(image.snapshot(transparentSnapshot(), null));
+            statusTimer.stop();
+            status.setText("Suelta " + e.name().toLowerCase() + " sobre el piso de la habitación.");
+            ev.consume();
+        });
+        if (custom) {
+            MenuItem edit = new MenuItem("Editar diseño…");
+            edit.setOnAction(ev -> editDesign(e));
+            MenuItem copy = new MenuItem("Duplicar diseño");
+            copy.setOnAction(ev -> duplicateDesign(e));
+            MenuItem remove = new MenuItem("Quitar del catálogo…");
+            remove.setOnAction(ev -> removeDesign(e));
+            card.setContextMenu(new ContextMenu(edit, copy, new SeparatorMenuItem(), remove));
+        } else if (e.source() == CatalogEntry.Source.USER) {
+            MenuItem remove = new MenuItem("Quitar del catálogo…");
+            remove.setOnAction(ev -> removeUserModel(e));
+            card.setContextMenu(new ContextMenu(remove));
+        }
+        return card;
+    }
+
+    private static javafx.scene.SnapshotParameters transparentSnapshot() {
+        javafx.scene.SnapshotParameters p = new javafx.scene.SnapshotParameters();
+        p.setFill(Color.TRANSPARENT);
+        return p;
+    }
+
+    /** La vista 3D acepta muebles arrastrados desde el catálogo: se ponen donde se sueltan (o lo más cerca posible). */
+    private void installCatalogDrop(Node target) {
+        target.setOnDragOver(e -> {
+            String s = e.getDragboard().getString();
+            if (s != null && s.startsWith(DRAG_PREFIX)) e.acceptTransferModes(javafx.scene.input.TransferMode.COPY);
+            e.consume();
+        });
+        target.setOnDragDropped(e -> {
+            String s = e.getDragboard().getString();
+            boolean ok = false;
+            if (s != null && s.startsWith(DRAG_PREFIX)) {
+                String type = s.substring(DRAG_PREFIX.length());
+                double[] p = view.floorAt(e.getX(), e.getY());
+                if (p == null) handle(design.addFurniture(type), this::select);
+                else handle(design.addFurnitureAt(type, p[0], p[1]), this::select);
+                view.node().requestFocus();
+                ok = true;
+            }
+            e.setDropCompleted(ok);
+            status.setText(defaultStatus());
+            e.consume();
+        });
     }
 
     private Node buildItemList() {
@@ -729,57 +1403,6 @@ public final class MainWindow {
         bar.getStyleClass().add("status-bar");
         bar.setPadding(new Insets(4, 10, 4, 10));
         return bar;
-    }
-
-    /** Botones del catálogo agrupados por categoría y filtrados por la búsqueda. */
-    private void rebuildCatalogButtons() {
-        catalogGroups.getChildren().clear();
-        String query = catalogSearch.getText();
-        for (String category : Catalog.CATEGORIES) {
-            List<CatalogEntry> entries = catalog.search(category, query);
-            if (entries.isEmpty()) continue;
-            // Dos columnas que ocupan todo el ancho (con o sin barra de desplazamiento).
-            GridPane buttons = new GridPane();
-            buttons.setHgap(6);
-            buttons.setVgap(6);
-            for (int i = 0; i < 2; i++) {
-                javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
-                col.setPercentWidth(50);
-                buttons.getColumnConstraints().add(col);
-            }
-            for (int i = 0; i < entries.size(); i++) {
-                Button b = catalogButton(entries.get(i));
-                b.setMaxWidth(Double.MAX_VALUE);
-                b.setPrefWidth(60); // el ancho lo reparte la cuadrícula
-                buttons.add(b, i % 2, i / 2);
-            }
-            catalogGroups.getChildren().add(group(category, buttons));
-        }
-        if (catalogGroups.getChildren().isEmpty()) {
-            Label none = new Label("Ningún mueble se llama «" + query.trim() + "».");
-            none.getStyleClass().add("hint");
-            none.setWrapText(true);
-            catalogGroups.getChildren().add(none);
-        }
-    }
-
-    private Button catalogButton(CatalogEntry e) {
-        CatalogEntry.Size s = e.defaults();
-        boolean model = e.kind() == CatalogEntry.Kind.MODEL;
-        Button b = new Button(e.name() + "\n" + Units.number(s.width()) + " × " + Units.number(s.depth()) + " m"
-                + (model ? "  · 3D" : ""));
-        b.getStyleClass().add("catalog-button");
-        b.setFocusTraversable(false);
-        b.setTooltip(new Tooltip("Agregar " + e.name().toLowerCase() + " (" + Units.number(s.width()) + " x "
-                + Units.number(s.depth()) + " x " + Units.number(s.height()) + " m)"
-                + (model ? "\nModelo 3D: trae sus propios colores." : "\nMedidas y color editables.")));
-        b.setOnAction(ev -> addFurniture(e.id()));
-        if (e.source() == CatalogEntry.Source.USER) {
-            MenuItem remove = new MenuItem("Quitar del catálogo…");
-            remove.setOnAction(ev -> removeUserModel(e));
-            b.setContextMenu(new ContextMenu(remove));
-        }
-        return b;
     }
 
     // ---------------------------------------------------------------- Sincronizar con el proyecto
@@ -874,7 +1497,7 @@ public final class MainWindow {
 
     private Editable editor() {
         if (selection.isEmpty()) return null;
-        if (selection.size() == 1) return Editors.of(design, selection.get(0), this::duplicate);
+        if (selection.size() == 1) return Editors.of(design, selection.get(0), this::duplicate, this::designFrom);
         return Editors.group(design, selectedFurniture(), this::duplicateGroup);
     }
 
@@ -899,7 +1522,8 @@ public final class MainWindow {
 
     private void updateTitle() {
         boolean dirty = history.isDirty();
-        stage.setTitle(projectName + (dirty ? " •" : "") + " — " + APP_NAME);
+        String where = home.spaces.size() > 1 ? (houseMode ? " · Casa completa" : " · " + home.spaces.get(active).name) : "";
+        stage.setTitle(projectName + where + (dirty ? " •" : "") + " — " + APP_NAME);
         undoButton.setDisable(!history.canUndo());
         undoItem.setDisable(!history.canUndo());
         redoButton.setDisable(!history.canRedo());
@@ -1157,10 +1781,26 @@ public final class MainWindow {
     /** Aplica una "foto" del historial conservando la selección. */
     private void restore(String json) {
         List<String> ids = selection.stream().map(Design::idOf).toList();
+        Home h;
         try {
-            design.load(ProjectJson.read(json));
+            h = HomeJson.read(json, "Ambiente 1");
         } catch (ProjectFormatException e) {
             Dialogs.error(stage, "No se pudo deshacer", e.getMessage());
+            return;
+        }
+        // Se sigue en el mismo ambiente si todavía existe.
+        String activeId = home.spaces.get(active).id;
+        home = h;
+        active = 0;
+        for (int i = 0; i < h.spaces.size(); i++) if (h.spaces.get(i).id.equals(activeId)) active = i;
+        design.load(home.spaces.get(active).project);
+        refreshSpaces();
+        if (houseMode) {
+            houseSelected = houseSelected == null ? null
+                    : h.spaces.stream().filter(s -> s.id.equals(houseSelected.id)).findFirst().orElse(null);
+            homeView.show(home);
+            homeView.select(houseSelected);
+            showHousePanel();
             return;
         }
         List<Object> again = new ArrayList<>();
@@ -1228,10 +1868,10 @@ public final class MainWindow {
     /** Copia el trabajo sin guardar (si cambió desde la última copia). */
     private void autosave() {
         if (!history.isDirty()) return;
-        String json = ProjectJson.write(design.snapshot());
+        String json = HomeJson.write(currentHome());
         if (json.equals(lastAutosave)) return;
         try {
-            recovery.write(design.snapshot(), projectId, projectName);
+            recovery.write(home, projectId, projectName);
             lastAutosave = json;
             autosaveFailed = false;
         } catch (IOException e) {
@@ -1245,9 +1885,13 @@ public final class MainWindow {
         lastAutosave = null;
     }
 
-    /** Al abrir: si la última vez se cerró sin guardar, ofrece recuperar la copia automática. */
-    private void offerRecovery() {
-        recovery.read().ifPresent(copy -> {
+    /**
+     * Al abrir: si la última vez se cerró sin guardar, ofrece recuperar la copia automática.
+     * Devuelve true si había una copia (se haya recuperado o no).
+     */
+    private boolean offerRecovery() {
+        var pending = recovery.read();
+        pending.ifPresent(copy -> {
             String when = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
                     .format(copy.savedAt().atZone(java.time.ZoneId.systemDefault()));
             boolean restore = Dialogs.confirm(stage, "Hay cambios sin guardar de la última vez",
@@ -1263,18 +1907,23 @@ public final class MainWindow {
             } catch (SQLException e) {
                 id = null;
             }
-            loadProject(copy.project(), id, copy.name());
+            loadHome(copy.home(), id, copy.name());
             history.markUnsaved(); // sigue sin guardar hasta que el usuario lo guarde
             notify("Se recuperó el trabajo sin guardar. Guárdalo con Ctrl+S.");
         });
+        return pending.isPresent();
     }
 
     private void newProject() {
         if (!confirmDiscard()) return;
         select(null);
         design.loadDefault();
+        home = Home.of(design.snapshot(), "Ambiente 1");
+        active = 0;
         projectId = null;
         projectName = UNTITLED;
+        showHouse(false);
+        refreshSpaces();
         history.reset();
         view.frameRoom();
         notify("Proyecto nuevo.");
@@ -1284,35 +1933,83 @@ public final class MainWindow {
     private void newFromTemplate() {
         if (!confirmDiscard()) return;
         TemplatesDialog.show(stage, pe.edu.unaj.amoblador3d.design.Templates.all(catalog))
-                .ifPresent(choice -> loadProject(choice.project(), null, choice.name()));
+                .ifPresent(choice -> loadHome(Home.of(choice.project(), choice.name()), null, choice.name()));
     }
 
     private void openProject() {
         if (!confirmDiscard()) return;
-        ProjectsDialog.show(stage, projects, projectId).ifPresent(id -> {
-            try {
-                Project p = projects.load(id);
-                if (p == null) {
-                    Dialogs.error(stage, "No se pudo abrir", "El proyecto ya no existe.");
-                    return;
+        ProjectsDialog.show(stage, projects, projectId).ifPresent(this::openById);
+    }
+
+    private void openById(long id) {
+        try {
+            Home p = projects.loadHome(id);
+            if (p == null) {
+                Dialogs.error(stage, "No se pudo abrir", "El proyecto ya no existe.");
+                return;
+            }
+            String name = projects.list().stream().filter(s -> s.id() == id).map(ProjectRepository.Summary::name)
+                    .findFirst().orElse(UNTITLED);
+            loadHome(p, id, name);
+        } catch (SQLException | ProjectFormatException e) {
+            Dialogs.error(stage, "No se pudo abrir el proyecto", e.getMessage());
+        }
+    }
+
+    /** Bienvenida: cómo empezar y los proyectos recientes. */
+    private void showWelcome() {
+        List<ProjectRepository.Summary> recent;
+        try {
+            recent = projects.list();
+        } catch (SQLException e) {
+            recent = List.of();
+        }
+        WelcomeDialog.show(stage, recent).ifPresent(choice -> {
+            switch (choice.kind()) {
+                case NEW -> newProject();
+                case TEMPLATE -> newFromTemplate();
+                case EXAMPLE -> {
+                    if (!confirmDiscard()) return;
+                    loadHome(exampleHome(), null, "Casa de ejemplo");
+                    showHouse(true);
                 }
-                String name = projects.list().stream().filter(s -> s.id() == id).map(ProjectRepository.Summary::name)
-                        .findFirst().orElse(UNTITLED);
-                loadProject(p, id, name);
-            } catch (SQLException | ProjectFormatException e) {
-                Dialogs.error(stage, "No se pudo abrir el proyecto", e.getMessage());
+                case OPEN -> openProject();
+                case RECENT -> {
+                    if (confirmDiscard()) openById(choice.projectId());
+                }
             }
         });
     }
 
-    private void loadProject(Project p, Long id, String name) {
+    /** Casa de ejemplo: sala y dormitorio arriba, cocina y baño abajo, muro con muro. */
+    private Home exampleHome() {
+        var templates = pe.edu.unaj.amoblador3d.design.Templates.all(catalog);
+        java.util.function.Function<String, Project> room = n -> templates.stream().filter(t -> t.name().equals(n))
+                .findFirst().orElseThrow().build().get();
+        Home h = Home.of(room.apply("Sala"), "Sala");
+        Home.Space sala = h.spaces.get(0);
+        Project dorm = room.apply("Dormitorio"), kitchen = room.apply("Cocina"), bath = room.apply("Baño");
+        double t = sala.project.room.wallThickness();
+        double right = sala.outer()[2] + dorm.room.wallThickness(), below = sala.outer()[3] + kitchen.room.wallThickness();
+        h.spaces.add(new Home.Space(h.nextId(), "Dormitorio", Units.round(right), 0, dorm));
+        h.spaces.add(new Home.Space(h.nextId(), "Cocina", 0, Units.round(below), kitchen));
+        double bathX = kitchen.room.width() + t + bath.room.wallThickness();
+        h.spaces.add(new Home.Space(h.nextId(), "Baño", Units.round(bathX), Units.round(below), bath));
+        return h;
+    }
+
+    private void loadHome(Home h, Long id, String name) {
         select(null);
-        List<String> warnings = design.load(p);
+        home = h;
+        active = 0;
+        List<String> warnings = design.load(h.spaces.get(0).project);
         projectId = id;
         projectName = name;
+        showHouse(false);
+        refreshSpaces();
         history.reset();
         view.frameRoom();
-        notify("Abierto: " + name);
+        notify("Abierto: " + name + (h.spaces.size() > 1 ? " (" + h.spaces.size() + " ambientes)" : ""));
         if (!warnings.isEmpty()) warn(String.join("\n", warnings));
     }
 
@@ -1345,7 +2042,7 @@ public final class MainWindow {
         history.flush();
         try {
             byte[] thumbnail = thumbnail();
-            projectId = projects.save(id, name, design.snapshot(), thumbnail);
+            projectId = projects.saveHome(id, name, currentHome().copy(), thumbnail);
             projectName = name;
             history.markSaved();
             clearRecovery();
@@ -1361,6 +2058,7 @@ public final class MainWindow {
     private byte[] thumbnail() {
         try {
             double w = Math.max(view.node().getLayoutBounds().getWidth(), 1);
+            if (houseMode) return Png.encode(homeView.snapshot(Math.min(1, 240 / w)));
             return Png.encode(view.snapshot(Math.min(1, 240 / w)));
         } catch (IOException | RuntimeException e) {
             return null;
@@ -1377,13 +2075,45 @@ public final class MainWindow {
         File file = chooser.showOpenDialog(stage);
         if (file == null) return;
         try {
-            Project p = ProjectJson.read(Files.readString(file.toPath(), StandardCharsets.UTF_8));
+            String text = Files.readString(file.toPath(), StandardCharsets.UTF_8);
             String name = file.getName().replaceFirst("\\.amob3d$", "");
+            Home p = HomeJson.read(text, name);
+            installDesigns(text); // antes de cargar, para que no se vean como cajas rojas
             // Un archivo importado es un proyecto nuevo: al guardarlo se pedirá el nombre.
-            loadProject(p, null, name);
+            loadHome(p, null, name);
             history.markSaved();
         } catch (IOException | ProjectFormatException e) {
             Dialogs.error(stage, "No se pudo importar el archivo", e.getMessage());
+        }
+    }
+
+    /** Muebles del Diseñador que usa el proyecto (se incluyen al exportar). */
+    private List<CustomDesign> usedDesigns() {
+        Map<String, CustomDesign> used = new LinkedHashMap<>();
+        for (Home.Space s : currentHome().spaces) {
+            for (Furniture f : s.project.furniture) {
+                CatalogEntry e = catalog.get(f.type);
+                if (e.kind() == CatalogEntry.Kind.CUSTOM) used.putIfAbsent(e.id(), e.design());
+            }
+        }
+        return List.copyOf(used.values());
+    }
+
+    /** Agrega al catálogo los muebles diseñados que trae un archivo y que no están en esta computadora. */
+    private void installDesigns(String text) {
+        int added = 0;
+        for (CustomDesign d : ProjectJson.readDesigns(text)) {
+            if (catalog.contains(d.id)) continue;
+            try {
+                designs.save(d);
+                added++;
+            } catch (SQLException e) {
+                warn("No se pudo agregar el mueble diseñado \"" + d.name + "\": " + e.getMessage());
+            }
+        }
+        if (added > 0) {
+            reloadCatalog();
+            notify(added == 1 ? "Se agregó 1 mueble diseñado al catálogo." : "Se agregaron " + added + " muebles diseñados al catálogo.");
         }
     }
 
@@ -1396,7 +2126,7 @@ public final class MainWindow {
         File file = chooser.showSaveDialog(stage);
         if (file == null) return;
         try {
-            Files.writeString(file.toPath(), ProjectJson.write(design.snapshot()), StandardCharsets.UTF_8);
+            Files.writeString(file.toPath(), HomeJson.write(currentHome(), usedDesigns()), StandardCharsets.UTF_8);
             notify("Exportado: " + file.getName());
         } catch (IOException e) {
             Dialogs.error(stage, "No se pudo exportar", e.getMessage());
@@ -1503,7 +2233,7 @@ public final class MainWindow {
 
     private void showEstimate() {
         commitEdits();
-        EstimateDialog.show(stage, projectName, this::estimate, prices, priceRepository, this::exportPdf);
+        EstimateDialog.show(stage, projectName + spaceSuffix(), this::estimate, prices, priceRepository, this::exportPdf);
     }
 
     /** Informe PDF con la planta, la vista 3D, los muebles y el presupuesto. */
@@ -1512,14 +2242,15 @@ public final class MainWindow {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Guardar informe PDF");
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Documento PDF (*.pdf)", "*.pdf"));
-        chooser.setInitialFileName(projectName + ".pdf");
+        chooser.setInitialFileName(projectName + spaceSuffix() + ".pdf");
         File file = chooser.showSaveDialog(stage);
         if (file == null) return;
         try {
             Project p = design.snapshot();
             byte[] plan = Png.encode(view.planImage(2));
             byte[] view3d = Png.encode(view.viewImage(2));
-            new ProjectReport(projectName, p, Estimate.of(p, catalog, prices), plan, view3d, design::label).write(file.toPath());
+            new ProjectReport(projectName + spaceSuffix(), p, Estimate.of(p, catalog, prices), plan, view3d, design::label)
+                    .write(file.toPath());
         } catch (IOException | RuntimeException e) {
             Dialogs.error(stage, "No se pudo crear el informe", e.getMessage());
             return;
@@ -1593,11 +2324,127 @@ public final class MainWindow {
     private void reloadCatalog() {
         List<String> warnings = new ArrayList<>();
         catalog.setModels(loadModels(userModels, warnings));
+        catalog.setCustom(loadDesigns(designs, warnings));
         models.clear();
+        thumbnails.clear();
         view.refreshFurniture();
         rebuildCatalogButtons();
         designChanged();
         if (!warnings.isEmpty()) warn(String.join("\n", warnings));
+    }
+
+    /** Muebles hechos en el Diseñador. Los problemas se agregan a {@code warnings}. */
+    public static List<CustomDesign> loadDesigns(DesignRepository designs, List<String> warnings) {
+        try {
+            return designs.list(warnings);
+        } catch (SQLException e) {
+            warnings.add("No se pudieron leer tus muebles diseñados: " + e.getMessage());
+            return List.of();
+        }
+    }
+
+    // ---------------------------------------------------------------- Diseñador de muebles
+
+    /** "Empezar desde": plantillas simples, los muebles paramétricos y tus diseños. */
+    private Map<String, Supplier<CustomDesign>> designerTemplates() {
+        Map<String, Supplier<CustomDesign>> t = new LinkedHashMap<>(FurnitureDesigner.basicTemplates());
+        for (CatalogEntry e : catalog.list(CatalogEntry.Kind.PARAMETRIC)) {
+            t.put("Copia de: " + e.name(), () -> {
+                CatalogEntry.Size s = e.defaults();
+                Furniture f = new Furniture("x", e.id(), 0, 0, 0, s.width(), s.depth(), s.height(), e.defaultColor());
+                return FurnitureShapes.fromParametric(f, e.name());
+            });
+        }
+        for (CatalogEntry e : catalog.list(CatalogEntry.Kind.CUSTOM)) t.put("Copia de: " + e.name() + " ✎", () -> e.design().copy());
+        return t;
+    }
+
+    private static String newDesignId() {
+        return "diseno-" + Long.toString(System.currentTimeMillis(), 36);
+    }
+
+    private void openDesigner() {
+        commitEdits();
+        CustomDesign start = FurnitureDesigner.basicTemplates().values().iterator().next().get();
+        start.id = newDesignId();
+        start.name = "Mi mueble";
+        FurnitureDesigner.open(stage, start, null, designerTemplates(), saved -> saveDesign(saved.design(), true));
+    }
+
+    private void editDesign(CatalogEntry e) {
+        FurnitureDesigner.open(stage, e.design(), null, designerTemplates(), saved -> saveDesign(saved.design(), false));
+    }
+
+    private void duplicateDesign(CatalogEntry e) {
+        CustomDesign copy = e.design().copy();
+        copy.id = newDesignId();
+        String name = e.name() + " (copia)";
+        copy.name = name.length() > CustomDesign.MAX_NAME ? name.substring(0, CustomDesign.MAX_NAME) : name;
+        String err = saveDesign(copy, true);
+        if (err != null) Dialogs.error(stage, "No se pudo duplicar el diseño", err);
+    }
+
+    private void removeDesign(CatalogEntry e) {
+        long used = design.furniture().stream().filter(f -> f.type.equals(e.id())).count();
+        String message = used > 0
+                ? "Hay " + used + " en la habitación: se mostrarán como cajas rojas hasta que los elimines."
+                : "Ya no aparecerá en el catálogo.";
+        if (!Dialogs.confirm(stage, "¿Quitar \"" + e.name() + "\" del catálogo?", message, "Quitar")) return;
+        try {
+            designs.delete(e.id());
+        } catch (SQLException ex) {
+            Dialogs.error(stage, "No se pudo quitar el diseño", ex.getMessage());
+            return;
+        }
+        reloadCatalog();
+    }
+
+    /** Guarda el diseño y actualiza el catálogo y los muebles que lo usan. Devuelve un error o null. */
+    private String saveDesign(CustomDesign d, boolean isNew) {
+        try {
+            designs.save(d);
+        } catch (SQLException e) {
+            return "No se pudo guardar el diseño: " + e.getMessage();
+        }
+        reloadCatalog();
+        notify(isNew ? "«" + d.name.trim() + "» se agregó al catálogo (" + d.category + ")." : "Se actualizó «" + d.name.trim() + "».");
+        return null;
+    }
+
+    /**
+     * "Diseñar a partir de este mueble": abre el diseñador con una copia editable (pieza por pieza)
+     * y, si se pide, reemplaza al mueble por el nuevo diseño.
+     */
+    private String designFrom(Furniture f) {
+        commitEdits();
+        CatalogEntry e = catalog.get(f.type);
+        CustomDesign start;
+        if (e.kind() == CatalogEntry.Kind.CUSTOM) {
+            start = e.design().copy();
+            if (f.color != null) start.color = f.color;
+            if (f.color2 != null) start.color2 = f.color2;
+            if (f.finish != null) start.finish = f.finish;
+        } else {
+            start = FurnitureShapes.fromParametric(f, e.name());
+            if (start == null) return "Este mueble no se puede abrir en el diseñador.";
+        }
+        String name = e.name() + " a mi gusto";
+        start.name = name.length() > CustomDesign.MAX_NAME ? e.name() : name;
+        start.id = newDesignId();
+        String label = design.label(f);
+        FurnitureDesigner.open(stage, start, "Reemplazar «" + label + "» por este diseño", designerTemplates(), saved -> {
+            String err = saveDesign(saved.design(), true);
+            if (err != null || !saved.replace() || !design.furniture().contains(f)) return err;
+            String conflict = design.replaceType(f, saved.design().id);
+            if (conflict != null) {
+                notify("Se guardó en el catálogo, pero no se pudo reemplazar " + label + ": " + conflict, Toast.Kind.ERROR);
+            } else {
+                history.commit();
+                select(f);
+            }
+            return null;
+        });
+        return null;
     }
 
     /** Modelos incluidos + importados. Los problemas se agregan a {@code warnings}. */
@@ -1636,10 +2483,12 @@ public final class MainWindow {
                 R / Shift+R  Girar mueble 90°  Q / E  Girar 15°
                 Flechas  Mover 5 cm (Shift: 1 cm)    Esc  Deseleccionar
                 Ctrl+1  Vista 3D              Ctrl+2  Planta 2D
+                Ctrl+4  Casa completa (todos los ambientes)
                 Ctrl+3  Recorrido: W/S/A/D caminar, ←/→ girar, Shift correr
                 N  Modo noche
                 Ctrl+M  Cotas                 Ctrl+0  Centrar cámara
                 Ctrl+E  Exportar imagen       Ctrl+I  Importar modelo 3D
+                Ctrl+Shift+D  Diseñador de muebles
                 Ctrl+P  Presupuesto           Ctrl+Shift+P  Informe PDF
                 M  Medir distancias (Esc para terminar)
 

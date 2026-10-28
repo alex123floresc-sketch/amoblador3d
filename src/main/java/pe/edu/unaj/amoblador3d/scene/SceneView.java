@@ -101,6 +101,7 @@ public final class SceneView {
     private Consumer<String> onNotice = text -> {};
     private Runnable onDrag = () -> {};
     private Runnable onDragEnd = () -> {};
+    private Runnable onRendered = () -> {};
 
     // Estado del ratón
     private double pressX, pressY, lastX, lastY;
@@ -112,6 +113,10 @@ public final class SceneView {
     // Selección con rectángulo (Shift + arrastrar)
     private boolean bandArmed, banding;
     private double bandX, bandY;
+    // Asas para estirar y girar el mueble seleccionado, y el mueble bajo el ratón
+    private final FurnitureHandles handles = new FurnitureHandles();
+    private FurnitureHandles.Kind hoverHandle;
+    private Furniture hover;
 
     public SceneView(Design design, ModelLibrary models, Consumer<String> onWarning) {
         this.design = design;
@@ -227,6 +232,13 @@ public final class SceneView {
         redraw();
     }
 
+    /** El mueble al que se le muestran las asas: uno solo seleccionado, sin bloquear, fuera del recorrido. */
+    private Furniture handleTarget() {
+        if (selection.size() != 1 || !(selection.get(0) instanceof Furniture f) || f.locked) return null;
+        if (measuring || cam.mode == ViewCamera.Mode.WALK || dragItem != null) return null;
+        return design.furniture().contains(f) ? f : null;
+    }
+
     private List<Furniture> selectedFurniture() {
         List<Furniture> list = new ArrayList<>();
         for (Object o : selection) if (o instanceof Furniture f) list.add(f);
@@ -293,6 +305,13 @@ public final class SceneView {
         redraw();
     }
 
+    /** Punto {x, z} del piso bajo el píxel (x, y) de la vista, o null si no se ve el piso ahí. */
+    public double[] floorAt(double x, double y) {
+        if (cam.mode == ViewCamera.Mode.WALK && y < root.getHeight() / 2) return null;
+        Point3D p = cam.floorPoint(x, y);
+        return p == null ? null : new double[] {p.getX(), p.getZ()};
+    }
+
     /** Acerca (factor < 1) o aleja (factor > 1) la cámara, como la rueda del ratón. */
     public void zoom(double factor) {
         cam.zoom(factor);
@@ -321,7 +340,30 @@ public final class SceneView {
         overlay.draw(cam, design, lights, selection, showDimensions && cam.mode != ViewCamera.Mode.WALK);
         overlay.drawGuides(guides);
         if (banding) overlay.drawBand(pressX, pressY, bandX, bandY);
+        if (hover != null && !selection.contains(hover) && design.furniture().contains(hover)) overlay.drawHover(hover);
+        Furniture editable = handleTarget();
+        if (editable != null) {
+            boolean plan = cam.mode == ViewCamera.Mode.PLAN;
+            overlay.drawHandles(editable, FurnitureHandles.of(editable, plan), handles.active() ? handles.kind() : hoverHandle);
+        }
         if (measuring && measureA != null) overlay.drawMeasure(measureA, measureB != null ? measureB : measureHover);
+        onRendered.run();
+    }
+
+    /** Se llama después de cada redibujo (p. ej. para acompañar al mueble con su barra de botones). */
+    public void setOnRendered(Runnable r) {
+        onRendered = r;
+    }
+
+    /**
+     * Píxel de la vista donde se ve el centro de la parte de arriba del mueble, o null si no se ve
+     * (detrás de la cámara, en el recorrido o mientras se arrastra).
+     */
+    public javafx.geometry.Point2D screenAbove(Furniture f) {
+        if (cam.mode == ViewCamera.Mode.WALK || dragItem != null || handles.active()) return null;
+        javafx.geometry.Point2D p = cam.project(new Point3D(f.x, f.height, f.z));
+        if (p == null || p.getX() < 0 || p.getY() < 0 || p.getX() > root.getWidth() || p.getY() > root.getHeight()) return null;
+        return p;
     }
 
     /**
@@ -584,6 +626,15 @@ public final class SceneView {
             bandArmed = banding = false;
             if (measuring) return; // al medir, el ratón no selecciona ni arrastra muebles
             if (e.getButton() != MouseButton.PRIMARY) return;
+            Furniture target = handleTarget();
+            if (target != null) {
+                FurnitureHandles.Kind k = FurnitureHandles.hit(cam, target, e.getX(), e.getY(), cam.mode == ViewCamera.Mode.PLAN);
+                if (k != null) {
+                    handles.begin(k, target, e.getX(), e.getY());
+                    redraw();
+                    return;
+                }
+            }
             if (e.isShiftDown() || e.isShortcutDown()) {
                 // Clic: agrega o quita de la selección. Arrastrar: rectángulo de selección.
                 bandArmed = true;
@@ -619,6 +670,13 @@ public final class SceneView {
             double dx = e.getX() - lastX, dy = e.getY() - lastY;
             lastX = e.getX();
             lastY = e.getY();
+            if (handles.active()) {
+                String text = handles.drag(design, cam, e.getX(), e.getY(), e.isShiftDown());
+                if (text != null) onMeasure.accept(text);
+                onDrag.run();
+                redraw();
+                return;
+            }
             if (bandArmed) {
                 bandX = e.getX();
                 bandY = e.getY();
@@ -646,6 +704,11 @@ public final class SceneView {
         });
 
         subScene.setOnMouseReleased(e -> {
+            if (handles.active()) {
+                if (handles.end()) onDragEnd.run();
+                redraw();
+                return;
+            }
             if (dragItem != null) {
                 dragItem = null;
                 dragGroup = List.of();
@@ -685,6 +748,14 @@ public final class SceneView {
             zoom(e.getDeltaY() > 0 ? 0.9 : 1 / 0.9);
         });
 
+        subScene.setOnMouseExited(e -> {
+            if (hover != null || hoverHandle != null) {
+                hover = null;
+                hoverHandle = null;
+                redraw();
+            }
+        });
+
         // Cambiar el cursor al pasar sobre algo seleccionable.
         subScene.addEventHandler(MouseEvent.MOUSE_MOVED, e -> {
             if (measuring) {
@@ -698,7 +769,20 @@ public final class SceneView {
                 }
                 return;
             }
-            Object entity = pick(e.getPickResult());
+            Furniture target = handleTarget();
+            FurnitureHandles.Kind k = target == null ? null
+                    : FurnitureHandles.hit(cam, target, e.getX(), e.getY(), cam.mode == ViewCamera.Mode.PLAN);
+            Object entity = k != null ? null : pick(e.getPickResult());
+            Furniture over = entity instanceof Furniture f ? f : null;
+            if (k != hoverHandle || over != hover) {
+                hoverHandle = k;
+                hover = over;
+                redraw();
+            }
+            if (k != null) {
+                subScene.setCursor(FurnitureHandles.cursor(k));
+                return;
+            }
             // Las paredes y el piso también se seleccionan, pero la mano solo aparece sobre objetos.
             boolean object = entity != null && !(entity instanceof Surface);
             boolean movable = entity instanceof Furniture f && !f.locked;

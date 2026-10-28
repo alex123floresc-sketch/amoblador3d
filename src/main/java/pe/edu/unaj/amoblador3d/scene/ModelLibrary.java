@@ -24,6 +24,7 @@ import javafx.scene.transform.Translate;
 import pe.edu.unaj.amoblador3d.gltf.GltfLoader;
 import pe.edu.unaj.amoblador3d.gltf.ModelData;
 import pe.edu.unaj.amoblador3d.gltf.ModelData.Primitive;
+import pe.edu.unaj.amoblador3d.model.Finish;
 
 /**
  * Carga de modelos glTF (con caché: cada archivo se lee una sola vez, en segundo plano)
@@ -44,6 +45,8 @@ public final class ModelLibrary {
     private final Map<String, CompletableFuture<ModelData>> cache = new HashMap<>();
     /** Mallas de JavaFX de cada modelo (se comparten entre todas las copias del mueble). */
     private final Map<ModelData, List<Part>> parts = new IdentityHashMap<>();
+    /** Variantes teñidas o con otro acabado de cada material ("#rrggbb|satinado" -> material). */
+    private final Map<PhongMaterial, Map<String, PhongMaterial>> styled = new IdentityHashMap<>();
 
     private record Part(TriangleMesh mesh, PhongMaterial material) {}
 
@@ -68,18 +71,21 @@ public final class ModelLibrary {
     public synchronized void clear() {
         cache.clear();
         parts.clear();
+        styled.clear();
     }
 
     /**
      * Crea una copia del modelo escalada a las medidas pedidas (debe llamarse en el hilo de JavaFX).
      *
      * @param rotationDeg giro para que el frente del modelo mire a +Z
+     * @param tint        color con que se tiñe el modelo, o null para sus colores originales
+     * @param finish      acabado, o null para el brillo original
      */
-    Group fit(ModelData data, double width, double depth, double height, double rotationDeg) {
+    Group fit(ModelData data, double width, double depth, double height, double rotationDeg, String tint, Finish finish) {
         Group meshes = new Group();
         for (Part p : parts.computeIfAbsent(data, ModelLibrary::createParts)) {
             MeshView view = new MeshView(p.mesh);
-            view.setMaterial(p.material);
+            view.setMaterial(styled(p.material, tint, finish));
             // Con normales propias, NONE dibuja bien sin importar el orden de los vértices.
             view.setCullFace(CullFace.NONE);
             meshes.getChildren().add(view);
@@ -92,6 +98,35 @@ public final class ModelLibrary {
                 new Translate(-(box.minX() + box.maxX()) / 2, -box.minY(), -(box.minZ() + box.maxZ()) / 2),
                 new Rotate(rotationDeg, Rotate.Y_AXIS));
         return fitted;
+    }
+
+    /**
+     * El material teñido: si tiene textura, el tinte la multiplica; si no, se usa el tinte con el
+     * brillo de la pieza original (así las partes oscuras, como patas, siguen viéndose más oscuras).
+     */
+    private PhongMaterial styled(PhongMaterial base, String tint, Finish finish) {
+        if (tint == null && finish == null) return base;
+        return styled.computeIfAbsent(base, k -> new java.util.HashMap<>()).computeIfAbsent(tint + "|" + finish, k -> {
+            PhongMaterial m = new PhongMaterial(base.getDiffuseColor());
+            m.setDiffuseMap(base.getDiffuseMap());
+            m.setSpecularColor(base.getSpecularColor());
+            m.setSpecularPower(base.getSpecularPower());
+            if (tint != null) {
+                Color t = Color.web(tint), c = base.getDiffuseColor();
+                if (base.getDiffuseMap() != null) {
+                    m.setDiffuseColor(t);
+                } else {
+                    double lum = 0.2126 * c.getRed() + 0.7152 * c.getGreen() + 0.0722 * c.getBlue();
+                    double k2 = Math.min(1, Math.max(0.3, lum / 0.6));
+                    m.setDiffuseColor(Color.color(t.getRed() * k2, t.getGreen() * k2, t.getBlue() * k2, c.getOpacity()));
+                }
+            }
+            if (finish != null) {
+                m.setSpecularColor(Color.gray(finish.specular()));
+                m.setSpecularPower(finish.power());
+            }
+            return m;
+        });
     }
 
     private static List<Part> createParts(ModelData data) {

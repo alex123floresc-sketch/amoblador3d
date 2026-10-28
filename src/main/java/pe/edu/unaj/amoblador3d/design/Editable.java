@@ -27,6 +27,11 @@ public interface Editable {
         return true;
     }
 
+    /** Si se muestra el botón "Eliminar" (las paredes, el piso y el techo no se eliminan). */
+    default boolean showDelete() {
+        return !(entity() instanceof pe.edu.unaj.amoblador3d.model.Surface);
+    }
+
     /** Si se muestra el botón "Eliminar" habilitado. */
     default boolean canDelete() {
         return true;

@@ -4,10 +4,13 @@ import static pe.edu.unaj.amoblador3d.design.Design.MARGIN;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.catalog.CatalogEntry;
 import pe.edu.unaj.amoblador3d.model.Baseboard;
 import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.design.Field.Option;
+import pe.edu.unaj.amoblador3d.model.Finish;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
@@ -31,6 +34,11 @@ public final class Editors {
         String duplicate(Furniture f);
     }
 
+    /** Callback para "Diseñar a partir de este": abre el Diseñador de muebles. Devuelve un error o null. */
+    public interface DesignHandler {
+        String designFrom(Furniture f);
+    }
+
     /** Colores sugeridos (el selector de color sigue permitiendo cualquier otro). */
     private static final List<Option> WALL_COLORS = List.of(
             new Option("#f2efe9", "Blanco hueso"), new Option("#fafafa", "Blanco"), new Option("#d9d7d1", "Gris perla"),
@@ -50,21 +58,32 @@ public final class Editors {
             new Option("#d9c6a5", "Haya"), new Option("#a0764f", "Roble"), new Option("#6d4c33", "Nogal"),
             new Option("#f4f1ea", "Blanco"), new Option("#8a8f94", "Gris"), new Option("#2f3236", "Negro"),
             new Option("#5b7fa6", "Azul"), new Option("#7a9a6e", "Verde"));
+    /** Telas, frentes y detalles: colores que suelen combinar con la madera o el blanco. */
+    private static final List<Option> ACCENT_COLORS = List.of(
+            new Option("#f4f1ea", "Crudo"), new Option("#e3d5bf", "Arena"), new Option("#5b7fa6", "Azul"),
+            new Option("#2f4a6d", "Azul marino"), new Option("#8c2f39", "Vino"), new Option("#c97b5a", "Terracota"),
+            new Option("#7a9a6e", "Verde"), new Option("#d9a441", "Mostaza"), new Option("#8a8f94", "Gris"),
+            new Option("#2f3236", "Negro"), new Option("#c0c0c0", "Cromado"), new Option("#b08d57", "Bronce"));
 
     private Editors() {}
 
     /** Nombre del color si es uno de los sugeridos ("Blanco hueso"), o el código "#rrggbb". */
     public static String colorName(String color) {
-        for (List<Option> list : List.of(WALL_COLORS, FLOOR_COLORS, FURNITURE_COLORS, BASEBOARD_COLORS)) {
+        for (List<Option> list : List.of(WALL_COLORS, FLOOR_COLORS, FURNITURE_COLORS, ACCENT_COLORS, BASEBOARD_COLORS)) {
             for (Option o : list) if (o.value().equalsIgnoreCase(color)) return o.label();
         }
         return color;
     }
 
     public static Editable of(Design design, Object entity, DuplicateHandler onDuplicate) {
+        return of(design, entity, onDuplicate, null);
+    }
+
+    /** @param onDesign "Diseñar a partir de este mueble" (null: no se muestra el botón) */
+    public static Editable of(Design design, Object entity, DuplicateHandler onDuplicate, DesignHandler onDesign) {
         if (entity instanceof Opening o) return new OpeningEditor(design, o);
         if (entity instanceof Light l) return new LightEditor(design, l);
-        if (entity instanceof Furniture f) return new FurnitureEditor(design, f, onDuplicate);
+        if (entity instanceof Furniture f) return new FurnitureEditor(design, f, onDuplicate, onDesign);
         if (entity instanceof Surface s) return new SurfaceEditor(design, s);
         if (entity instanceof Column c) return new ColumnEditor(design, c);
         if (entity instanceof Baseboard b) return new BaseboardEditor(design, b);
@@ -167,7 +186,7 @@ public final class Editors {
             RoomDims r = design.room();
             List<Field> fields = new ArrayList<>();
             fields.add(Field.color("color", "Color", LIGHT_COLORS));
-            fields.add(Field.number("intensity", "Intensidad", 0, l.type.maxIntensity(), 0.5, l.type.unit()));
+            fields.add(Field.slider("intensity", "Intensidad", 0, l.type.maxIntensity(), 0.5, l.type.unit()));
             if (l.type != LightType.SUN) {
                 fields.add(Field.meters("x", "Posición X", 0.05, r.width() - 0.05));
                 fields.add(Field.meters("y", "Altura (Y)", 0.05, r.height() - 0.05));
@@ -176,15 +195,15 @@ public final class Editors {
             if (l.type == LightType.SPOT) {
                 fields.add(Field.meters("targetX", "Apunta a X", 0, r.width()));
                 fields.add(Field.meters("targetZ", "Apunta a Z", 0, r.length()));
-                fields.add(Field.number("angle", "Apertura", 5, 80, 1, "°"));
-                fields.add(Field.number("penumbra", "Suavidad del borde", 0, 1, 0.05, ""));
+                fields.add(Field.slider("angle", "Apertura", 5, 80, 1, "°"));
+                fields.add(Field.slider("penumbra", "Suavidad del borde", 0, 1, 0.05, ""));
             }
             if (l.type == LightType.SUN) {
                 List<Option> windows = new ArrayList<>();
                 for (Opening w : design.windows()) windows.add(new Option(w.id, design.label(w)));
                 fields.add(Field.select("windowId", "Entra por", windows));
-                fields.add(Field.number("elevation", "Altura del sol", 5, 85, 1, "°"));
-                fields.add(Field.number("deviation", "Desvío lateral", -60, 60, 1, "°"));
+                fields.add(Field.slider("elevation", "Altura del sol", 5, 85, 1, "°"));
+                fields.add(Field.slider("deviation", "Desvío lateral", -60, 60, 1, "°"));
             }
             return fields;
         }
@@ -243,7 +262,14 @@ public final class Editors {
 
     // ---------------------------------------------------------------- Muebles
 
-    private record FurnitureEditor(Design design, Furniture f, DuplicateHandler onDuplicate) implements Editable {
+    private record FurnitureEditor(Design design, Furniture f, DuplicateHandler onDuplicate, DesignHandler onDesign)
+            implements Editable {
+        private static final String AUTO = "auto";
+
+        private CatalogEntry entry() {
+            return design.catalog().get(f.type);
+        }
+
         @Override
         public Object entity() {
             return f;
@@ -257,16 +283,28 @@ public final class Editors {
         @Override
         public List<Field> fields() {
             RoomDims r = design.room();
-            CatalogEntry e = design.catalog().get(f.type);
+            CatalogEntry e = entry();
             List<Field> fields = new ArrayList<>();
-            fields.add(Field.meters("x", "Posición X", 0, r.width()));
-            fields.add(Field.meters("z", "Posición Z", 0, r.length()));
-            fields.add(Field.number("rotation", "Rotación", -360, 360, 1, "°"));
+            fields.add(Field.section("Medidas"));
             fields.add(Field.meters("width", "Ancho", e.widthRange().min(), e.widthRange().max()));
             fields.add(Field.meters("depth", "Profundidad", e.depthRange().min(), e.depthRange().max()));
-            fields.add(Field.meters("height", "Alto", e.heightRange().min(), e.heightRange().max()));
-            // Los modelos 3D traen sus propios colores y texturas.
-            if (e.kind() == CatalogEntry.Kind.PARAMETRIC) fields.add(Field.color("color", "Color", FURNITURE_COLORS));
+            fields.add(Field.meters("height", "Alto", e.heightRange().min(), Math.min(e.heightRange().max(), r.height())));
+            fields.add(Field.section("Posición y giro"));
+            fields.add(Field.meters("x", "Posición X", 0, r.width()));
+            fields.add(Field.meters("z", "Posición Z", 0, r.length()));
+            fields.add(Field.slider("rotation", "Rotación", 0, 359, 1, "°"));
+            fields.add(Field.section("Apariencia"));
+            if (e.hasMainColor()) fields.add(Field.color("color", "Color principal", FURNITURE_COLORS));
+            // Los modelos 3D traen sus propios colores y texturas: solo se pueden teñir.
+            if (e.kind() == CatalogEntry.Kind.MODEL) fields.add(Field.color("color", "Tinte (opcional)", FURNITURE_COLORS));
+            if (e.accentLabel() != null) fields.add(Field.color("color2", e.accentLabel(), ACCENT_COLORS));
+            if (e.kind() != CatalogEntry.Kind.MISSING) {
+                List<Option> finishes = new ArrayList<>();
+                finishes.add(new Option(AUTO, e.kind() == CatalogEntry.Kind.MODEL ? "Original" : "Por defecto"));
+                for (Finish x : Finish.values()) finishes.add(new Option(x.id(), x.label()));
+                fields.add(Field.select("finish", "Acabado", finishes));
+            }
+            fields.add(Field.section("Opciones"));
             fields.add(Field.checkbox("locked", "Bloqueado"));
             return fields;
         }
@@ -281,6 +319,10 @@ public final class Editors {
                 case "depth" -> f.depth;
                 case "height" -> f.height;
                 case "color" -> f.color;
+                // Automático: se muestra el que se está viendo (el del diseño o el típico del mueble).
+                case "color2" -> f.color2 != null ? f.color2
+                        : entry().design() != null ? entry().design().color2 : Catalog.autoAccent(f.type, f.color);
+                case "finish" -> f.finish == null ? AUTO : f.finish.id();
                 case "locked" -> f.locked;
                 default -> null;
             };
@@ -303,9 +345,26 @@ public final class Editors {
                 return null;
             }
             Furniture c = f.copy();
-            if (key.equals("color")) {
-                c.color = (String) value;
-                return design.changeFurniture(f, c, false);
+            switch (key) {
+                case "color" -> {
+                    c.color = (String) value;
+                    return design.changeFurniture(f, c, false);
+                }
+                case "color2" -> {
+                    c.color2 = (String) value;
+                    return design.changeFurniture(f, c, false);
+                }
+                case "finish" -> {
+                    c.finish = Finish.fromId((String) value); // "auto" -> null
+                    return design.changeFurniture(f, c, false);
+                }
+                case "rotation" -> {
+                    // Cualquier ángulo vale: -90 es 270, 450 es 90.
+                    if (!(value instanceof Double d) || !Double.isFinite(d)) return "Rotación debe ser un número.";
+                    c.rotation = ((d % 360) + 360) % 360;
+                    return design.changeFurniture(f, c, false);
+                }
+                default -> { }
             }
             String error = checkField(fields(), key, value);
             if (error != null) return error;
@@ -322,12 +381,56 @@ public final class Editors {
             return design.changeFurniture(f, c, key.equals("x") || key.equals("z"));
         }
 
+        /** Agranda o achica las tres medidas a la vez, sin salirse de los límites del mueble. */
+        private String scale(double factor) {
+            CatalogEntry e = entry();
+            Furniture c = f.copy();
+            c.width = Units.clamp(f.width * factor, e.widthRange().min(), e.widthRange().max());
+            c.depth = Units.clamp(f.depth * factor, e.depthRange().min(), e.depthRange().max());
+            c.height = Units.clamp(f.height * factor, e.heightRange().min(), e.heightRange().max());
+            return design.changeFurniture(f, c, false);
+        }
+
+        private String originalSize() {
+            CatalogEntry.Size s = entry().defaults();
+            Furniture c = f.copy();
+            c.width = s.width();
+            c.depth = s.depth();
+            c.height = s.height();
+            return design.changeFurniture(f, c, false);
+        }
+
+        private String originalColors() {
+            Furniture c = f.copy();
+            c.color = entry().defaultColor();
+            c.color2 = null;
+            c.finish = null;
+            return design.changeFurniture(f, c, false);
+        }
+
         @Override
         public List<Action> actions() {
-            return List.of(
-                    new Action("⟲ 90°", "Girar a la izquierda (Shift+R)", () -> design.rotateFurniture(f, 90), !f.locked),
-                    new Action("⟳ 90°", "Girar a la derecha (R)", () -> design.rotateFurniture(f, -90), !f.locked),
-                    new Action("Duplicar", "Ctrl+D", () -> onDuplicate.duplicate(f)));
+            boolean free = !f.locked;
+            CatalogEntry e = entry();
+            List<Action> actions = new ArrayList<>(List.of(
+                    new Action("⟲ 90°", "Girar a la izquierda (Shift+R)", () -> design.rotateFurniture(f, 90), free),
+                    new Action("⟳ 90°", "Girar a la derecha (R)", () -> design.rotateFurniture(f, -90), free),
+                    new Action("Duplicar", "Ctrl+D", () -> onDuplicate.duplicate(f)),
+                    new Action("− 10 %", "Achicar el mueble en sus tres medidas", () -> scale(0.9), free),
+                    new Action("+ 10 %", "Agrandar el mueble en sus tres medidas", () -> scale(1.1), free),
+                    new Action("Medidas originales", "Volver a las medidas del catálogo", this::originalSize, free)));
+            boolean customized = !Objects.equals(f.color, e.defaultColor()) || f.color2 != null || f.finish != null;
+            if (customized) {
+                actions.add(new Action(e.kind() == CatalogEntry.Kind.MODEL ? "Colores originales" : "Colores por defecto",
+                        "Quitar los colores y el acabado elegidos", this::originalColors, free));
+            }
+            boolean designable = e.kind() == CatalogEntry.Kind.PARAMETRIC || e.kind() == CatalogEntry.Kind.CUSTOM;
+            if (onDesign != null && designable) {
+                actions.add(new Action("✎ Diseñar a partir de este…",
+                        "Abrir el Diseñador de muebles con una copia editable de este mueble, pieza por pieza",
+                        () -> onDesign.designFrom(f)));
+            }
+            return actions;
         }
     }
 

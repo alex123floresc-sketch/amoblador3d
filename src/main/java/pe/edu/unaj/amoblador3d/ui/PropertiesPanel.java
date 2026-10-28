@@ -15,6 +15,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
@@ -41,7 +42,8 @@ import pe.edu.unaj.amoblador3d.util.Units;
  * {@link Field}. El mismo panel sirve para paredes, piso, aberturas, luces y muebles.
  *
  * <p>Los números se aplican al presionar Enter o al salir del campo (Esc deshace lo escrito).
- * Si el cambio no es válido, se muestra el motivo y el campo vuelve al valor anterior.
+ * Los que tienen deslizador cambian en vivo mientras se arrastra (un solo paso de deshacer al
+ * soltarlo). Si el cambio no es válido, se muestra el motivo y el campo vuelve al valor anterior.
  */
 final class PropertiesPanel {
     private static final double SWATCH = 22, PREVIEW = 58;
@@ -56,9 +58,15 @@ final class PropertiesPanel {
     private final Button delete = new Button("Eliminar");
     /** Controles de cada campo, para actualizar sus valores sin rehacer el formulario. */
     private final Map<String, Node> controls = new LinkedHashMap<>();
+    private final Map<String, Slider> sliders = new LinkedHashMap<>();
 
     /** Se llama después de cada cambio aplicado (para registrarlo en deshacer). */
     private final Runnable onChanged;
+    /** Se llama en cada paso de un deslizador (el cambio se registra al soltarlo). */
+    private Runnable onPending = () -> {};
+    /** Cabecera opcional del formulario (p. ej. la miniatura del mueble), o null. */
+    private Function<Object, Node> header = e -> null;
+    private boolean sliding;
     /** Miniatura de cada opción de una galería (p. ej. "ladrillo" -> textura). */
     private final Function<String, Image> previews;
     private final Node emptyState;
@@ -93,10 +101,19 @@ final class PropertiesPanel {
         return root;
     }
 
+    void setOnPending(Runnable r) {
+        onPending = r;
+    }
+
+    void setHeader(Function<Object, Node> factory) {
+        header = factory;
+    }
+
     private void showEmpty() {
         editable = null;
         shownFields = List.of();
         controls.clear();
+        sliders.clear();
         title.setText("Propiedades");
         content.getChildren().setAll(title, emptyState);
     }
@@ -114,7 +131,7 @@ final class PropertiesPanel {
 
     /** Vuelve a leer los valores (tras deshacer, arrastrar, etc.). Rehace el formulario si cambiaron los campos. */
     void refresh() {
-        if (editable == null) return;
+        if (editable == null || sliding) return;
         List<Field> fields = editable.fields();
         title.setText(editable.title());
         if (!sameShape(fields, shownFields)) {
@@ -123,7 +140,15 @@ final class PropertiesPanel {
         }
         shownFields = fields;
         updating = true;
-        for (Field f : fields) setControlValue(f, controls.get(f.key()));
+        for (Field f : fields) {
+            setControlValue(f, controls.get(f.key()));
+            Slider sl = sliders.get(f.key());
+            if (sl != null) {
+                sl.setMin(f.min());
+                sl.setMax(Math.max(f.min(), f.max()));
+                if (editable.get(f.key()) instanceof Double d) sl.setValue(d);
+            }
+        }
         updating = false;
         updateEnabled();
         buildActions(); // p. ej. al bloquear un mueble se deshabilitan sus botones
@@ -132,6 +157,7 @@ final class PropertiesPanel {
     /** Deshabilita los campos y el botón Eliminar que no se pueden usar (mueble bloqueado). */
     private void updateEnabled() {
         for (Map.Entry<String, Node> e : controls.entrySet()) e.getValue().setDisable(!editable.isEnabled(e.getKey()));
+        for (Map.Entry<String, Slider> e : sliders.entrySet()) e.getValue().setDisable(!editable.isEnabled(e.getKey()));
         delete.setDisable(!editable.canDelete());
         delete.setTooltip(editable.canDelete() ? null : new Tooltip("Desbloquéalo para poder eliminarlo"));
     }
@@ -146,8 +172,7 @@ final class PropertiesPanel {
             b.setFocusTraversable(false);
             actions.getChildren().add(b);
         }
-        // Las paredes y el piso no se eliminan.
-        if (!(editable.entity() instanceof Surface)) actions.getChildren().add(delete);
+        if (editable.showDelete()) actions.getChildren().add(delete);
     }
 
     /** Mismos campos, en el mismo orden y con las mismas opciones (los límites pueden cambiar). */
@@ -162,6 +187,7 @@ final class PropertiesPanel {
 
     private void build() {
         controls.clear();
+        sliders.clear();
         shownFields = editable.fields();
         title.setText(editable.title());
         subtitle.setText(editable.entity() instanceof Surface ? "Elige un material y luego ajusta el color." : "");
@@ -173,6 +199,21 @@ final class PropertiesPanel {
         int row = 0;
         updating = true;
         for (Field f : shownFields) {
+            if (f.type() == Field.Type.SECTION) {
+                if (row > 0) {
+                    blocks.add(grid);
+                    grid = new GridPane();
+                    grid.setHgap(8);
+                    grid.setVgap(8);
+                    row = 0;
+                }
+                Label section = new Label(f.label().toUpperCase());
+                section.getStyleClass().add("section-title");
+                section.setMaxWidth(Double.MAX_VALUE);
+                controls.put(f.key(), section);
+                blocks.add(section);
+                continue;
+            }
             Node control = createControl(f);
             controls.put(f.key(), control);
             setControlValue(f, control);
@@ -206,6 +247,13 @@ final class PropertiesPanel {
             grid.add(cell, 1, row);
             GridPane.setHgrow(cell, Priority.ALWAYS);
             row++;
+            if (f.type() == Field.Type.NUMBER && f.slider() && f.max() > f.min()) {
+                Slider sl = createSlider(f);
+                sliders.put(f.key(), sl);
+                grid.add(sl, 0, row, 2, 1);
+                GridPane.setHgrow(sl, Priority.ALWAYS);
+                row++;
+            }
         }
         if (row > 0) blocks.add(grid);
         updating = false;
@@ -214,11 +262,60 @@ final class PropertiesPanel {
         buildActions();
 
         List<Node> children = new ArrayList<>(List.of(title));
+        Node head = header.apply(editable.entity());
+        if (head != null) children.add(head);
         if (!subtitle.getText().isEmpty()) children.add(subtitle);
         children.add(form);
         if (!actions.getChildren().isEmpty()) children.add(actions);
         children.add(error);
         content.getChildren().setAll(children);
+    }
+
+    /**
+     * Deslizador de un número: aplica el valor en vivo mientras se arrastra y registra un solo
+     * paso de deshacer al soltarlo. Si un valor intermedio no es válido (choca con algo), se
+     * muestra el motivo y se sigue con el último valor que sí se pudo aplicar.
+     */
+    private Slider createSlider(Field f) {
+        Slider sl = new Slider(f.min(), f.max(), f.min());
+        sl.getStyleClass().add("field-slider");
+        sl.setFocusTraversable(false);
+        if (editable.get(f.key()) instanceof Double d) sl.setValue(d);
+        boolean[] changed = {false};
+        sl.valueProperty().addListener((obs, o, n) -> {
+            if (updating) return;
+            double step = f.step() > 0 ? f.step() : 0.01;
+            double v = Math.round(n.doubleValue() / step) * step;
+            v = Math.round(v * 1000) / 1000.0;
+            if (editable.get(f.key()) instanceof Double cur && Math.abs(cur - v) < 1e-9) return;
+            sliding = true;
+            String err = editable.set(f.key(), v);
+            sliding = false;
+            if (err != null) {
+                showError(err);
+                return;
+            }
+            hideError();
+            changed[0] = true;
+            boolean was = updating;
+            updating = true;
+            for (Field x : shownFields) {
+                if (x.type() == Field.Type.NUMBER) setControlValue(x, controls.get(x.key()));
+            }
+            updating = was;
+            onPending.run();
+        });
+        Runnable finish = () -> {
+            if (!changed[0]) return;
+            changed[0] = false;
+            onChanged.run();
+            refresh();
+        };
+        sl.valueChangingProperty().addListener((obs, o, now) -> {
+            if (!now) finish.run();
+        });
+        sl.setOnMouseReleased(e -> finish.run());
+        return sl;
     }
 
     private Node createControl(Field f) {
@@ -318,6 +415,7 @@ final class PropertiesPanel {
                 });
                 yield c;
             }
+            case SECTION -> new Label(f.label());
         };
     }
 
@@ -350,6 +448,7 @@ final class PropertiesPanel {
                 }
             }
             case CHECKBOX -> ((CheckBox) control).setSelected(Boolean.TRUE.equals(v));
+            case SECTION -> { }
         }
         updating = was;
     }

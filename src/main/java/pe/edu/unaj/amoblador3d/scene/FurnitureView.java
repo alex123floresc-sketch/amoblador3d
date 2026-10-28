@@ -16,7 +16,7 @@ import pe.edu.unaj.amoblador3d.model.Furniture;
 
 /**
  * Nodos 3D de los muebles. Al cambiar algo solo se reconstruye lo necesario: si cambió la
- * posición o el giro, se mueve el nodo; si cambiaron medidas, color o tipo, se vuelve a crear.
+ * posición o el giro, se mueve el nodo; si cambiaron medidas, colores, acabado o tipo, se vuelve a crear.
  */
 final class FurnitureView {
     final Group group = new Group();
@@ -64,7 +64,7 @@ final class FurnitureView {
                 nodes.put(f, h);
                 group.getChildren().add(h.node);
             }
-            String shape = f.type + "|" + f.width + "|" + f.depth + "|" + f.height + "|" + f.color;
+            String shape = f.appearance();
             if (!shape.equals(h.shape)) {
                 h.shape = shape;
                 build(design.catalog().get(f.type), f, h);
@@ -86,12 +86,15 @@ final class FurnitureView {
                 Group g = ParametricBuilder.build(f);
                 h.node.getChildren().setAll(g != null ? g : ParametricBuilder.missing(f));
             }
+            case CUSTOM -> h.node.getChildren().setAll(FurnitureShapes.fit(entry.design(), f));
             case MISSING -> h.node.getChildren().setAll(ParametricBuilder.missing(f));
             case MODEL -> {
                 // Mientras el modelo carga, mostramos una caja translúcida con sus medidas.
                 h.node.getChildren().setAll(ParametricBuilder.placeholder(f));
                 String shape = h.shape;
                 double w = f.width, d = f.depth, ht = f.height;
+                String tint = f.color;
+                pe.edu.unaj.amoblador3d.model.Finish finish = f.finish;
                 models.load(entry.model()).whenComplete((data, error) -> Platform.runLater(() -> {
                     if (!shape.equals(h.shape)) return; // llegó tarde: el mueble ya cambió
                     if (error != null) {
@@ -101,7 +104,7 @@ final class FurnitureView {
                         }
                         return;
                     }
-                    h.node.getChildren().setAll(models.fit(data, w, d, ht, entry.modelRotation()));
+                    h.node.getChildren().setAll(models.fit(data, w, d, ht, entry.modelRotation(), tint, finish));
                     onModelLoaded.run();
                 }));
             }

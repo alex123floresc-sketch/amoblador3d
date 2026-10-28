@@ -595,6 +595,17 @@ public final class Design {
         return placeNew(f, e.name(), null);
     }
 
+    /** Agrega un mueble del catálogo en (x, z) o, si ahí no cabe, en el lugar libre más cercano. */
+    public Outcome<Furniture> addFurnitureAt(String type, double x, double z) {
+        CatalogEntry e = catalog.get(type);
+        if (e.kind() == CatalogEntry.Kind.MISSING) return Outcome.fail("No existe \"" + type + "\" en el catálogo.");
+        CatalogEntry.Size s = e.defaults();
+        RoomDims r = project.room;
+        Furniture f = new Furniture(ids.next(type), type, round(Units.clamp(x, 0, r.width())), round(Units.clamp(z, 0, r.length())),
+                0, s.width(), s.depth(), s.height(), e.defaultColor());
+        return placeNew(f, e.name(), f);
+    }
+
     /** Crea una copia del mueble en el lugar libre más cercano al original. */
     public Outcome<Furniture> duplicate(Furniture source) {
         Furniture f = source.copy();
@@ -684,15 +695,21 @@ public final class Design {
         candidate.width = round(candidate.width);
         candidate.depth = round(candidate.depth);
         candidate.height = round(candidate.height);
-        // Si al girar o agrandar el mueble se sale por una pared, lo empujamos hacia adentro.
-        if (!positionEdited) {
-            RoomDims r = project.room;
-            Footprint fp = Footprint.of(candidate).clampToRoom(r.width(), r.length());
-            candidate.x = round(fp.x());
-            candidate.z = round(fp.z());
+        // Corrección: antes un mueble que ya chocaba con algo (p. ej. tras achicar la habitación)
+        // no dejaba cambiar su color. Si solo cambia el aspecto, no hay nada que revisar.
+        boolean sameGeometry = candidate.x == f.x && candidate.z == f.z && candidate.rotation == f.rotation
+                && candidate.width == f.width && candidate.depth == f.depth && candidate.height == f.height;
+        if (!sameGeometry) {
+            // Si al girar o agrandar el mueble se sale por una pared, lo empujamos hacia adentro.
+            if (!positionEdited) {
+                RoomDims r = project.room;
+                Footprint fp = Footprint.of(candidate).clampToRoom(r.width(), r.length());
+                candidate.x = round(fp.x());
+                candidate.z = round(fp.z());
+            }
+            String conflict = checkFurniture(f, candidate);
+            if (conflict != null) return conflict;
         }
-        String conflict = checkFurniture(f, candidate);
-        if (conflict != null) return conflict;
         f.x = candidate.x;
         f.z = candidate.z;
         f.rotation = candidate.rotation;
@@ -700,8 +717,57 @@ public final class Design {
         f.depth = candidate.depth;
         f.height = candidate.height;
         f.color = candidate.color;
+        f.color2 = candidate.color2;
+        f.finish = candidate.finish;
         fire(Change.FURNITURE);
         return null;
+    }
+
+    /**
+     * Convierte el mueble en otro del catálogo (p. ej. en el diseño hecho a partir de él), con las
+     * medidas y colores iniciales del nuevo tipo y en el mismo lugar. Devuelve un error o null.
+     */
+    public String replaceType(Furniture f, String type) {
+        if (f.locked) return label(f) + LOCKED;
+        CatalogEntry e = catalog.get(type);
+        if (e.kind() == CatalogEntry.Kind.MISSING) return "No existe \"" + type + "\" en el catálogo.";
+        Furniture c = f.copy();
+        c.type = type;
+        c.width = e.defaults().width();
+        c.depth = e.defaults().depth();
+        c.height = e.defaults().height();
+        c.color = e.defaultColor();
+        c.color2 = null;
+        c.finish = null;
+        RoomDims r = project.room;
+        Footprint fp = Footprint.of(c).clampToRoom(r.width(), r.length());
+        c.x = round(fp.x());
+        c.z = round(fp.z());
+        String conflict = checkFurniture(f, c);
+        if (conflict != null) return conflict;
+        String oldPrefix = f.type;
+        f.type = type;
+        f.x = c.x;
+        f.z = c.z;
+        f.width = c.width;
+        f.depth = c.depth;
+        f.height = c.height;
+        f.color = c.color;
+        f.color2 = null;
+        f.finish = null;
+        // El id sigue el nombre del tipo ("cama-2" -> "diseno-xyz-1") para que la etiqueta no confunda.
+        if (f.id.startsWith(oldPrefix + "-")) f.id = ids.next(type);
+        fire(Change.FURNITURE);
+        return null;
+    }
+
+    /**
+     * Cambia medidas, posición y giro a la vez (asas de la vista 3D). Con {@code keepPosition} el
+     * centro se queda donde se pidió; si no, se empuja hacia adentro si se sale por una pared.
+     * Devuelve un error o null.
+     */
+    public String reshape(Furniture f, Furniture candidate, boolean keepPosition) {
+        return changeFurniture(f, candidate, keepPosition);
     }
 
     public String rotateFurniture(Furniture f, double degrees) {

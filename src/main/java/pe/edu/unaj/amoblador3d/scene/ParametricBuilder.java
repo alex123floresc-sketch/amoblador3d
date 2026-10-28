@@ -5,6 +5,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Material;
 import javafx.scene.shape.Box;
 import javafx.scene.shape.Cylinder;
+import pe.edu.unaj.amoblador3d.model.Finish;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 
 /**
@@ -14,15 +15,59 @@ import pe.edu.unaj.amoblador3d.model.Furniture;
  * ocupan exactamente x ∈ [-ancho/2, ancho/2], z ∈ [-prof/2, prof/2], y ∈ [0, alto];
  * el origen es el centro de la base y el frente mira hacia +Z (la cabecera de la cama queda en -Z).
  *
+ * <p>Cada mueble tiene un color principal, un color secundario (frazada, cojines, frentes...;
+ * si es null se calcula a partir del principal) y un acabado que define cuánto brilla.
+ *
  * <p>Para agregar un mueble paramétrico nuevo: crea su método aquí, regístralo en
  * {@link #build} y declara sus medidas en {@code Catalog}.
  */
 final class ParametricBuilder {
     private ParametricBuilder() {}
 
+    /** Colores y acabado de un mueble. {@code accent} null = color secundario automático. */
+    private record Style(String main, String accent, Finish finish) {
+        Material mat() {
+            return Materials.finished(main, finish);
+        }
+
+        Material mat(String color) {
+            return Materials.finished(color, finish);
+        }
+
+        /** El color principal más oscuro (frentes, bases...). */
+        Material darker(double factor) {
+            return mat(Materials.darkerHex(main, factor));
+        }
+
+        /** El color secundario elegido, o {@code auto} si es automático. */
+        Material accent(String auto) {
+            return mat(accent != null ? accent : auto);
+        }
+
+        /** El color secundario elegido, o el principal oscurecido en {@code factor}. */
+        Material accentDarker(double factor) {
+            return accent(Materials.darkerHex(main, factor));
+        }
+
+        /** El color secundario elegido, o metal cromado si es automático (tiradores, grifería). */
+        Material accentOrMetal() {
+            return accent != null ? Materials.finished(accent, Finish.METALICO) : Materials.METAL;
+        }
+    }
+
+    /** Acabado típico de cada mueble cuando el usuario no eligió uno. */
+    static Finish defaultFinish(String type) {
+        return switch (type) {
+            case "refrigeradora", "inodoro", "lavatorio" -> Finish.BRILLANTE;
+            case "sillon", "cama" -> Finish.MATE;
+            default -> Finish.SATINADO;
+        };
+    }
+
     /** Devuelve null si el tipo no es paramétrico. */
     static Group build(Furniture f) {
-        String color = f.color != null ? f.color : "#a0764f";
+        String main = f.color != null ? f.color : "#a0764f";
+        Style color = new Style(main, f.color2, f.finish != null ? f.finish : defaultFinish(f.type));
         return switch (f.type) {
             case "cama" -> bed(f.width, f.depth, f.height, color);
             case "mesa" -> table(f.width, f.depth, f.height, color);
@@ -78,14 +123,9 @@ final class ParametricBuilder {
         g.getChildren().add(c);
     }
 
-    /** Loza o esmalte: el color con un brillo marcado. */
-    private static Material ceramic(String color) {
-        return Materials.shiny(Color.web(color), 0.7, 40);
-    }
-
-    private static Group bed(double w, double d, double h, String color) {
+    private static Group bed(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material wood = Materials.of(color);
+        Material wood = color.mat();
         double head = 0.06; // grosor de la cabecera
         double top = Math.min(0.55, h - 0.05); // altura de la superficie del colchón
         double base = top - 0.2;
@@ -93,7 +133,7 @@ final class ParametricBuilder {
         box(g, wood, w, base, bodyD, 0, base / 2, bodyZ); // base
         box(g, Materials.of("#f4f1ea"), w - 0.04, 0.2, bodyD - 0.04, 0, base + 0.1, bodyZ); // colchón
         double blanketD = bodyD * 0.65;
-        box(g, Materials.of("#5b7fa6"), w, 0.21, blanketD, 0, base + 0.105, d / 2 - blanketD / 2); // frazada
+        box(g, color.accent("#5b7fa6"), w, 0.21, blanketD, 0, base + 0.105, d / 2 - blanketD / 2); // frazada
         box(g, wood, w, h, head, 0, h / 2, -d / 2 + head / 2); // cabecera
         int pillows = w >= 1.2 ? 2 : 1;
         double pw = (w - 0.1 * (pillows + 1)) / pillows, ph = Math.min(0.1, h - top);
@@ -104,38 +144,39 @@ final class ParametricBuilder {
         return g;
     }
 
-    private static Group table(double w, double d, double h, String color) {
+    private static Group table(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material wood = Materials.of(color);
+        Material wood = color.mat();
         double t = 0.04; // grosor del tablero
         box(g, wood, w, t, d, 0, h - t / 2, 0);
         double lx = w / 2 - 0.06, lz = d / 2 - 0.06;
+        Material legs = color.accentDarker(1);
         for (int sx = -1; sx <= 1; sx += 2) {
-            for (int sz = -1; sz <= 1; sz += 2) box(g, wood, 0.05, h - t, 0.05, sx * lx, (h - t) / 2, sz * lz); // patas
+            for (int sz = -1; sz <= 1; sz += 2) box(g, legs, 0.05, h - t, 0.05, sx * lx, (h - t) / 2, sz * lz); // patas
         }
         return g;
     }
 
-    private static Group chair(double w, double d, double h, String color) {
+    private static Group chair(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material wood = Materials.of(color);
+        Material wood = color.mat();
         double seat = Math.min(0.46, h * 0.5), leg = 0.035; // altura del asiento y grosor de las patas
         double lx = w / 2 - leg / 2, lz = d / 2 - leg / 2;
         for (int sx = -1; sx <= 1; sx += 2) {
             for (int sz = -1; sz <= 1; sz += 2) box(g, wood, leg, seat - 0.04, leg, sx * lx, (seat - 0.04) / 2, sz * lz); // patas
         }
-        box(g, Materials.darker(color, 0.8), w, 0.04, d, 0, seat - 0.02, 0); // asiento
+        box(g, color.accentDarker(0.8), w, 0.04, d, 0, seat - 0.02, 0); // asiento
         for (int sx = -1; sx <= 1; sx += 2) box(g, wood, leg, h - seat, leg, sx * lx, seat + (h - seat) / 2, -lz); // postes del respaldo
         box(g, wood, w, 0.18, 0.025, 0, h - 0.09, -d / 2 + 0.0125); // respaldo
         return g;
     }
 
-    private static Group closet(double w, double d, double h, String color) {
+    private static Group closet(double w, double d, double h, Style color) {
         Group g = new Group();
-        box(g, Materials.of(color), w, h, d - 0.04, 0, h / 2, -0.02); // cuerpo
+        box(g, color.mat(), w, h, d - 0.04, 0, h / 2, -0.02); // cuerpo
         int doors = w > 1.6 ? 3 : 2;
         double dw = w / doors;
-        Material door = Materials.darker(color, 0.93);
+        Material door = color.accentDarker(0.93);
         for (int i = 0; i < doors; i++) {
             double x = -w / 2 + dw * (i + 0.5);
             box(g, door, dw - 0.006, h - 0.01, 0.02, x, h / 2, d / 2 - 0.03); // puerta
@@ -145,16 +186,16 @@ final class ParametricBuilder {
         return g;
     }
 
-    private static Group desk(double w, double d, double h, String color) {
+    private static Group desk(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material wood = Materials.of(color);
+        Material wood = color.mat();
         double t = 0.03, under = h - t; // grosor del tablero y espacio bajo él
         box(g, wood, w, t, d, 0, h - t / 2, 0); // tablero
         box(g, wood, 0.03, under, d - 0.02, -w / 2 + 0.015, under / 2, 0); // lateral izquierdo
         double pw = Math.min(0.4, w * 0.35), px = w / 2 - pw / 2; // cajonera
         box(g, wood, pw, under, d - 0.04, px, under / 2, -0.01);
         double drawerH = (under - 0.02) / 3;
-        Material front = Materials.darker(color, 0.85);
+        Material front = color.accentDarker(0.85);
         for (int i = 0; i < 3; i++) {
             box(g, front, pw - 0.02, drawerH - 0.01, 0.015, px, 0.01 + drawerH * (i + 0.5), d / 2 - 0.0125); // frente de cajón
         }
@@ -167,9 +208,9 @@ final class ParametricBuilder {
      * Mueble de cajones (mesa de noche, cómoda): tablero, cuerpo sobre patas y frentes con tirador.
      * Los frentes y tiradores quedan dentro de la profundidad (el tirador llega justo al frente).
      */
-    private static Group drawers(double w, double d, double h, String color, int rows, int cols) {
+    private static Group drawers(double w, double d, double h, Style color, int rows, int cols) {
         Group g = new Group();
-        Material wood = Materials.of(color), front = Materials.darker(color, 0.9);
+        Material wood = color.mat(), front = color.accentDarker(0.9);
         double leg = 0.05, top = 0.03, bodyH = h - top - leg;
         box(g, wood, w, top, d, 0, h - top / 2, 0); // tablero
         box(g, wood, w - 0.02, bodyH, d - 0.03, 0, leg + bodyH / 2, -0.015); // cuerpo
@@ -190,9 +231,9 @@ final class ParametricBuilder {
     }
 
     /** Sofá: base, respaldo, brazos y cojines. El frente (donde uno se sienta) mira a +Z. */
-    private static Group sofa(double w, double d, double h, String color) {
+    private static Group sofa(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material fabric = Materials.of(color), dark = Materials.darker(color, 0.8), cushion = Materials.darker(color, 0.93);
+        Material fabric = color.mat(), dark = color.darker(0.8), cushion = color.accentDarker(0.93);
         double arm = Math.min(0.18, w * 0.12), back = Math.min(0.2, d * 0.25);
         double seat = Math.min(0.45, h - 0.2), base = seat - 0.12;
         box(g, dark, w, base, d, 0, base / 2, 0); // base
@@ -211,9 +252,9 @@ final class ParametricBuilder {
     }
 
     /** Mueble bajo con televisor encima (el televisor llega exactamente al alto indicado). */
-    private static Group tvUnit(double w, double d, double h, String color) {
+    private static Group tvUnit(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material wood = Materials.of(color), black = Materials.of("#111111");
+        Material wood = color.mat(), black = Materials.of("#111111");
         double leg = 0.05, cab = Math.min(0.5, h * 0.4);
         box(g, wood, w, cab - leg, d, 0, leg + (cab - leg) / 2, 0); // mueble
         for (int sx = -1; sx <= 1; sx += 2) {
@@ -221,7 +262,7 @@ final class ParametricBuilder {
                 box(g, Materials.METAL, 0.03, leg, 0.03, sx * (w / 2 - 0.04), leg / 2, sz * (d / 2 - 0.04)); // patas
             }
         }
-        Material door = Materials.darker(color, 0.8);
+        Material door = color.accentDarker(0.8);
         for (int i = 0; i < 2; i++) {
             box(g, door, w / 2 - 0.02, cab - leg - 0.03, 0.004, (i - 0.5) * w / 2, leg + (cab - leg) / 2, d / 2 - 0.002); // puertas
         }
@@ -236,14 +277,14 @@ final class ParametricBuilder {
     }
 
     /** Librero: laterales, repisas cada ~35 cm, fondo y libros de colores. */
-    private static Group bookshelf(double w, double d, double h, String color) {
+    private static Group bookshelf(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material wood = Materials.of(color);
+        Material wood = color.mat();
         double t = 0.02, plinth = 0.06;
         for (int sx = -1; sx <= 1; sx += 2) box(g, wood, t, h, d, sx * (w / 2 - t / 2), h / 2, 0); // laterales
         box(g, wood, w - 2 * t, t, d, 0, h - t / 2, 0); // techo
         box(g, wood, w - 2 * t, plinth, d, 0, plinth / 2, 0); // zócalo
-        box(g, Materials.darker(color, 0.8), w - 2 * t, h - t - plinth, 0.01, 0, plinth + (h - t - plinth) / 2, -d / 2 + 0.005); // fondo
+        box(g, color.accentDarker(0.8), w - 2 * t, h - t - plinth, 0.01, 0, plinth + (h - t - plinth) / 2, -d / 2 + 0.005); // fondo
         int shelves = Math.max(0, (int) Math.round((h - plinth - t) / 0.35) - 1);
         double space = (h - plinth - t) / (shelves + 1);
         for (int k = 1; k <= shelves; k++) box(g, wood, w - 2 * t, t, d - 0.01, 0, plinth + k * space, 0.005); // repisas
@@ -266,10 +307,10 @@ final class ParametricBuilder {
     }
 
     /** Mueble bajo de cocina: zócalo, puertas, encimera con lavadero y cocina de 4 hornillas. */
-    private static Group kitchen(double w, double d, double h, String color) {
+    private static Group kitchen(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material body = Materials.of(color), door = Materials.darker(color, 0.95);
-        Material stone = Materials.shiny(Color.web("#bdb7ad"), 0.4, 30), black = Materials.of("#1a1a1a");
+        Material body = color.mat(), door = color.darker(0.95);
+        Material stone = color.accent("#bdb7ad"), black = Materials.of("#1a1a1a");
         double plinth = 0.1, top = 0.038, bodyH = h - 0.04 - plinth;
         box(g, Materials.of("#3a3a3a"), w, plinth, d - 0.08, 0, plinth / 2, -0.04); // zócalo
         box(g, body, w, bodyH, d - 0.05, 0, plinth + bodyH / 2, -0.025); // cuerpo
@@ -295,42 +336,42 @@ final class ParametricBuilder {
     }
 
     /** Refrigeradora de dos puertas (congelador arriba) con tiradores. */
-    private static Group fridge(double w, double d, double h, String color) {
+    private static Group fridge(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material body = ceramic(color), door = Materials.shiny(Color.web(color).deriveColor(0, 1, 0.97, 1), 0.7, 40);
+        Material body = color.mat(), door = color.darker(0.97), handle = color.accentOrMetal();
         box(g, body, w, h, d - 0.03, 0, h / 2, -0.015); // cuerpo
         double split = h * 0.68;
         box(g, door, w - 0.01, split - 0.015, 0.02, 0, split / 2, d / 2 - 0.02); // puerta de abajo
         box(g, door, w - 0.01, h - split - 0.015, 0.02, 0, split + (h - split) / 2, d / 2 - 0.02); // congelador
-        box(g, Materials.METAL, 0.025, Math.min(0.5, split * 0.45), 0.01, w / 2 - 0.07, split - 0.3, d / 2 - 0.005); // tirador
-        box(g, Materials.METAL, 0.025, Math.min(0.25, (h - split) * 0.5), 0.01, w / 2 - 0.07, split + 0.2, d / 2 - 0.005); // tirador
+        box(g, handle, 0.025, Math.min(0.5, split * 0.45), 0.01, w / 2 - 0.07, split - 0.3, d / 2 - 0.005); // tirador
+        box(g, handle, 0.025, Math.min(0.25, (h - split) * 0.5), 0.01, w / 2 - 0.07, split + 0.2, d / 2 - 0.005); // tirador
         return g;
     }
 
     /** Inodoro: tanque atrás, taza redonda adelante (+Z) y asiento. */
-    private static Group toilet(double w, double d, double h, String color) {
+    private static Group toilet(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material white = ceramic(color);
+        Material white = color.mat();
         double tankD = 0.18, seatY = 0.4, r = w / 2;
         double tankFront = -d / 2 + tankD, zc = d / 2 - r; // frente del tanque y centro de la taza
         box(g, white, w, h - 0.38, tankD, 0, 0.38 + (h - 0.38) / 2, -d / 2 + tankD / 2); // tanque
         box(g, white, w * 0.55, seatY - 0.12, Math.max(0.1, zc - tankFront), 0, (seatY - 0.12) / 2, (tankFront + zc) / 2); // pie
         box(g, white, w, 0.12, Math.max(0.01, zc - tankFront), 0, seatY - 0.06, (tankFront + zc) / 2); // unión con el tanque
         cylinder(g, white, r, 0.12, 0, seatY - 0.06, zc); // taza
-        cylinder(g, Materials.shiny(Color.web("#f0f0f0"), 0.5, 30), r - 0.01, 0.02, 0, seatY + 0.01, zc); // asiento
+        cylinder(g, color.accent("#f0f0f0"), r - 0.01, 0.02, 0, seatY + 0.01, zc); // asiento
         return g;
     }
 
     /** Lavatorio de pedestal con grifo (el grifo llega justo al alto indicado). */
-    private static Group washbasin(double w, double d, double h, String color) {
+    private static Group washbasin(double w, double d, double h, Style color) {
         Group g = new Group();
-        Material white = ceramic(color);
+        Material white = color.mat();
         double basinH = 0.16, basinTop = h - 0.04;
         cylinder(g, white, Math.min(0.09, w * 0.2), basinTop - basinH, 0, (basinTop - basinH) / 2, -d * 0.05); // pedestal
         box(g, white, w, basinH, d, 0, basinTop - basinH / 2, 0); // lavatorio
         box(g, Materials.shiny(Color.web("#cfd6dc"), 0.8, 50), w - 0.1, 0.004, d - 0.14, 0, basinTop, 0.03); // poza
-        cylinder(g, Materials.METAL, 0.015, 0.04, 0, h - 0.02, -d / 2 + 0.05); // grifo
-        box(g, Materials.METAL, 0.025, 0.015, 0.08, 0, h - 0.0075, -d / 2 + 0.09); // caño
+        cylinder(g, color.accentOrMetal(), 0.015, 0.04, 0, h - 0.02, -d / 2 + 0.05); // grifo
+        box(g, color.accentOrMetal(), 0.025, 0.015, 0.08, 0, h - 0.0075, -d / 2 + 0.09); // caño
         return g;
     }
 }

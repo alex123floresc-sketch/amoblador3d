@@ -12,6 +12,7 @@ import java.util.List;
 import pe.edu.unaj.amoblador3d.model.CameraView;
 import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Furniture;
+import pe.edu.unaj.amoblador3d.model.Home;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
 import pe.edu.unaj.amoblador3d.model.Opening;
@@ -62,44 +63,103 @@ public final class ProjectRepository {
      * @return el id del proyecto
      */
     public long save(Long id, String name, Project p, byte[] thumbnail) throws SQLException {
+        return saveHome(id, name, Home.of(p, "Ambiente 1"), thumbnail);
+    }
+
+    /**
+     * Guarda la casa completa en una transacción: el primer ambiente en las tablas de siempre y
+     * los demás en home_space.
+     *
+     * @param id null para crear un proyecto nuevo
+     * @return el id del proyecto
+     */
+    public long saveHome(Long id, String name, Home home, byte[] thumbnail) throws SQLException {
+        if (home.spaces.isEmpty()) throw new SQLException("La casa no tiene ambientes.");
         return db.transaction(c -> {
-            String now = Instant.now().toString();
-            long projectId;
-            if (id == null) {
-                String sql = "INSERT INTO project (name, width, length, height, wall_thickness, ambient, baseboard_height,"
-                        + " baseboard_color, created_at, updated_at, thumbnail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-                    bindProject(ps, name, p);
-                    ps.setString(9, now);
-                    ps.setString(10, now);
-                    ps.setBytes(11, thumbnail);
-                    ps.executeUpdate();
-                    try (ResultSet keys = ps.getGeneratedKeys()) {
-                        keys.next();
-                        projectId = keys.getLong(1);
-                    }
-                }
-            } else {
-                projectId = id;
-                String sql = "UPDATE project SET name = ?, width = ?, length = ?, height = ?, wall_thickness = ?, ambient = ?,"
-                        + " baseboard_height = ?, baseboard_color = ?, updated_at = ?, thumbnail = ? WHERE id = ?";
-                try (PreparedStatement ps = c.prepareStatement(sql)) {
-                    bindProject(ps, name, p);
-                    ps.setString(9, now);
-                    ps.setBytes(10, thumbnail);
-                    ps.setLong(11, projectId);
-                    if (ps.executeUpdate() == 0) throw new SQLException("El proyecto ya no existe en la base de datos.");
-                }
-                for (String table : List.of("surface", "opening", "light", "furniture", "camera_view", "room_column")) {
-                    try (PreparedStatement ps = c.prepareStatement("DELETE FROM " + table + " WHERE project_id = ?")) {
-                        ps.setLong(1, projectId);
-                        ps.executeUpdate();
-                    }
-                }
+            long projectId = saveIn(c, id, name, home.spaces.get(0).project, thumbnail);
+            try (PreparedStatement ps = c.prepareStatement("DELETE FROM home_space WHERE project_id = ?")) {
+                ps.setLong(1, projectId);
+                ps.executeUpdate();
             }
-            insertChildren(c, projectId, p);
+            String sql = "INSERT INTO home_space (project_id, position, id, name, x, z, data) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement ps = c.prepareStatement(sql)) {
+                for (int i = 0; i < home.spaces.size(); i++) {
+                    Home.Space s = home.spaces.get(i);
+                    ps.setLong(1, projectId);
+                    ps.setInt(2, i);
+                    ps.setString(3, s.id);
+                    ps.setString(4, s.name);
+                    ps.setDouble(5, s.x);
+                    ps.setDouble(6, s.z);
+                    if (i == 0) ps.setNull(7, Types.VARCHAR);
+                    else ps.setString(7, ProjectJson.write(s.project));
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
             return projectId;
         });
+    }
+
+    /** Lee la casa completa. Un proyecto de una sola habitación es una casa con un ambiente. Null si no existe. */
+    public Home loadHome(long id) throws SQLException, ProjectFormatException {
+        Project first = load(id);
+        if (first == null) return null;
+        Home h = new Home();
+        String sql = "SELECT id, name, x, z, data FROM home_space WHERE project_id = ? ORDER BY position";
+        try (PreparedStatement ps = db.connection().prepareStatement(sql)) {
+            ps.setLong(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String data = rs.getString(5);
+                    Project p = h.spaces.isEmpty() ? first : data == null ? null : ProjectJson.read(data);
+                    if (p == null) throw new ProjectFormatException("Un ambiente de la casa está dañado.");
+                    h.spaces.add(new Home.Space(rs.getString(1), rs.getString(2), rs.getDouble(3), rs.getDouble(4), p));
+                }
+            }
+        }
+        if (h.spaces.isEmpty()) return Home.of(first, "Ambiente 1");
+        HomeJson.fix(h);
+        return h;
+    }
+
+    private long saveIn(Connection c, Long id, String name, Project p, byte[] thumbnail) throws SQLException {
+        String now = Instant.now().toString();
+        long projectId;
+        if (id == null) {
+            String sql = "INSERT INTO project (name, width, length, height, wall_thickness, ambient, baseboard_height,"
+                    + " baseboard_color, created_at, updated_at, thumbnail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                bindProject(ps, name, p);
+                ps.setString(9, now);
+                ps.setString(10, now);
+                ps.setBytes(11, thumbnail);
+                ps.executeUpdate();
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    keys.next();
+                    projectId = keys.getLong(1);
+                }
+            }
+        } else {
+            projectId = id;
+            String sql = "UPDATE project SET name = ?, width = ?, length = ?, height = ?, wall_thickness = ?, ambient = ?,"
+                    + " baseboard_height = ?, baseboard_color = ?, updated_at = ?, thumbnail = ? WHERE id = ?";
+            try (PreparedStatement ps = c.prepareStatement(sql)) {
+                bindProject(ps, name, p);
+                ps.setString(9, now);
+                ps.setBytes(10, thumbnail);
+                ps.setLong(11, projectId);
+                if (ps.executeUpdate() == 0) throw new SQLException("El proyecto ya no existe en la base de datos.");
+            }
+            for (String table : List.of("surface", "opening", "light", "furniture", "camera_view", "room_column")) {
+                try (PreparedStatement ps = c.prepareStatement("DELETE FROM " + table + " WHERE project_id = ?")) {
+                    ps.setLong(1, projectId);
+                    ps.executeUpdate();
+                }
+            }
+        }
+        insertChildren(c, projectId, p);
+        return projectId;
     }
 
     private static void bindProject(PreparedStatement ps, String name, Project p) throws SQLException {
@@ -174,8 +234,8 @@ public final class ProjectRepository {
             ps.executeBatch();
         }
 
-        sql = "INSERT INTO furniture (project_id, position, id, type, x, z, rotation, width, depth, height, color, locked)"
-                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        sql = "INSERT INTO furniture (project_id, position, id, type, x, z, rotation, width, depth, height, color, locked,"
+                + " color2, finish) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             int i = 0;
             for (Furniture f : p.furniture) {
@@ -192,6 +252,10 @@ public final class ProjectRepository {
                 if (f.color != null) ps.setString(11, f.color);
                 else ps.setNull(11, Types.VARCHAR);
                 ps.setInt(12, f.locked ? 1 : 0);
+                if (f.color2 != null) ps.setString(13, f.color2);
+                else ps.setNull(13, Types.VARCHAR);
+                if (f.finish != null) ps.setString(14, f.finish.id());
+                else ps.setNull(14, Types.VARCHAR);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -324,7 +388,7 @@ public final class ProjectRepository {
         } catch (IllegalArgumentException e) {
             throw new ProjectFormatException("El proyecto guardado tiene datos no válidos: " + e.getMessage());
         }
-        sql = "SELECT id, type, x, z, rotation, width, depth, height, color, locked FROM furniture"
+        sql = "SELECT id, type, x, z, rotation, width, depth, height, color, locked, color2, finish FROM furniture"
                 + " WHERE project_id = ? ORDER BY position";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, id);
@@ -333,6 +397,8 @@ public final class ProjectRepository {
                     Furniture f = new Furniture(rs.getString(1), rs.getString(2), rs.getDouble(3), rs.getDouble(4),
                             rs.getDouble(5), rs.getDouble(6), rs.getDouble(7), rs.getDouble(8), rs.getString(9));
                     f.locked = rs.getInt(10) != 0;
+                    f.color2 = rs.getString(11);
+                    f.finish = pe.edu.unaj.amoblador3d.model.Finish.fromId(rs.getString(12));
                     p.furniture.add(f);
                 }
             }

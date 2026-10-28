@@ -16,7 +16,7 @@ import java.sql.Statement;
  * tablas en el futuro, se agrega un paso en {@link #migrate()} y se sube {@link #SCHEMA_VERSION}.
  */
 public final class Database implements AutoCloseable {
-    static final int SCHEMA_VERSION = 6;
+    static final int SCHEMA_VERSION = 8;
 
     private static final String[] SCHEMA_V1 = {
         """
@@ -150,8 +150,41 @@ public final class Database implements AutoCloseable {
         )""",
     };
 
+    /** v7: color secundario y acabado de los muebles, y muebles hechos en el Diseñador. */
+    private static final String[] SCHEMA_V7 = {
+        "ALTER TABLE furniture ADD COLUMN color2 TEXT",
+        "ALTER TABLE furniture ADD COLUMN finish TEXT",
+        """
+        CREATE TABLE custom_design (
+            id         TEXT PRIMARY KEY,
+            name       TEXT NOT NULL,
+            data       TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )""",
+    };
+
+    /**
+     * v8: casas con varios ambientes. El primer ambiente sigue en las tablas de siempre (data NULL);
+     * los demás guardan su contenido como JSON (el mismo formato de los archivos .amob3d).
+     */
+    private static final String[] SCHEMA_V8 = {
+        """
+        CREATE TABLE home_space (
+            project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+            position   INTEGER NOT NULL,
+            id         TEXT    NOT NULL,
+            name       TEXT    NOT NULL,
+            x          REAL    NOT NULL,
+            z          REAL    NOT NULL,
+            data       TEXT,
+            PRIMARY KEY (project_id, position)
+        )""",
+    };
+
     /** Pasos de migración: el paso i lleva la base de la versión i a la i + 1. */
-    private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6};
+    private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7,
+        SCHEMA_V8};
 
     private final Connection connection;
 

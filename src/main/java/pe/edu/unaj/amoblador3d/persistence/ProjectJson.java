@@ -35,8 +35,9 @@ import pe.edu.unaj.amoblador3d.model.WallSide;
  *   "openings":  [ { "id", "type": "window"|"door", "wall", "offset", "width", "height", "sill" } ],
  *   "ambient":   0.6,
  *   "lights":    [ { "id", "type": "point"|"spot"|"sun", "color", "intensity", ... } ],
- *   "furniture": [ { "id", "type", "x", "z", "rotation", "width", "depth", "height", "color", "locked" } ],
- *   "views":     [ { "name", "mode": "3d"|"plan"|"walk", "x", "y", "z", "yaw", "pitch", "distance" } ]
+ *   "furniture": [ { "id", "type", "x", "z", "rotation", "width", "depth", "height", "color", "color2", "finish", "locked" } ],
+ *   "views":     [ { "name", "mode": "3d"|"plan"|"walk", "x", "y", "z", "yaw", "pitch", "distance" } ],
+ *   "designs":   [ { "id", "name", "pieces": [ ... ] } ]   (solo al exportar: ver {@link #write(Project, List)})
  * }
  * </pre>
  * Se usa para exportar/importar proyectos y para las "fotos" de deshacer/rehacer.
@@ -153,6 +154,8 @@ public final class ProjectJson {
             j.addProperty("depth", f.depth);
             j.addProperty("height", f.height);
             if (f.color != null) j.addProperty("color", f.color);
+            if (f.color2 != null) j.addProperty("color2", f.color2);
+            if (f.finish != null) j.addProperty("finish", f.finish.id());
             if (f.locked) j.addProperty("locked", true);
             furniture.add(j);
         }
@@ -215,7 +218,44 @@ public final class ProjectJson {
                 num(j, "rotation", 0), num(j, "width", Double.NaN), num(j, "depth", Double.NaN),
                 num(j, "height", Double.NaN), str(j, "color"));
         f.locked = j.has("locked") && j.get("locked").isJsonPrimitive() && j.get("locked").getAsBoolean();
+        f.color2 = str(j, "color2");
+        f.finish = pe.edu.unaj.amoblador3d.model.Finish.fromId(str(j, "finish"));
         return f;
+    }
+
+    /**
+     * Proyecto para exportar junto con los muebles del Diseñador que usa, así se puede abrir en
+     * otra computadora que no los tenga.
+     */
+    public static String write(Project p, List<pe.edu.unaj.amoblador3d.catalog.CustomDesign> designs) {
+        if (designs.isEmpty()) return write(p);
+        JsonObject root = JsonParser.parseString(write(p)).getAsJsonObject();
+        JsonArray list = new JsonArray();
+        for (pe.edu.unaj.amoblador3d.catalog.CustomDesign d : designs) list.add(d.toJson());
+        root.add("designs", list);
+        return GSON.toJson(root);
+    }
+
+    /** Muebles del Diseñador incluidos en un archivo exportado (los dañados se descartan). */
+    public static List<pe.edu.unaj.amoblador3d.catalog.CustomDesign> readDesigns(String text) {
+        List<pe.edu.unaj.amoblador3d.catalog.CustomDesign> result = new ArrayList<>();
+        try {
+            JsonElement el = JsonParser.parseString(text);
+            if (!el.isJsonObject()) return result;
+            JsonElement designs = el.getAsJsonObject().get("designs");
+            if (designs == null || !designs.isJsonArray()) return result;
+            for (JsonElement d : designs.getAsJsonArray()) {
+                if (!d.isJsonObject()) continue;
+                try {
+                    result.add(pe.edu.unaj.amoblador3d.catalog.CustomDesign.fromJson(d.getAsJsonObject()));
+                } catch (IllegalArgumentException ignored) {
+                    // diseño dañado: sus muebles se verán como cajas rojas
+                }
+            }
+        } catch (JsonParseException e) {
+            return result;
+        }
+        return result;
     }
 
     /** Lee y valida un proyecto. Lanza una excepción con un mensaje claro si no es válido. */

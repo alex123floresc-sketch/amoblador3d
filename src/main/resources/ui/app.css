@@ -266,3 +266,417 @@
 .text-field {
     -fx-prompt-text-fill: #8b949e;
 }
+
+/* ------------------------------------------------------------ Pulido general */
+
+.text-field, .combo-box, .color-picker {
+    -fx-background-radius: 5;
+}
+
+.text-field:focused {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+}
+
+.button:hover, .toggle-button:hover {
+    -fx-base: #3b434c;
+}
+
+.button.primary:hover {
+    -fx-base: #3a7fdc;
+}
+
+.button.danger:hover {
+    -fx-base: #a33a3a;
+}
+
+.button:pressed, .toggle-button:pressed {
+    -fx-translate-y: 1;
+}
+
+.button.accent {
+    -fx-base: #7a4fd0;
+    -fx-font-weight: bold;
+}
+
+.button.accent:hover {
+    -fx-base: #8c62e0;
+}
+
+.button.big-action {
+    -fx-padding: 10 12 10 12;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.group {
+    -fx-border-color: #343b43;
+    -fx-border-radius: 6;
+    -fx-background-insets: 0;
+}
+
+.group-title {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9fb3c8;
+}
+
+.catalog-button {
+    -fx-content-display: left;
+    -fx-graphic-text-gap: 6;
+    -fx-font-size: 12px;
+}
+
+.catalog-button.catalog-custom {
+    -fx-border-color: #7a4fd0;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+}
+
+.list-view .list-cell:filled:selected, .list-view .list-cell:filled:selected:focused {
+    -fx-background-color: #2f6fca;
+    -fx-text-fill: white;
+}
+
+.list-view .list-cell:filled:hover {
+    -fx-background-color: #2f353c;
+}
+
+.scroll-bar:vertical, .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #4a535d;
+    -fx-background-radius: 4;
+}
+
+.scroll-bar .increment-button, .scroll-bar .decrement-button {
+    -fx-padding: 0;
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+}
+
+.scroll-bar .increment-arrow, .scroll-bar .decrement-arrow {
+    -fx-shape: "";
+    -fx-padding: 0;
+}
+
+.tooltip {
+    -fx-background-radius: 5;
+    -fx-padding: 6 9 6 9;
+    -fx-font-size: 12px;
+}
+
+/* ------------------------------------------------------------ Diseñador de muebles */
+
+.designer-preview {
+    -fx-background-color: linear-gradient(to bottom, #46505c 0%, #2b3036 60%, #1d2125 100%);
+}
+
+.designer-size {
+    -fx-background-color: #15181bcc;
+    -fx-background-radius: 6;
+    -fx-padding: 6 10 6 10;
+    -fx-text-fill: #e6e8eb;
+    -fx-font-weight: bold;
+}
+
+.designer-help {
+    -fx-background-color: #15181b99;
+    -fx-background-radius: 6;
+    -fx-padding: 6 10 6 10;
+    -fx-text-fill: #aeb6bf;
+    -fx-font-size: 11px;
+}
+
+/* Lo elegido sigue en azul aunque el ratón pase por encima. */
+.toggle-button:selected:hover, .gallery-tile:selected:hover {
+    -fx-base: #3a7fdc;
+}
+
+/* ------------------------------------------------------------ Catálogo con tarjetas */
+
+.chip {
+    -fx-background-color: #2a2f35;
+    -fx-border-color: #3a424b;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 4 11 4 11;
+    -fx-font-size: 12px;
+    -fx-text-fill: #c4cbd3;
+}
+
+.chip:hover {
+    -fx-background-color: #343b43;
+    -fx-text-fill: white;
+}
+
+.chip:selected, .chip:selected:hover {
+    -fx-background-color: #2f6fca;
+    -fx-border-color: #8cc2ff;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.catalog-card {
+    -fx-background-color: linear-gradient(to bottom, #323941, #2a3036);
+    -fx-background-radius: 10;
+    -fx-border-color: #3a424b;
+    -fx-border-radius: 10;
+    -fx-padding: 6 6 8 6;
+    -fx-pref-width: 60;
+    -fx-effect: dropshadow(gaussian, #0006, 6, 0, 0, 2);
+}
+
+.catalog-card:hover {
+    -fx-background-color: linear-gradient(to bottom, #3b4550, #313840);
+    -fx-border-color: #4f9cf9;
+    -fx-effect: dropshadow(gaussian, #4f9cf966, 12, 0, 0, 0);
+}
+
+.catalog-card:pressed {
+    -fx-background-color: #2f6fca;
+}
+
+.catalog-card.catalog-custom {
+    -fx-border-color: #7a4fd0;
+}
+
+.card-picture {
+    -fx-background-color: radial-gradient(center 50% 60%, radius 70%, #4a535e, #2b3137);
+    -fx-background-radius: 8;
+}
+
+.card-name {
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-text-fill: #eef1f4;
+}
+
+.card-size {
+    -fx-font-size: 11px;
+    -fx-text-fill: #8b949e;
+}
+
+.card-badge {
+    -fx-background-color: #15181bcc;
+    -fx-background-radius: 8;
+    -fx-padding: 1 6 1 6;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #c4cbd3;
+}
+
+.badge-custom {
+    -fx-background-color: #7a4fd0;
+    -fx-text-fill: white;
+}
+
+.badge-model {
+    -fx-background-color: #2f8f6a;
+    -fx-text-fill: white;
+}
+
+.section-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7fa7d6;
+    -fx-padding: 6 0 3 0;
+    -fx-border-color: transparent transparent #343b43 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* ------------------------------------------------------------ Panel de propiedades */
+
+.properties-header {
+    -fx-background-color: radial-gradient(center 30% 50%, radius 80%, #3b444e, #2a3036);
+    -fx-background-radius: 10;
+    -fx-padding: 8;
+}
+
+.field-slider {
+    -fx-padding: 0 0 4 0;
+}
+
+.slider .track {
+    -fx-background-color: #3a424b;
+    -fx-background-radius: 3;
+    -fx-pref-height: 5;
+}
+
+.slider .thumb {
+    -fx-background-color: white, #4f9cf9;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 9;
+    -fx-padding: 7;
+    -fx-effect: dropshadow(gaussian, #0008, 4, 0, 0, 1);
+}
+
+.slider:hover .thumb {
+    -fx-background-color: white, #8cc2ff;
+}
+
+.inspector {
+    -fx-spacing: 10;
+}
+
+/* ------------------------------------------------------------ Ambientes de la casa */
+
+.space-bar {
+    -fx-background-color: #1d2125;
+    -fx-padding: 6 10 6 10;
+    -fx-border-color: transparent transparent #15181b transparent;
+}
+
+.space-scroll, .space-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.space-tab {
+    -fx-background-color: #2a2f35;
+    -fx-background-radius: 7 7 7 7;
+    -fx-border-color: #3a424b;
+    -fx-border-radius: 7;
+    -fx-padding: 5 14 5 14;
+    -fx-text-fill: #c4cbd3;
+}
+
+.space-tab:hover {
+    -fx-background-color: #343b43;
+    -fx-text-fill: white;
+}
+
+.space-tab:selected, .space-tab:selected:hover {
+    -fx-background-color: linear-gradient(to bottom, #3a7fdc, #2f6fca);
+    -fx-border-color: #8cc2ff;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.house-toggle {
+    -fx-base: #3b2f5c;
+    -fx-font-weight: bold;
+    -fx-padding: 5 14 5 14;
+}
+
+.house-toggle:selected, .house-toggle:selected:hover {
+    -fx-base: #7a4fd0;
+}
+
+.space-add {
+    -fx-base: #2f5a43;
+    -fx-font-weight: bold;
+}
+
+.home-total {
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-padding: 4 0 0 0;
+}
+
+/* ------------------------------------------------------------ Bienvenida */
+
+.welcome {
+    -fx-background-color: linear-gradient(to bottom right, #2b3340, #1d2125);
+}
+
+.welcome-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.welcome-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #9fb3c8;
+}
+
+.welcome-icon {
+    -fx-font-size: 26px;
+    -fx-text-fill: #8cc2ff;
+}
+
+.catalog-card.welcome-card {
+    -fx-padding: 14;
+    -fx-pref-width: 190;
+    -fx-pref-height: 150;
+}
+
+/* ------------------------------------------------------------ Guía "Cómo empezar" */
+
+.step {
+    -fx-background-color: #2a2f35;
+    -fx-background-radius: 10;
+    -fx-border-color: #343b43;
+    -fx-border-radius: 10;
+    -fx-padding: 10;
+}
+
+.step-number {
+    -fx-background-color: #2f6fca;
+    -fx-background-radius: 14;
+    -fx-min-width: 28;
+    -fx-min-height: 28;
+    -fx-alignment: center;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.step-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #8cc2ff;
+    -fx-padding: 2 0 0 0;
+    -fx-font-weight: bold;
+}
+
+.step-button:hover {
+    -fx-text-fill: white;
+    -fx-underline: true;
+}
+
+/* ------------------------------------------------------------ Botones sobre el mueble */
+
+.floating-bar {
+    -fx-background-color: #15181bee;
+    -fx-background-radius: 10;
+    -fx-border-color: #4f9cf9;
+    -fx-border-radius: 10;
+    -fx-padding: 4;
+    -fx-effect: dropshadow(gaussian, #000a, 12, 0, 0, 3);
+}
+
+.float-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e6e8eb;
+    -fx-font-size: 15px;
+    -fx-min-width: 34;
+    -fx-min-height: 30;
+    -fx-padding: 2 6 2 6;
+    -fx-background-radius: 7;
+}
+
+.float-button:hover {
+    -fx-background-color: #2f6fca;
+    -fx-text-fill: white;
+}
+
+.float-button.float-danger:hover {
+    -fx-background-color: #a33a3a;
+}
+
+/* Pestañas del panel izquierdo un poco más grandes y claras */
+.sidebar-tabs > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+    -fx-font-size: 12px;
+}
+
+.sidebar-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-padding: 4 7 4 7;
+}
+
+/* Botones de solo ícono en la barra superior */
+.tool-bar .button, .tool-bar .toggle-button {
+    -fx-min-width: 32;
+}

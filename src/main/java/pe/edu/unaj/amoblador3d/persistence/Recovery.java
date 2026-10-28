@@ -13,7 +13,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
-import pe.edu.unaj.amoblador3d.model.Project;
+import pe.edu.unaj.amoblador3d.model.Home;
 
 /**
  * Autoguardado: copia del trabajo sin guardar en {@code recuperacion.json}, dentro de la
@@ -24,8 +24,8 @@ import pe.edu.unaj.amoblador3d.model.Project;
  * medio escribir aunque se corte la luz justo en ese momento.
  */
 public final class Recovery {
-    /** Lo recuperado: el proyecto, su id en la base (null si nunca se guardó), su nombre y cuándo se copió. */
-    public record Snapshot(Project project, Long projectId, String name, Instant savedAt) {}
+    /** Lo recuperado: la casa, su id en la base (null si nunca se guardó), su nombre y cuándo se copió. */
+    public record Snapshot(Home home, Long projectId, String name, Instant savedAt) {}
 
     private final Path file;
 
@@ -37,12 +37,12 @@ public final class Recovery {
         return new Recovery(AppPaths.dataDir().resolve("recuperacion.json"));
     }
 
-    public void write(Project project, Long projectId, String name) throws IOException {
+    public void write(Home home, Long projectId, String name) throws IOException {
         JsonObject root = new JsonObject();
         if (projectId != null) root.addProperty("projectId", projectId);
         root.addProperty("name", name);
         root.addProperty("savedAt", Instant.now().toString());
-        root.add("project", JsonParser.parseString(ProjectJson.write(project)));
+        root.add("project", JsonParser.parseString(HomeJson.write(home)));
         Files.createDirectories(file.toAbsolutePath().getParent());
         Path temp = file.resolveSibling(file.getFileName() + ".tmp");
         Files.writeString(temp, root.toString(), StandardCharsets.UTF_8);
@@ -61,7 +61,7 @@ public final class Recovery {
         if (!Files.exists(file)) return Optional.empty();
         try {
             JsonObject root = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
-            Project p = ProjectJson.read(root.get("project").toString());
+            Home p = HomeJson.read(root.get("project").toString(), "Ambiente 1");
             JsonElement id = root.get("projectId");
             String name = root.has("name") ? root.get("name").getAsString() : "Sin título";
             Instant at = root.has("savedAt") ? Instant.parse(root.get("savedAt").getAsString()) : Instant.now();

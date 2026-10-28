@@ -15,6 +15,7 @@ import pe.edu.unaj.amoblador3d.estimate.PriceList;
 import pe.edu.unaj.amoblador3d.persistence.AppPaths;
 import pe.edu.unaj.amoblador3d.persistence.CatalogRepository;
 import pe.edu.unaj.amoblador3d.persistence.Database;
+import pe.edu.unaj.amoblador3d.persistence.DesignRepository;
 import pe.edu.unaj.amoblador3d.persistence.PriceRepository;
 import pe.edu.unaj.amoblador3d.persistence.ProjectRepository;
 import pe.edu.unaj.amoblador3d.scene.ModelLibrary;
@@ -39,6 +40,8 @@ public final class App extends Application {
         List<String> warnings = new ArrayList<>();
         Catalog catalog = new Catalog();
         catalog.setModels(MainWindow.loadModels(userModels, warnings));
+        DesignRepository designs = new DesignRepository(db);
+        catalog.setCustom(MainWindow.loadDesigns(designs, warnings));
 
         PriceRepository priceRepository = new PriceRepository(db);
         PriceList prices;
@@ -51,7 +54,7 @@ public final class App extends Application {
 
         var icon = App.class.getResourceAsStream("/icon.png");
         if (icon != null) stage.getIcons().add(new Image(icon));
-        new MainWindow(stage, catalog, userModels, new ProjectRepository(db), priceRepository, prices,
+        new MainWindow(stage, catalog, userModels, designs, new ProjectRepository(db), priceRepository, prices,
                         new ModelLibrary(), getHostServices())
                 .show(warnings);
     }

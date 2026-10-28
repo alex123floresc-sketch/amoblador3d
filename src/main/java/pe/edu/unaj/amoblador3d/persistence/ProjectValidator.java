@@ -74,6 +74,7 @@ public final class ProjectValidator {
             }
             f.rotation = ((f.rotation % 360) + 360) % 360;
             if (f.color != null && !COLOR.matcher(f.color).matches()) f.color = null;
+            if (f.color2 != null && !COLOR.matcher(f.color2).matches()) f.color2 = null;
         }
     }
 

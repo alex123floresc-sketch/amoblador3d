@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.design.Design;
+import pe.edu.unaj.amoblador3d.model.Home;
 import pe.edu.unaj.amoblador3d.model.Project;
 
 class RecoveryTest {
@@ -28,12 +29,12 @@ class RecoveryTest {
     void seRecuperaLoQueSeCopio() throws Exception {
         Recovery r = new Recovery(dir.resolve("sub").resolve("recuperacion.json"));
         assertTrue(r.read().isEmpty());
-        Project p = sample();
+        Home p = Home.of(sample(), "Ambiente 1");
         r.write(p, 7L, "Mi cuarto");
         Recovery.Snapshot s = r.read().orElseThrow();
         assertEquals(7L, s.projectId());
         assertEquals("Mi cuarto", s.name());
-        assertEquals(ProjectJson.write(p), ProjectJson.write(s.project()));
+        assertEquals(HomeJson.write(p), HomeJson.write(s.home()));
         // Se puede escribir encima varias veces (reemplaza la copia anterior).
         r.write(p, null, "Sin título");
         assertNull(r.read().orElseThrow().projectId());

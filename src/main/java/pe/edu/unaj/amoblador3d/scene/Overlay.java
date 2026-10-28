@@ -75,6 +75,65 @@ final class Overlay {
         }
     }
 
+    /** Contorno suave del mueble que está bajo el ratón (antes de hacer clic). */
+    void drawHover(Furniture f) {
+        g.setLineDashes(6, 4);
+        outlineColor = Color.rgb(255, 255, 255, 0.75);
+        double a = Math.toRadians(f.rotation), c = Math.cos(a), s = Math.sin(a);
+        outline(f.width, f.height, f.depth, (lx, ly, lz) -> p(f.x + lx * c + lz * s, ly, f.z - lx * s + lz * c));
+        outlineColor = SELECT;
+        g.setLineDashes();
+    }
+
+    /** Asas para estirar y girar el mueble seleccionado ({@code active}: la que está bajo el ratón o se arrastra). */
+    void drawHandles(Furniture f, List<FurnitureHandles.Handle> handles, FurnitureHandles.Kind active) {
+        Point3D frontMid = null, rotate = null;
+        for (FurnitureHandles.Handle h : handles) {
+            if (h.kind() == FurnitureHandles.Kind.FRONT) frontMid = h.at();
+            if (h.kind() == FurnitureHandles.Kind.ROTATE) rotate = h.at();
+        }
+        if (frontMid != null && rotate != null) {
+            g.setStroke(Color.rgb(255, 255, 255, 0.7));
+            g.setLineWidth(1.5);
+            g.setLineDashes(4, 3);
+            line(frontMid, rotate);
+            g.setLineDashes();
+        }
+        for (FurnitureHandles.Handle h : handles) {
+            Point2D s = cam.project(h.at());
+            if (s == null) continue;
+            boolean on = h.kind() == active;
+            double r = on ? 9 : 7;
+            g.setFill(Color.rgb(0, 0, 0, 0.35));
+            g.fillOval(s.getX() - r - 1, s.getY() - r + 1, 2 * r + 2, 2 * r + 2); // sombra
+            switch (h.kind()) {
+                case ROTATE -> {
+                    g.setFill(on ? Color.web("#ffd166") : SELECT);
+                    g.fillOval(s.getX() - r - 2, s.getY() - r - 2, 2 * r + 4, 2 * r + 4);
+                    g.setStroke(Color.WHITE);
+                    g.setLineWidth(2);
+                    g.strokeArc(s.getX() - r + 3, s.getY() - r + 3, 2 * r - 6, 2 * r - 6, 30, 270, javafx.scene.shape.ArcType.OPEN);
+                }
+                case TOP -> {
+                    g.setFill(on ? Color.web("#ffd166") : Color.WHITE);
+                    g.fillPolygon(new double[] {s.getX(), s.getX() + r, s.getX(), s.getX() - r},
+                            new double[] {s.getY() - r - 2, s.getY(), s.getY() + r + 2, s.getY()}, 4);
+                    g.setStroke(SELECT);
+                    g.setLineWidth(2);
+                    g.strokePolygon(new double[] {s.getX(), s.getX() + r, s.getX(), s.getX() - r},
+                            new double[] {s.getY() - r - 2, s.getY(), s.getY() + r + 2, s.getY()}, 4);
+                }
+                default -> {
+                    g.setFill(on ? Color.web("#ffd166") : Color.WHITE);
+                    g.fillOval(s.getX() - r, s.getY() - r, 2 * r, 2 * r);
+                    g.setStroke(SELECT);
+                    g.setLineWidth(2.5);
+                    g.strokeOval(s.getX() - r, s.getY() - r, 2 * r, 2 * r);
+                }
+            }
+        }
+    }
+
     /** Guías del imán: líneas punteadas sobre el piso que muestran a qué se pegó el mueble. */
     void drawGuides(List<Snapper.Guide> guides) {
         if (guides.isEmpty()) return;

@@ -10,6 +10,10 @@ material y el color de cada pared y del piso, y ves el resultado en 3D o en plan
 Solo necesitas Java 21 o superior. Maven no hace falta instalarlo: el proyecto trae el
 **Maven Wrapper** (`mvnw`), que lo descarga la primera vez.
 
+**Lo más fácil (Windows):** doble clic en **`Ejecutar-Amoblador3D.cmd`**. En IntelliJ, elige la
+configuración **Amoblador3D** (arriba a la derecha) y pulsa ▶. Ojo: un doble clic en `mvnw.cmd`
+solo no abre nada, porque no sabe qué hacer.
+
 ```powershell
 .\mvnw.cmd javafx:run          # abrir la aplicación (Windows)
 .\mvnw.cmd test                # ejecutar las pruebas
@@ -31,10 +35,30 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 - **Columnas, muros internos y habitación en L** (pestaña *Habitación*): bloques del piso al techo
   con su propio acabado. Los muebles no los atraviesan, no tapan ventanas ni puertas, el imán se
   pega a ellos y el metrado los descuenta del piso y suma sus caras a la pintura.
-- **Muebles**: 14 paramétricos con medidas y color editables (cama, mesa de noche, cómoda, closet,
-  sofá, mueble de TV, librero, mesa, silla, mueble de cocina, refrigeradora, inodoro, lavatorio y
-  escritorio) y modelos 3D `.glb/.gltf` (incluidos o importados), agrupados por categoría y con
+- **Muebles**: 14 paramétricos (cama, mesa de noche, cómoda, closet, sofá, mueble de TV, librero,
+  mesa, silla, mueble de cocina, refrigeradora, inodoro, lavatorio y escritorio), tus propios
+  diseños y modelos 3D `.glb/.gltf` (incluidos o importados), agrupados por categoría y con
   buscador. No chocan entre sí, con las paredes ni con el paso de las puertas.
+- **Casa con varios ambientes**: un proyecto puede tener sala, dormitorios, cocina, baño… Arriba
+  de la vista está la barra de ambientes: clic para decorar uno, **＋ Ambiente** para agregar
+  (vacío, desde una plantilla o copiando el actual) y clic derecho para renombrar, duplicar o
+  eliminar. **🏠 Casa completa** (Ctrl+4) muestra todos juntos en 3D o en planta: se arrastran para
+  armar la distribución (los muros se pegan a los de los demás y nunca se enciman; Alt sin imán),
+  se cambian sus medidas desde el panel y se ve el área y el presupuesto de cada ambiente y de toda
+  la casa. Doble clic en un ambiente para decorarlo. Se guarda todo junto (base de datos, archivo
+  `.amob3d` y autoguardado) y Ctrl+Z deshace también los cambios de la casa.
+- **Personalizar cada mueble** (panel derecho): ancho, profundidad y alto, agrandar o achicar todo
+  un 10 %, volver a las medidas originales; **color principal** y **color secundario** (frazada,
+  cojines, frentes de cajones, puertas, patas, encimera, grifería…) y **acabado** (mate, satinado,
+  brillante o metálico). Los modelos 3D se pueden **teñir** de cualquier color.
+- **Diseñador de muebles** (botón *✎ Diseñar mueble*, Ctrl+Shift+D): arma tu propio mueble con
+  piezas (cajas, cilindros, esferas y barras) en una vista 3D que se gira con el ratón. Cada pieza
+  tiene medidas y posición en centímetros, y se pinta con el color principal, el secundario o uno
+  propio, con su acabado. Incluye plantillas (mesa, mesa redonda, estante, banco) y puede empezar
+  desde cualquier mueble del catálogo; con *Diseñar a partir de este…* se edita, pieza por pieza,
+  el mueble seleccionado y se reemplaza en la habitación. Los diseños se guardan en la categoría
+  que elijas (por defecto *Mis diseños*); clic derecho sobre su botón para editarlos, duplicarlos o
+  quitarlos. Al exportar un `.amob3d` se incluyen los diseños que usa, así se abre igual en otra PC.
 - **Plantillas** (*Archivo → Nuevo desde plantilla*, Ctrl+Shift+N): dormitorio, sala, comedor,
   cocina, baño y oficina listos para empezar, con vista previa.
 - **Luces**: bombillas, focos y sol que entra por una ventana.
@@ -78,8 +102,10 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 | Shift o Ctrl + clic, Shift + arrastrar | Agregar a la selección, rectángulo de selección |
 | L / G | Bloquear o desbloquear / Imán |
 | Ctrl+1 / Ctrl+2 / Ctrl+3 | Vista 3D / Planta 2D / Recorrido |
+| Ctrl+4 | Casa completa (todos los ambientes) |
 | N | Modo noche |
 | Ctrl+P / Ctrl+Shift+P | Presupuesto / Informe PDF |
+| Ctrl+Shift+D | Diseñador de muebles (dentro: Ctrl+Z/Y, Ctrl+D duplicar pieza, Supr eliminar, flechas mover) |
 | M | Medir distancias (Esc para terminar) |
 | F1 | Todos los atajos |
 
