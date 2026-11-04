@@ -15,6 +15,8 @@
     <maven.compiler.release>21</maven.compiler.release>
     <javafx.version>21.0.4</javafx.version>
     <main.class>pe.edu.unaj.amoblador3d.Launcher</main.class>
+    <!-- SQLite carga una librería nativa: sin esto, Java 22+ muestra avisos al arrancar -->
+    <native.access>--enable-native-access=ALL-UNNAMED</native.access>
   </properties>
 
   <dependencies>
@@ -61,6 +63,83 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.2</version>
+        <configuration>
+          <!-- @{argLine} recibe el agente de JaCoCo (cobertura) -->
+          <argLine>@{argLine} ${native.access} -Dfile.encoding=UTF-8</argLine>
+        </configuration>
+      </plugin>
+
+      <!-- Falla pronto y con un mensaje claro si se compila con un Java o Maven muy viejo -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>versiones-minimas</id>
+            <goals><goal>enforce</goal></goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[21,)</version>
+                  <message>Amoblador3D necesita el JDK 21 o superior (https://adoptium.net).</message>
+                </requireJavaVersion>
+                <requireMavenVersion>
+                  <version>[3.6.3,)</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Cobertura de pruebas: mvnw verify  ->  target/site/jacoco/index.html -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.14</version>
+        <executions>
+          <execution>
+            <id>preparar-agente</id>
+            <goals><goal>prepare-agent</goal></goals>
+          </execution>
+          <execution>
+            <id>informe</id>
+            <phase>verify</phase>
+            <goals><goal>report</goal></goals>
+          </execution>
+          <!-- La compilación falla si las reglas del programa quedan con pocas pruebas.
+               La interfaz (ui, scene) y el arranque se prueban a mano: no entran en la regla. -->
+          <execution>
+            <id>cobertura-minima</id>
+            <phase>verify</phase>
+            <goals><goal>check</goal></goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>PACKAGE</element>
+                  <includes>
+                    <include>pe.edu.unaj.amoblador3d.model</include>
+                    <include>pe.edu.unaj.amoblador3d.design</include>
+                    <include>pe.edu.unaj.amoblador3d.estimate</include>
+                    <include>pe.edu.unaj.amoblador3d.catalog</include>
+                    <include>pe.edu.unaj.amoblador3d.persistence</include>
+                    <include>pe.edu.unaj.amoblador3d.report</include>
+                    <include>pe.edu.unaj.amoblador3d.gltf</include>
+                    <include>pe.edu.unaj.amoblador3d.util</include>
+                  </includes>
+                  <limits>
+                    <limit>
+                      <counter>INSTRUCTION</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.70</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- mvnw javafx:run  ->  abre la aplicación -->
@@ -70,6 +149,9 @@
         <version>0.0.8</version>
         <configuration>
           <mainClass>${main.class}</mainClass>
+          <options>
+            <option>${native.access}</option>
+          </options>
         </configuration>
       </plugin>
 
@@ -88,6 +170,11 @@
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>${main.class}</mainClass>
+                  <manifestEntries>
+                    <Implementation-Title>${project.name}</Implementation-Title>
+                    <Implementation-Version>${project.version}</Implementation-Version>
+                    <Enable-Native-Access>ALL-UNNAMED</Enable-Native-Access>
+                  </manifestEntries>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               </transformers>

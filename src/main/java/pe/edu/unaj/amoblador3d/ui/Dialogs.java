@@ -7,6 +7,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.TextInputDialog;
 import javafx.stage.Window;
+import pe.edu.unaj.amoblador3d.util.AppLog;
 
 /** Mensajes y preguntas al usuario, todos con el mismo estilo. */
 final class Dialogs {
@@ -16,6 +17,7 @@ final class Dialogs {
     private Dialogs() {}
 
     static void error(Window owner, String header, String message) {
+        AppLog.of(Dialogs.class).warning(header + ": " + message);
         Alert a = new Alert(Alert.AlertType.ERROR, message, ButtonType.OK);
         prepare(a, owner, "Error", header);
         a.showAndWait();

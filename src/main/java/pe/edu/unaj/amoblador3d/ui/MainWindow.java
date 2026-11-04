@@ -49,7 +49,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -63,11 +62,13 @@ import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import pe.edu.unaj.amoblador3d.App;
 import pe.edu.unaj.amoblador3d.catalog.BuiltinCatalog;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.catalog.CatalogEntry;
 import pe.edu.unaj.amoblador3d.catalog.CustomDesign;
 import pe.edu.unaj.amoblador3d.catalog.UserModels;
+import pe.edu.unaj.amoblador3d.persistence.AppPaths;
 import pe.edu.unaj.amoblador3d.persistence.DesignRepository;
 import pe.edu.unaj.amoblador3d.scene.FurnitureShapes;
 import pe.edu.unaj.amoblador3d.scene.Thumbnails;
@@ -161,12 +162,8 @@ public final class MainWindow {
     private final Label roomError = new Label(), roomInfo = new Label();
     private final Slider ambient = new Slider(0, 2, Project.DEFAULT_AMBIENT);
     private final Label ambientValue = new Label();
-    private final TextField catalogSearch = new TextField();
-    private final VBox catalogGroups = new VBox(14);
-    private final FlowPane categoryChips = new FlowPane();
-    /** Categoría elegida en el catálogo (null = todas). */
-    private String catalogCategory;
     private final Thumbnails thumbnails;
+    private final CatalogPanel catalogPanel;
     private final ListView<Object> items = new ListView<>();
     private final Button floorButton = new Button("Piso");
     private final Button ceilingButton = new Button("Techo"), baseboardButton = new Button("Zócalo");
@@ -210,6 +207,7 @@ public final class MainWindow {
         this.userModels = userModels;
         this.designs = designs;
         this.thumbnails = new Thumbnails(models);
+        this.catalogPanel = new CatalogPanel(catalog, thumbnails, catalogActions());
         this.projects = projects;
         this.priceRepository = priceRepository;
         this.prices = prices;
@@ -285,7 +283,7 @@ public final class MainWindow {
         autosave.setCycleCount(javafx.animation.Animation.INDEFINITE);
         autosave.play();
         status.setText(defaultStatus());
-        rebuildCatalogButtons();
+        catalogPanel.rebuild();
         designChanged();
         updateTitle();
     }
@@ -381,8 +379,11 @@ public final class MainWindow {
         Menu help = new Menu("Ayuda", null,
                 item("Pantalla de bienvenida…", null, this::showWelcome),
                 item("Atajos de teclado", "F1", this::showShortcuts),
+                item("Abrir registro de errores", null, this::openLogsFolder),
                 item("Acerca de Amoblador3D", null, () -> Dialogs.info(stage, "Acerca de", APP_NAME,
-                        "Diseñador de interiores 3D con medidas reales.\nJavaFX + SQLite.\nDatos en: " + userModels.root().getParent())));
+                        "Diseñador de interiores 3D con medidas reales.\nVersión " + App.version()
+                                + " · Java " + Runtime.version().feature() + " · JavaFX + SQLite.\nDatos en: "
+                                + userModels.root().getParent())));
         return new MenuBar(file, edit, projectMenu, viewMenu, tools, help);
     }
 
@@ -487,7 +488,7 @@ public final class MainWindow {
      * Los botones no toman el foco al hacer clic: así la barra espaciadora no repite la última
      * acción (antes agregaba otra mesa) y los atajos como R o Supr siguen yendo a la vista 3D.
      */
-    private static Button toolButton(String text, String tooltip, Runnable action) {
+    static Button toolButton(String text, String tooltip, Runnable action) {
         Button b = new Button(text);
         b.setTooltip(new Tooltip(tooltip));
         b.setOnAction(e -> action.run());
@@ -499,7 +500,7 @@ public final class MainWindow {
     private Node buildSidebar() {
         TabPane tabs = sidebarTabs;
         tabs.getTabs().setAll(
-                tab("🛋 Muebles", buildCatalog()),
+                tab("🛋 Muebles", catalogPanel.node()),
                 tab("📐 Ambiente", new VBox(14,
                         group("Medidas", buildRoomForm()),
                         group("Paredes, piso y techo", buildSurfaceButtons()),
@@ -1086,7 +1087,7 @@ public final class MainWindow {
         return box;
     }
 
-    private static Button smallButton(String text, String tooltip, Runnable action) {
+    static Button smallButton(String text, String tooltip, Runnable action) {
         Button b = toolButton(text, tooltip, action);
         b.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(b, Priority.ALWAYS);
@@ -1223,186 +1224,34 @@ public final class MainWindow {
         return r;
     }
 
-    private Node buildCatalog() {
-        Button importButton = smallButton("Importar modelo .glb/.gltf…", "Agregar un modelo 3D al catálogo (Ctrl+I)", this::importModel);
-        Button designButton = smallButton("✎  Diseñar un mueble nuevo",
-                "Crea tu propio mueble con piezas: medidas, colores y acabados a tu gusto (Ctrl+Shift+D)", this::openDesigner);
-        designButton.getStyleClass().addAll("primary", "big-action");
-        Label hint = new Label("Haz clic en un mueble para agregarlo, o arrástralo hasta el lugar de la habitación donde lo "
-                + "quieres. Clic derecho en tus diseños («✎») o modelos importados para editarlos o quitarlos.");
-        hint.getStyleClass().add("hint");
-        hint.setWrapText(true);
-        catalogSearch.setPromptText("🔍  Buscar mueble…");
-        catalogSearch.setTooltip(new Tooltip("Escribe parte del nombre (Esc para borrar)"));
-        catalogSearch.textProperty().addListener((obs, o, n) -> rebuildCatalogButtons());
-        catalogSearch.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.ESCAPE) {
-                catalogSearch.clear();
-                view.node().requestFocus();
-                e.consume();
+    /** Lo que hace la ventana cuando el usuario usa el catálogo. */
+    private CatalogPanel.Actions catalogActions() {
+        return new CatalogPanel.Actions() {
+            @Override public void add(String type) { addFurniture(type); }
+            @Override public void importModel() { MainWindow.this.importModel(); }
+            @Override public void openDesigner() { MainWindow.this.openDesigner(); }
+            @Override public void editDesign(CatalogEntry e) { MainWindow.this.editDesign(e); }
+            @Override public void duplicateDesign(CatalogEntry e) { MainWindow.this.duplicateDesign(e); }
+            @Override public void removeDesign(CatalogEntry e) { MainWindow.this.removeDesign(e); }
+            @Override public void removeUserModel(CatalogEntry e) { MainWindow.this.removeUserModel(e); }
+            @Override public void dragStarted(CatalogEntry e) {
+                statusTimer.stop();
+                status.setText("Suelta " + e.name().toLowerCase() + " sobre el piso de la habitación.");
             }
-        });
-        categoryChips.setHgap(5);
-        categoryChips.setVgap(5);
-        categoryChips.getStyleClass().add("category-chips");
-        return new VBox(10, designButton, catalogSearch, categoryChips, catalogGroups, importButton, hint);
-    }
-
-    /** Pestañas de categoría (siempre visibles) y tarjetas con la miniatura de cada mueble. */
-    private void rebuildCatalogButtons() {
-        String query = catalogSearch.getText();
-        // Chips: "Todos" y cada categoría que tiene algo, con cuántos muebles hay.
-        categoryChips.getChildren().clear();
-        ToggleGroup chips = new ToggleGroup();
-        List<String> available = new ArrayList<>();
-        for (String category : Catalog.CATEGORIES) if (!catalog.search(category, "").isEmpty()) available.add(category);
-        if (catalogCategory != null && !available.contains(catalogCategory)) catalogCategory = null;
-        List<String> chipNames = new ArrayList<>();
-        chipNames.add(null);
-        chipNames.addAll(available);
-        for (String category : chipNames) {
-            int count = category == null ? 0 : catalog.search(category, "").size();
-            ToggleButton chip = new ToggleButton(category == null ? "Todos" : category + "  " + count);
-            chip.getStyleClass().add("chip");
-            chip.setToggleGroup(chips);
-            chip.setFocusTraversable(false);
-            chip.setSelected(java.util.Objects.equals(category, catalogCategory));
-            chip.setOnAction(e -> {
-                catalogCategory = category;
-                rebuildCatalogButtons();
-            });
-            categoryChips.getChildren().add(chip);
-        }
-
-        catalogGroups.getChildren().clear();
-        for (String category : Catalog.CATEGORIES) {
-            if (catalogCategory != null && !category.equals(catalogCategory)) continue;
-            List<CatalogEntry> entries = catalog.search(category, query);
-            if (entries.isEmpty()) continue;
-            // Dos columnas que ocupan todo el ancho (con o sin barra de desplazamiento).
-            GridPane cards = new GridPane();
-            cards.setHgap(8);
-            cards.setVgap(8);
-            for (int i = 0; i < 2; i++) {
-                javafx.scene.layout.ColumnConstraints col = new javafx.scene.layout.ColumnConstraints();
-                col.setPercentWidth(50);
-                cards.getColumnConstraints().add(col);
-            }
-            for (int i = 0; i < entries.size(); i++) {
-                Button card = catalogCard(entries.get(i));
-                card.setMaxWidth(Double.MAX_VALUE);
-                cards.add(card, i % 2, i / 2);
-            }
-            Label title = new Label(category.toUpperCase());
-            title.getStyleClass().add("section-title");
-            title.setMaxWidth(Double.MAX_VALUE);
-            catalogGroups.getChildren().add(new VBox(8, title, cards));
-        }
-        if (catalogGroups.getChildren().isEmpty()) {
-            Label none = new Label("Ningún mueble se llama «" + query.trim() + "»"
-                    + (catalogCategory != null ? " en " + catalogCategory + "." : "."));
-            none.getStyleClass().add("hint");
-            none.setWrapText(true);
-            catalogGroups.getChildren().add(none);
-        }
-    }
-
-    /** Prefijo de lo que se arrastra desde el catálogo hasta la vista 3D. */
-    private static final String DRAG_PREFIX = "amoblador3d:mueble:";
-
-    /** Tarjeta de un mueble: miniatura 3D, nombre y medidas. Clic para agregar, arrastrar para ubicar. */
-    private Button catalogCard(CatalogEntry e) {
-        CatalogEntry.Size s = e.defaults();
-        boolean model = e.kind() == CatalogEntry.Kind.MODEL, custom = e.kind() == CatalogEntry.Kind.CUSTOM;
-        ImageView image = new ImageView();
-        image.setFitWidth(Thumbnails.WIDTH);
-        image.setFitHeight(Thumbnails.HEIGHT);
-        image.setPreserveRatio(true);
-        image.setSmooth(true);
-        Image thumb = thumbnails.of(e, image::setImage);
-        if (thumb != null) image.setImage(thumb);
-        StackPane picture = new StackPane(image);
-        picture.setMinSize(Thumbnails.WIDTH, Thumbnails.HEIGHT);
-        picture.setPrefSize(Thumbnails.WIDTH, Thumbnails.HEIGHT);
-        picture.getStyleClass().add("card-picture");
-        if (model || custom) {
-            Label badge = new Label(model ? "3D" : "✎ MÍO");
-            badge.getStyleClass().addAll("card-badge", custom ? "badge-custom" : "badge-model");
-            StackPane.setAlignment(badge, Pos.TOP_RIGHT);
-            picture.getChildren().add(badge);
-        }
-        Label name = new Label(e.name());
-        name.getStyleClass().add("card-name");
-        Label size = new Label(Units.number(s.width()) + " × " + Units.number(s.depth()) + " × " + Units.number(s.height()) + " m");
-        size.getStyleClass().add("card-size");
-        VBox content = new VBox(4, picture, name, size);
-        content.setAlignment(Pos.CENTER);
-        Button card = new Button(null, content);
-        card.getStyleClass().add("catalog-card");
-        if (custom) card.getStyleClass().add("catalog-custom");
-        card.setFocusTraversable(false);
-        card.setTooltip(new Tooltip("Clic: agregar " + e.name().toLowerCase() + "\nArrastrar: ponerlo donde lo sueltes"
-                + (model ? "\nModelo 3D: trae sus propios colores; se puede teñir."
-                        : custom ? "\nDiseñado por ti. Clic derecho para editarlo." : "\nMedidas, colores y acabado editables.")));
-        card.setOnAction(ev -> addFurniture(e.id()));
-        // Se agranda un poco al pasar el ratón.
-        javafx.animation.ScaleTransition grow = new javafx.animation.ScaleTransition(Duration.millis(120), card);
-        card.setOnMouseEntered(ev -> {
-            grow.stop();
-            grow.setToX(1.04);
-            grow.setToY(1.04);
-            grow.playFromStart();
-        });
-        card.setOnMouseExited(ev -> {
-            grow.stop();
-            grow.setToX(1);
-            grow.setToY(1);
-            grow.playFromStart();
-        });
-        card.setOnDragDetected(ev -> {
-            javafx.scene.input.Dragboard db = card.startDragAndDrop(javafx.scene.input.TransferMode.COPY);
-            javafx.scene.input.ClipboardContent content2 = new javafx.scene.input.ClipboardContent();
-            content2.putString(DRAG_PREFIX + e.id());
-            db.setContent(content2);
-            if (image.getImage() != null) db.setDragView(image.snapshot(transparentSnapshot(), null));
-            statusTimer.stop();
-            status.setText("Suelta " + e.name().toLowerCase() + " sobre el piso de la habitación.");
-            ev.consume();
-        });
-        if (custom) {
-            MenuItem edit = new MenuItem("Editar diseño…");
-            edit.setOnAction(ev -> editDesign(e));
-            MenuItem copy = new MenuItem("Duplicar diseño");
-            copy.setOnAction(ev -> duplicateDesign(e));
-            MenuItem remove = new MenuItem("Quitar del catálogo…");
-            remove.setOnAction(ev -> removeDesign(e));
-            card.setContextMenu(new ContextMenu(edit, copy, new SeparatorMenuItem(), remove));
-        } else if (e.source() == CatalogEntry.Source.USER) {
-            MenuItem remove = new MenuItem("Quitar del catálogo…");
-            remove.setOnAction(ev -> removeUserModel(e));
-            card.setContextMenu(new ContextMenu(remove));
-        }
-        return card;
-    }
-
-    private static javafx.scene.SnapshotParameters transparentSnapshot() {
-        javafx.scene.SnapshotParameters p = new javafx.scene.SnapshotParameters();
-        p.setFill(Color.TRANSPARENT);
-        return p;
+            @Override public void focusView() { view.node().requestFocus(); }
+        };
     }
 
     /** La vista 3D acepta muebles arrastrados desde el catálogo: se ponen donde se sueltan (o lo más cerca posible). */
     private void installCatalogDrop(Node target) {
         target.setOnDragOver(e -> {
-            String s = e.getDragboard().getString();
-            if (s != null && s.startsWith(DRAG_PREFIX)) e.acceptTransferModes(javafx.scene.input.TransferMode.COPY);
+            if (CatalogPanel.draggedType(e.getDragboard()) != null) e.acceptTransferModes(javafx.scene.input.TransferMode.COPY);
             e.consume();
         });
         target.setOnDragDropped(e -> {
-            String s = e.getDragboard().getString();
+            String type = CatalogPanel.draggedType(e.getDragboard());
             boolean ok = false;
-            if (s != null && s.startsWith(DRAG_PREFIX)) {
-                String type = s.substring(DRAG_PREFIX.length());
+            if (type != null) {
                 double[] p = view.floorAt(e.getX(), e.getY());
                 if (p == null) handle(design.addFurniture(type), this::select);
                 else handle(design.addFurnitureAt(type, p[0], p[1]), this::select);
@@ -2413,7 +2262,7 @@ public final class MainWindow {
         models.clear();
         thumbnails.clear();
         view.refreshFurniture();
-        rebuildCatalogButtons();
+        catalogPanel.rebuild();
         designChanged();
         if (!warnings.isEmpty()) warn(String.join("\n", warnings));
     }
@@ -2544,8 +2393,15 @@ public final class MainWindow {
         return all;
     }
 
+    private void openLogsFolder() {
+        openFolder(AppPaths.logsDir());
+    }
+
     private void openModelsFolder() {
-        Path dir = userModels.root();
+        openFolder(userModels.root());
+    }
+
+    private void openFolder(Path dir) {
         try {
             Files.createDirectories(dir);
             host.showDocument(dir.toUri().toString());

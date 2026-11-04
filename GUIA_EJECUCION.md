@@ -73,7 +73,7 @@ Con `-SinPruebas` es más rápido (no corre las pruebas antes). Pesa unos 60 MB 
 .\mvnw.cmd test
 ```
 
-Debe terminar con `Tests run: 99, Failures: 0, Errors: 0` y `BUILD SUCCESS`.
+Debe terminar con `Tests run: 114, Failures: 0, Errors: 0` y `BUILD SUCCESS`.
 
 ## 6. Abrirlo desde un IDE (opcional)
 

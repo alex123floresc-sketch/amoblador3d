@@ -28,4 +28,9 @@ public final class AppPaths {
     public static Path modelsDir() {
         return dataDir().resolve("modelos");
     }
+
+    /** Registro de errores de la aplicación (ver {@code util.AppLog}). */
+    public static Path logsDir() {
+        return dataDir().resolve("logs");
+    }
 }
