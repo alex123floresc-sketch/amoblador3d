@@ -19,6 +19,13 @@ Formato basado en *Keep a Changelog*. Fechas en formato AAAA-MM-DD.
 - 13 pruebas del lector de modelos 3D (`GltfLoaderTest`): `.gltf`, `.glb`, transformaciones, materiales y archivos dañados.
 - Verificación de versiones mínimas (JDK 21, Maven 3.6.3) con maven-enforcer.
 - Carpeta `documentacion/` con la documentación completa del proyecto.
+- Documentos Word con normas APA 7 (`documentacion/doc 2`) y documento 13 de normas de redacción.
+- Herramienta de capturas de pantalla (`Capturas`, en las pruebas) y 11 capturas reales en
+  `documentacion/capturas`.
+- Manual de usuario 2.0 (capturas, tutoriales, mensajes del sistema), manual técnico 2.0 (arranque,
+  ciclo de edición, pruebas, depuración, publicación) e informe final con antecedentes verificados y
+  discusión.
+- Los fallos del autoguardado también quedan en el registro de errores.
 
 ### Cambiado
 - El catálogo de muebles del panel izquierdo pasa de `MainWindow` a su propia clase `ui/CatalogPanel` (sin cambios para el usuario).

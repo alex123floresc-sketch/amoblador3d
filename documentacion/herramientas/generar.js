@@ -150,6 +150,21 @@ function makeConverter(opts) {
     body.push(new Paragraph({ spacing: { after: 240 }, children: [] }));
   }
 
+  // Captura de pantalla: Figura N, título en cursiva, imagen y nota (APA 7).
+  function picture(img) {
+    figures++;
+    caption('Figura', figures, clean(img.text || lastHeading));
+    const data = fs.readFileSync(path.join(SRC, decodeURI(img.href)));
+    const w = data.readUInt32BE(16), h = data.readUInt32BE(20);
+    const maxW = opts.double ? 470 : 600; // con interlineado doble caben dos capturas por página
+    const k = Math.min(1, maxW / w, 700 / h);
+    body.push(new Paragraph({ alignment: AlignmentType.CENTER, keepNext: true, spacing: { after: 60 },
+      children: [new ImageRun({ type: 'png', data, transformation: { width: Math.round(w * k), height: Math.round(h * k) } })] }));
+    body.push(new Paragraph({ spacing: { after: 240, line: lineSpacing }, children: [
+      new TextRun({ text: 'Nota.', italics: true, font: FONT }),
+      new TextRun({ text: ' Captura de pantalla de Amoblador3D 2.0.0. Elaboración propia.', font: FONT })] }));
+  }
+
   function code(t) {
     if (t.lang === 'mermaid') {
       figures++;
@@ -213,7 +228,12 @@ function makeConverter(opts) {
   function block(t) {
     switch (t.type) {
       case 'heading': heading(t); break;
-      case 'paragraph': body.push(inReferences
+      case 'paragraph':
+        if (t.tokens.length && t.tokens.every((x) => x.type === 'image' || (x.type === 'text' && !x.text.trim()))) {
+          t.tokens.filter((x) => x.type === 'image').forEach(picture);
+          break;
+        }
+        body.push(inReferences
         ? para(runs(t.tokens), { indent: { left: INDENT, hanging: INDENT }, spacing: { line: 480, before: 0, after: 0 } })
         : para(runs(t.tokens))); break;
       case 'table': table(t); break;
@@ -312,11 +332,12 @@ async function convert(file) {
     title = 'Informe final del proyecto';
     subtitle = h2 ? clean(plain(h2.tokens)) : null;
     tokens = tokens.slice(firstHr + 1);
-    const idx = tokens.findIndex((t) => t.type === 'heading' && /Índice/.test(plain(t.tokens)));
-    if (idx >= 0) {
-      const end = tokens.findIndex((t, i) => i > idx && t.type === 'hr');
-      tokens.splice(idx, end - idx + 1);
-    }
+  }
+  // El índice o "Contenido" escrito a mano en el Markdown sobra: Word genera el suyo.
+  const idx = tokens.findIndex((t) => t.type === 'heading' && t.depth === 2 && /^(Índice|Contenido)$/.test(plain(t.tokens).trim()));
+  if (idx >= 0) {
+    const end = tokens.findIndex((t, i) => i > idx && (t.type === 'hr' || (t.type === 'heading' && t.depth <= 2)));
+    tokens.splice(idx, (end < 0 ? tokens.length : (tokens[end].type === 'hr' ? end + 1 : end)) - idx);
   }
 
   let numbered = 0;
@@ -355,9 +376,14 @@ async function convert(file) {
     sections: sections([...cover(title, subtitle), ...toc(), ...conv.body]),
   });
   const outName = base + '.docx';
-  fs.writeFileSync(path.join(OUT, outName), await Packer.toBuffer(doc));
   const c = conv.counts();
-  console.log(`${outName}: ${c.tables} tablas, ${c.figures} figuras`);
+  try {
+    fs.writeFileSync(path.join(OUT, outName), await Packer.toBuffer(doc));
+    console.log(`${outName}: ${c.tables} tablas, ${c.figures} figuras`);
+  } catch (e) {
+    if (e.code !== 'EBUSY' && e.code !== 'EPERM') throw e;
+    console.log(`${outName}: NO SE ACTUALIZÓ (está abierto en Word; ciérralo y vuelve a generar)`);
+  }
 }
 
 (async () => {

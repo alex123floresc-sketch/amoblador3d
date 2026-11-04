@@ -1809,7 +1809,11 @@ public final class MainWindow {
             lastAutosave = json;
             autosaveFailed = false;
         } catch (IOException e) {
-            if (!autosaveFailed) notify("No se pudo hacer la copia de seguridad automática: " + e.getMessage(), Toast.Kind.ERROR);
+            if (!autosaveFailed) {
+                pe.edu.unaj.amoblador3d.util.AppLog.of(MainWindow.class)
+                        .log(java.util.logging.Level.WARNING, "Falló el autoguardado", e);
+                notify("No se pudo hacer la copia de seguridad automática: " + e.getMessage(), Toast.Kind.ERROR);
+            }
             autosaveFailed = true;
         }
     }

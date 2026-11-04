@@ -89,7 +89,7 @@ classDiagram
     Home "1" o-- "1..30" Project
     Project o-- RoomDims
     Design --> Project : edita
-    Design --> History
+    MainWindow --> History : deshacer / rehacer
     Design --> Catalog
     Design ..> Footprint : colisiones
     MainWindow --> Design
@@ -117,9 +117,9 @@ sequenceDiagram
         D-->>MW: false / mensaje "No cabe porque…"
         MW-->>U: aviso (Toast)
     else libre
-        D->>H: guardar snapshot JSON
         D-->>SV: Change.FURNITURE
         SV->>SV: reconstruye solo ese mueble
+        MW->>H: commit(): guarda la casa como JSON
         MW-->>U: vista actualizada, "sin guardar"
     end
 ```
@@ -150,7 +150,7 @@ flowchart LR
 |---|---|---|---|
 | ADR-01 | Migrar de Electron + Three.js a **Java + JavaFX** | Seguir con Electron | Curso basado en Java; menor consumo de memoria; un solo lenguaje para reglas, pruebas y UI |
 | ADR-02 | **SQLite** embebido | PostgreSQL, MySQL | Sin servidor ni instalación; un archivo. Se entrega además el script PostgreSQL para consultas |
-| ADR-03 | Deshacer con **snapshots JSON** del proyecto | Patrón Command por operación | Más simple y robusto: cada nueva operación funciona con deshacer sin código extra. Con proyectos de KB, 100 pasos ocupan poca memoria |
+| ADR-03 | Deshacer con **snapshots JSON** de toda la casa (`History`, en `MainWindow`) | Patrón Command por operación | Más simple y robusto: cada nueva operación funciona con deshacer sin código extra. Con proyectos de KB, 100 pasos ocupan poca memoria |
 | ADR-04 | Colisiones con **Teorema del Eje Separador (SAT)** sobre rectángulos orientados | Cajas alineadas a ejes | Los muebles se giran 15°; SAT es exacto para rectángulos girados |
 | ADR-05 | Reglas en `Design`, **sin JavaFX** | Reglas dentro de los controladores de UI | Permite 100+ pruebas rápidas sin abrir ventanas |
 | ADR-06 | Texturas **generadas por código** | Imágenes en recursos | No hay problemas de licencia, se tiñen con cualquier color y repiten sin costuras |

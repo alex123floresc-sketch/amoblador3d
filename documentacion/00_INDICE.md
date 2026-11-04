@@ -35,6 +35,7 @@ etapas del ciclo de vida: **inicio → requisitos → diseño → construcción 
 | [`README.md`](../README.md) | Presentación del proyecto, funciones, atajos y formato `.amob3d` |
 | [`GUIA_EJECUCION.md`](../GUIA_EJECUCION.md) | Paso a paso para ejecutarlo, bases de datos y problemas frecuentes |
 | [`database/`](../database) | Scripts SQL (SQLite y PostgreSQL) |
+| [`documentacion/capturas/`](capturas) | Capturas de pantalla reales de la aplicación (usadas en el manual de usuario y el informe final) |
 | Javadoc en el código | Cada clase explica qué hace y por qué |
 
 ### Orden de lectura sugerido
