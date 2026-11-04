@@ -18,11 +18,11 @@ import pe.edu.unaj.amoblador3d.catalog.CatalogEntry.Source;
  */
 public final class Catalog {
     public static final String BEDROOM = "Dormitorio", LIVING = "Sala", DINING = "Comedor", KITCHEN = "Cocina",
-            BATHROOM = "Baño", OFFICE = "Oficina", DECORATION = "Decoración", MY_DESIGNS = "Mis diseños",
+            BATHROOM = "Baño", OFFICE = "Oficina", STAIRS = "Escaleras", DECORATION = "Decoración", MY_DESIGNS = "Mis diseños",
             IMPORTED = "Importados";
     /** Grupos del catálogo, en el orden en que se muestran. */
     public static final List<String> CATEGORIES =
-            List.of(MY_DESIGNS, BEDROOM, LIVING, DINING, KITCHEN, BATHROOM, OFFICE, DECORATION, IMPORTED);
+            List.of(MY_DESIGNS, BEDROOM, LIVING, DINING, KITCHEN, BATHROOM, OFFICE, STAIRS, DECORATION, IMPORTED);
 
     private final Map<String, CatalogEntry> entries = new LinkedHashMap<>();
 
@@ -41,6 +41,15 @@ public final class Catalog {
         parametric("inodoro", "Inodoro", BATHROOM, new Size(0.4, 0.7, 0.75), "#ffffff", "Asiento", r(0.35, 0.5), r(0.6, 0.8), r(0.65, 0.85));
         parametric("lavatorio", "Lavatorio", BATHROOM, new Size(0.55, 0.45, 0.85), "#ffffff", "Grifería", r(0.4, 0.8), r(0.35, 0.6), r(0.75, 0.95));
         parametric("escritorio", "Escritorio", OFFICE, new Size(1.2, 0.6, 0.75), "#d9c6a5", "Frentes de cajones", r(0.8, 2.4), r(0.45, 0.9), r(0.65, 0.9));
+        parametric("escalera", "Escalera recta", STAIRS, new Size(0.9, 3.6, 2.5), "#b08a5e", "Pasamanos", r(0.6, 2), r(1.2, 7), r(0.4, 6));
+        parametric("escalera-l", "Escalera en L", STAIRS, new Size(2.0, 2.6, 2.5), "#b08a5e", "Pasamanos", r(1.4, 4), r(1.4, 5), r(0.8, 6));
+        parametric("escalera-caracol", "Escalera de caracol", STAIRS, new Size(1.6, 1.6, 2.5), "#4a4f55", "Peldaños", r(1.1, 2.6), r(1.1, 2.6), r(0.8, 6));
+        parametric("baranda", "Baranda", STAIRS, new Size(1.5, 0.06, 0.9), "#4a4f55", "Pasamanos", r(0.3, 8), r(0.04, 0.2), r(0.6, 1.2));
+    }
+
+    /** Las escaleras se agregan con el alto de la habitación (llegan al piso de arriba). */
+    public static boolean isStair(String type) {
+        return type != null && type.startsWith("escalera");
     }
 
     /**
@@ -55,6 +64,8 @@ public final class Catalog {
             case "inodoro" -> "#f0f0f0";
             case "refrigeradora", "lavatorio" -> "#c0c0c0";
             case "mesa" -> main;
+            case "escalera", "escalera-l", "baranda" -> "#2f3236";
+            case "escalera-caracol" -> "#b08a5e";
             default -> darker(main, 0.88);
         };
     }

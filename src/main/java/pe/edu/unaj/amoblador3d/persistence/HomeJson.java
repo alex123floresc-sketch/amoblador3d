@@ -20,8 +20,8 @@ import pe.edu.unaj.amoblador3d.model.Project;
  * {@code "spaces"}:
  * <pre>
  * { ...proyecto del primer ambiente...,
- *   "space":  { "id", "name", "x", "z" },
- *   "spaces": [ { "id", "name", "x", "z", "project": { ...proyecto... } } ] }
+ *   "space":  { "id", "name", "x", "z", "rotation", "level" },
+ *   "spaces": [ { "id", "name", "x", "z", "rotation", "level", "project": { ...proyecto... } } ] }
  * </pre>
  */
 public final class HomeJson {
@@ -57,6 +57,8 @@ public final class HomeJson {
         j.addProperty("name", s.name);
         j.addProperty("x", s.x);
         j.addProperty("z", s.z);
+        j.addProperty("rotation", s.rotation);
+        j.addProperty("level", s.level);
         return j;
     }
 
@@ -99,6 +101,9 @@ public final class HomeJson {
         if (j.get("name") instanceof JsonElement e && e.isJsonPrimitive()) s.name = e.getAsString();
         s.x = num(j, "x");
         s.z = num(j, "z");
+        double rotation = num(j, "rotation"), level = num(j, "level");
+        s.rotation = Home.normalizeRotation(Double.isNaN(rotation) ? 0 : rotation);
+        s.level = Double.isFinite(level) ? (int) Math.max(0, Math.min(Home.MAX_LEVELS - 1, Math.round(level))) : 0;
         return s;
     }
 
@@ -107,7 +112,7 @@ public final class HomeJson {
         return e != null && e.isJsonPrimitive() && e.getAsJsonPrimitive().isNumber() ? e.getAsDouble() : Double.NaN;
     }
 
-    /** Ids repetidos, nombres vacíos o posiciones no válidas se corrigen (no impiden abrir la casa). */
+    /** Ids repetidos, nombres vacíos, giros, pisos o posiciones no válidas se corrigen (no impiden abrir la casa). */
     static void fix(Home h) {
         Set<String> ids = new HashSet<>();
         Set<String> names = new HashSet<>();
@@ -126,6 +131,8 @@ public final class HomeJson {
                 while (!names.add((base + " " + i).toLowerCase())) i++;
                 s.name = base + " " + i;
             }
+            s.rotation = Home.normalizeRotation(s.rotation);
+            s.level = Math.max(0, Math.min(Home.MAX_LEVELS - 1, s.level));
             if (!Double.isFinite(s.x) || !Double.isFinite(s.z) || Math.abs(s.x) > 500 || Math.abs(s.z) > 500) {
                 s.x = Double.NaN;
             }
@@ -135,7 +142,7 @@ public final class HomeJson {
             if (Double.isNaN(s.x)) {
                 Home rest = new Home();
                 for (Home.Space o : h.spaces) if (o != s && !Double.isNaN(o.x)) rest.spaces.add(o);
-                double[] spot = rest.freeSpot(s.project);
+                double[] spot = rest.freeSpot(s.project, s.level);
                 s.x = spot[0];
                 s.z = spot[1];
             }

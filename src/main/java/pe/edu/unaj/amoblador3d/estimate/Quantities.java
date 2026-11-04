@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Opening;
-import pe.edu.unaj.amoblador3d.model.OpeningType;
 import pe.edu.unaj.amoblador3d.model.Project;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
 import pe.edu.unaj.amoblador3d.model.WallSide;
@@ -47,7 +46,7 @@ public record Quantities(double floorArea, Map<WallSide, Double> wallNet, List<C
             double area = o.width * o.height;
             openings += area;
             net.merge(o.wall, -area, Double::sum);
-            if (o.type == OpeningType.DOOR) doors += o.width;
+            if (o.type.isDoor()) doors += o.width;
         }
 
         double floor = r.width() * r.length();

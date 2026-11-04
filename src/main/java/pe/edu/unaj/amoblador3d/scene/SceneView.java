@@ -38,7 +38,6 @@ import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Footprint;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Opening;
-import pe.edu.unaj.amoblador3d.model.OpeningType;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
 import pe.edu.unaj.amoblador3d.model.Surface;
 import pe.edu.unaj.amoblador3d.model.WallSide;
@@ -451,7 +450,7 @@ public final class SceneView {
     /** Empieza el recorrido en la primera puerta (o en el centro si no hay puertas). */
     private void startWalk() {
         for (Opening o : design.openings()) {
-            if (o.type == OpeningType.DOOR) {
+            if (o.type.isDoor()) {
                 walkFromDoor(o);
                 return;
             }

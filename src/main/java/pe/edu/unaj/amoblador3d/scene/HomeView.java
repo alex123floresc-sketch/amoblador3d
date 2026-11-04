@@ -34,12 +34,17 @@ import javafx.scene.transform.Translate;
 import pe.edu.unaj.amoblador3d.catalog.Catalog;
 import pe.edu.unaj.amoblador3d.design.Design;
 import pe.edu.unaj.amoblador3d.model.Home;
+import pe.edu.unaj.amoblador3d.model.Project;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
 import pe.edu.unaj.amoblador3d.util.Units;
 
 /**
  * Vista de la casa completa: todos los ambientes juntos, en 3D o en planta, cada uno con sus
  * paredes, muebles y luces (las luces de un ambiente solo iluminan ese ambiente).
+ *
+ * <p>Se trabaja en un piso a la vez: en 3D se ven ese piso y los de abajo (los de arriba se
+ * ocultan para ver dentro) y en planta solo ese piso. Donde la puerta de un ambiente da contra el
+ * muro de otro, ese muro se abre (un vano) para que se pueda pasar.
  *
  * <ul>
  *   <li>Clic en un ambiente: lo elige. Doble clic: lo abre para decorarlo.</li>
@@ -70,6 +75,8 @@ public final class HomeView {
     private Home home = new Home();
     private final List<SpaceNode> nodes = new ArrayList<>();
     private Home.Space selected;
+    /** Piso en el que se trabaja. */
+    private int level;
 
     private Consumer<Home.Space> onSelect = s -> {};
     private Consumer<Home.Space> onOpen = s -> {};
@@ -83,8 +90,8 @@ public final class HomeView {
     private boolean moved;
     private List<double[]> guides = List.of();
 
-    /** Los nodos 3D de un ambiente. */
-    private record SpaceNode(Home.Space space, Group group, Translate position, RoomView room) {}
+    /** Los nodos 3D de un ambiente: su ubicación en la casa es {@code position} y luego {@code turn}. */
+    private record SpaceNode(Home.Space space, Group group, Translate position, Rotate turn, RoomView room) {}
 
     public HomeView(Catalog catalog, ModelLibrary models) {
         this.catalog = catalog;
@@ -140,11 +147,25 @@ public final class HomeView {
     public void setPlan(boolean plan) {
         cam.mode = plan ? ViewCamera.Mode.PLAN : ViewCamera.Mode.THREE_D;
         cam.update();
+        updateLevels();
         frame();
     }
 
     public void select(Home.Space s) {
         selected = s;
+        if (s != null && s.level != level) setLevel(s.level);
+        render();
+    }
+
+    public int level() {
+        return level;
+    }
+
+    /** Pasa a trabajar en otro piso. */
+    public void setLevel(int l) {
+        level = Math.max(0, l);
+        if (selected != null && selected.level != level) selected = null;
+        updateLevels();
         render();
     }
 
@@ -156,7 +177,10 @@ public final class HomeView {
         if (selected != null && !h.spaces.contains(selected)) selected = null;
         for (Home.Space s : h.spaces) {
             Design d = new Design(catalog);
-            d.load(s.project);
+            // Los vanos hacia los ambientes vecinos solo se dibujan: no se guardan en el ambiente.
+            Project p = s.project.copy();
+            p.openings.addAll(h.passagesInto(s));
+            d.load(p);
             RoomView room = new RoomView();
             room.rebuild(d);
             FurnitureView furniture = new FurnitureView(models, msg -> { });
@@ -164,9 +188,10 @@ public final class HomeView {
             furniture.sync(d);
             LightView lights = new LightView();
             lights.rebuild(d);
-            Translate position = new Translate(s.x, 0, s.z);
+            Translate position = new Translate();
+            Rotate turn = new Rotate(0, Rotate.Y_AXIS);
             Group g = new Group(room.group, furniture.group, lights.group);
-            g.getTransforms().add(position);
+            g.getTransforms().addAll(position, turn);
             g.getProperties().put(SPACE, s);
             // Las luces de cada ambiente solo lo iluminan a él (JavaFX ilumina con pocas luces a la vez).
             for (Node n : lights.group.getChildren()) {
@@ -177,10 +202,38 @@ public final class HomeView {
             // La base de cada habitación se reemplaza por una sola base para toda la casa.
             hidePlinth(room.group);
             spacesGroup.getChildren().add(g);
-            nodes.add(new SpaceNode(s, g, position, room));
+            SpaceNode node = new SpaceNode(s, g, position, turn, room);
+            place(node);
+            nodes.add(node);
         }
+        if (level >= h.levels()) level = h.levels() - 1;
+        updateLevels();
         updateGround();
         render();
+    }
+
+    /**
+     * Lleva el ambiente a su lugar en la casa: lo gira sobre su esquina y lo traslada para que la
+     * planta girada empiece en (x, z), a la altura de su piso.
+     */
+    private void place(SpaceNode n) {
+        Home.Space s = n.space();
+        double[] m = s.matrix();
+        n.position().setX(m[2]);
+        n.position().setY(home.elevation(s.level));
+        n.position().setZ(m[5]);
+        // Rotate en Y gira de X hacia -Z; el giro de la casa es horario visto desde arriba.
+        n.turn().setAngle(-s.rotation);
+    }
+
+    /** Muestra los pisos hasta el actual; solo los ambientes del piso actual se pueden elegir. */
+    private void updateLevels() {
+        boolean plan = cam.mode == ViewCamera.Mode.PLAN;
+        for (SpaceNode n : nodes) {
+            int l = n.space().level;
+            n.group().setVisible(plan ? l == level : l <= level);
+            n.group().setMouseTransparent(l != level);
+        }
     }
 
     private static void hidePlinth(Group g) {
@@ -191,22 +244,16 @@ public final class HomeView {
 
     /** Actualiza la posición de un ambiente sin reconstruirlo. */
     public void moved(Home.Space s) {
-        for (SpaceNode n : nodes) {
-            if (n.space() == s) {
-                n.position().setX(s.x);
-                n.position().setZ(s.z);
-            }
-        }
+        for (SpaceNode n : nodes) if (n.space() == s) place(n);
         updateGround();
         render();
     }
 
-    /** Encuadra la casa completa. */
+    /** Encuadra la casa completa (hasta el piso actual). */
     public void frame() {
         double[] b = bounds();
-        double h = 2.5;
-        for (Home.Space s : home.spaces) h = Math.max(h, s.project.room.height());
-        cam.frame(b[0], 0, b[1], b[2], h, b[3]);
+        double y0 = home.elevation(level), h = y0 + home.levelHeight(level);
+        cam.frame(b[0], isPlan() ? y0 : 0, b[1], b[2], h, b[3]);
         render();
     }
 
@@ -264,21 +311,27 @@ public final class HomeView {
         boolean plan = cam.mode == ViewCamera.Mode.PLAN;
         Point3D eye = cam.eye();
         for (SpaceNode n : nodes) {
-            // Cada habitación oculta las paredes que tapan su interior, vista desde la cámara.
-            n.room().updateVisibility(eye.subtract(n.space().x, 0, n.space().z), plan, false, null);
+            // Cada habitación oculta las paredes que tapan su interior, vista desde la cámara. Los
+            // pisos de abajo se ven completos (sus paredes sostienen el piso actual).
+            Home.Space s = n.space();
+            double[] local = s.toLocal(eye.getX(), eye.getZ());
+            Point3D localEye = new Point3D(local[0], eye.getY() - home.elevation(s.level), local[1]);
+            n.room().updateVisibility(localEye, plan || s.level < level, false, null);
         }
         GraphicsContext g = canvas.getGraphicsContext2D();
         g.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         g.setLineDashes();
+        double y = home.elevation(level);
         for (Home.Space s : home.spaces) {
+            if (s.level != level) continue;
             RoomDims r = s.project.room;
             if (s == selected) {
                 double[] o = s.outer();
                 g.setStroke(SELECT);
                 g.setLineWidth(3);
-                polygon(g, new double[][] {{o[0], o[1]}, {o[2], o[1]}, {o[2], o[3]}, {o[0], o[3]}});
+                polygon(g, new double[][] {{o[0], o[1]}, {o[2], o[1]}, {o[2], o[3]}, {o[0], o[3]}}, y);
             }
-            Point2D c = cam.project(new Point3D(s.x + r.width() / 2, 0.05, s.z + r.length() / 2));
+            Point2D c = cam.project(new Point3D(s.x + s.planWidth() / 2, y + 0.05, s.z + s.planLength() / 2));
             if (c == null) continue;
             String info = Units.number(Units.round(r.width() * r.length())) + " m²  ·  " + Units.number(r.width()) + " × "
                     + Units.number(r.length()) + " m";
@@ -288,16 +341,16 @@ public final class HomeView {
         g.setLineWidth(2.5);
         g.setLineDashes(10, 6);
         for (double[] line : guides) {
-            Point2D a = cam.project(new Point3D(line[0], 0.03, line[1])), b = cam.project(new Point3D(line[2], 0.03, line[3]));
+            Point2D a = cam.project(new Point3D(line[0], y + 0.03, line[1])), b = cam.project(new Point3D(line[2], y + 0.03, line[3]));
             if (a != null && b != null) g.strokeLine(a.getX(), a.getY(), b.getX(), b.getY());
         }
         g.setLineDashes();
     }
 
-    private void polygon(GraphicsContext g, double[][] pts) {
+    private void polygon(GraphicsContext g, double[][] pts, double y) {
         for (int i = 0; i < pts.length; i++) {
             double[] a = pts[i], b = pts[(i + 1) % pts.length];
-            Point2D pa = cam.project(new Point3D(a[0], 0.03, a[1])), pb = cam.project(new Point3D(b[0], 0.03, b[1]));
+            Point2D pa = cam.project(new Point3D(a[0], y + 0.03, a[1])), pb = cam.project(new Point3D(b[0], y + 0.03, b[1]));
             if (pa != null && pb != null) g.strokeLine(pa.getX(), pa.getY(), pb.getX(), pb.getY());
         }
     }
@@ -326,6 +379,11 @@ public final class HomeView {
 
     // ---------------------------------------------------------------- Ratón
 
+    /** Punto bajo el ratón sobre el piso actual (a la altura de ese piso). */
+    private Point3D floorPoint(double x, double y) {
+        return cam.planePoint(x, y, home.elevation(level));
+    }
+
     private Home.Space pick(javafx.scene.input.PickResult r) {
         for (Node n = r == null ? null : r.getIntersectedNode(); n != null; n = n.getParent()) {
             Object s = n.getProperties().get(SPACE);
@@ -345,7 +403,7 @@ public final class HomeView {
             Home.Space s = pick(e.getPickResult());
             // En 3D solo se arrastra el ambiente ya elegido (así arrastrar sobre la casa la gira).
             if (s != null && (isPlan() || s == selected)) {
-                Point3D p = cam.floorPoint(e.getX(), e.getY());
+                Point3D p = floorPoint(e.getX(), e.getY());
                 if (p == null) return;
                 dragging = s;
                 dragDx = s.x - p.getX();
@@ -358,7 +416,7 @@ public final class HomeView {
             lastX = e.getX();
             lastY = e.getY();
             if (dragging != null) {
-                Point3D p = cam.floorPoint(e.getX(), e.getY());
+                Point3D p = floorPoint(e.getX(), e.getY());
                 if (p == null) return;
                 drag(dragging, p.getX() + dragDx, p.getZ() + dragDz, !e.isAltDown());
                 return;
@@ -406,14 +464,14 @@ public final class HomeView {
      * demás (y se alinean sus bordes). Si así se encimaría con otro, prueba moverlo solo en X o en Z.
      */
     private void drag(Home.Space s, double x, double z, boolean magnet) {
-        double t = s.project.room.wallThickness(), w = s.project.room.width() + 2 * t, l = s.project.room.length() + 2 * t;
+        double t = s.project.room.wallThickness(), w = s.planWidth() + 2 * t, l = s.planLength() + 2 * t;
         List<double[]> lines = new ArrayList<>();
         if (magnet) {
             double minX = x - t, minZ = z - t;
             double bestX = SNAP, bestZ = SNAP, snapX = 0, snapZ = 0;
             double[] gx = null, gz = null;
             for (Home.Space o : home.spaces) {
-                if (o == s) continue;
+                if (o == s || o.level != s.level) continue;
                 double[] b = o.outer();
                 // Bordes en X: pegado por fuera (muro con muro) o alineado.
                 for (double[] pair : new double[][] {{minX, b[2]}, {minX + w, b[0]}, {minX, b[0]}, {minX + w, b[2]}}) {

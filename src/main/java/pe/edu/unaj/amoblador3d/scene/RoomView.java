@@ -124,7 +124,7 @@ final class RoomView {
     private void createBaseboard(Group g, WallFrame wall, List<Opening> openings) {
         if (baseboardHeight <= 0) return;
         List<Opening> doors = new ArrayList<>();
-        for (Opening o : openings) if (o.type == OpeningType.DOOR) doors.add(o);
+        for (Opening o : openings) if (o.type.isDoor()) doors.add(o);
         doors.sort(Comparator.comparingDouble(o -> o.offset));
         double cursor = 0, end = dims.wallLength(wall.side());
         for (Opening d : doors) {
@@ -197,15 +197,62 @@ final class RoomView {
             parts.add(wall.box(x0, x0 + fw, 0, h, -0.01, t + 0.01, Materials.FRAME)); // jamba izq.
             parts.add(wall.box(x1 - fw, x1, 0, h, -0.01, t + 0.01, Materials.FRAME)); // jamba der.
             parts.add(wall.box(x0, x1, h - fw, h, -0.01, t + 0.01, Materials.FRAME)); // cabezal
-            parts.add(wall.box(x0 + fw, x1 - fw, 0.01, h - fw, 0.01, 0.05, Materials.DOOR)); // hoja
-            double hx0 = x1 - fw - 0.16, hx1 = x1 - fw - 0.04;
-            parts.add(wall.box(hx0, hx1, 0.99, 1.01, -0.015, 0.005, Materials.METAL)); // manija interior
-            parts.add(wall.box(hx0, hx1, 0.99, 1.01, 0.055, 0.075, Materials.METAL)); // manija exterior
             parts.add(wall.box(x0, x1, 0, 0.01, 0, t, Materials.FRAME)); // umbral (cubre el piso dentro del muro)
+            double l0 = x0 + fw, l1 = x1 - fw, top = h - fw; // hueco libre entre el marco
+            switch (o.type) {
+                case DOUBLE -> {
+                    double mid = (l0 + l1) / 2;
+                    parts.add(wall.box(l0, mid - 0.003, 0.01, top, 0.01, 0.05, Materials.DOOR)); // hoja izq.
+                    parts.add(wall.box(mid + 0.003, l1, 0.01, top, 0.01, 0.05, Materials.DOOR)); // hoja der.
+                    for (double side : new double[] {-1, 1}) handles(parts, wall, mid + side * 0.1);
+                }
+                case SLIDING -> {
+                    // Dos paños de vidrio con marco, uno delante del otro, que se cruzan en el centro.
+                    double mid = (l0 + l1) / 2, ov = 0.04;
+                    slidingPanel(parts, wall, l0, mid + ov, top, cz - 0.03);
+                    slidingPanel(parts, wall, mid - ov, l1, top, cz + 0.03);
+                }
+                case GARAGE -> {
+                    // Portón seccional: placas horizontales de metal.
+                    int n = Math.max(3, (int) Math.round(top / 0.5));
+                    double ph = (top - 0.01) / n;
+                    for (int i = 0; i < n; i++) {
+                        parts.add(wall.box(l0, l1, 0.01 + i * ph + 0.005, 0.01 + (i + 1) * ph - 0.005, cz - 0.02, cz + 0.02,
+                                Materials.METAL));
+                    }
+                }
+                case PASSAGE -> { } // solo el marco: se pasa sin puerta
+                default -> {
+                    PhongMaterial leaf = o.type == OpeningType.ENTRY ? Materials.ENTRY_DOOR : Materials.DOOR;
+                    parts.add(wall.box(l0, l1, 0.01, top, 0.01, 0.05, leaf)); // hoja
+                    handles(parts, wall, l1 - 0.1);
+                    if (o.type == OpeningType.ENTRY) {
+                        // Mirilla de vidrio angosta a lo alto de la puerta principal.
+                        double gx = l0 + (l1 - l0) * 0.25;
+                        parts.add(wall.box(gx - 0.05, gx + 0.05, 0.9, top - 0.25, 0.005, 0.055, Materials.GLASS));
+                    }
+                }
+            }
         }
         g.getChildren().addAll(parts);
         SceneView.tag(g, o);
         return g;
+    }
+
+    /** Manijas a 1 m de alto, por dentro y por fuera de una hoja, centradas en {@code x}. */
+    private static void handles(List<Box> parts, WallFrame wall, double x) {
+        parts.add(wall.box(x - 0.06, x + 0.06, 0.99, 1.01, -0.015, 0.005, Materials.METAL)); // interior
+        parts.add(wall.box(x - 0.06, x + 0.06, 0.99, 1.01, 0.055, 0.075, Materials.METAL)); // exterior
+    }
+
+    /** Paño de puerta corrediza: vidrio con marco, a la profundidad {@code z} dentro del muro. */
+    private static void slidingPanel(List<Box> parts, WallFrame wall, double a0, double a1, double top, double z) {
+        double f = 0.04, d0 = z - 0.015, d1 = z + 0.015;
+        parts.add(wall.box(a0, a1, 0.01, 0.01 + f, d0, d1, Materials.FRAME));
+        parts.add(wall.box(a0, a1, top - f, top, d0, d1, Materials.FRAME));
+        parts.add(wall.box(a0, a0 + f, 0.01, top, d0, d1, Materials.FRAME));
+        parts.add(wall.box(a1 - f, a1, 0.01, top, d0, d1, Materials.FRAME));
+        parts.add(wall.box(a0 + f, a1 - f, 0.01 + f, top - f, z - 0.004, z + 0.004, Materials.GLASS));
     }
 
     /**

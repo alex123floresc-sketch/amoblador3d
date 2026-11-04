@@ -301,11 +301,17 @@ public final class Design {
 
     /** Agrega una ventana o puerta en el primer lugar libre. */
     public Outcome<Opening> addOpening(OpeningType type) {
-        Opening o = Opening.create(ids.next(type.id()), type);
         // Las puertas empiezan por el sur y las ventanas por el norte.
-        List<WallSide> order = type == OpeningType.DOOR
+        return addOpening(type, type.isDoor()
                 ? List.of(WallSide.SUR, WallSide.OESTE, WallSide.ESTE, WallSide.NORTE)
-                : List.of(WallSide.NORTE, WallSide.ESTE, WallSide.OESTE, WallSide.SUR);
+                : List.of(WallSide.NORTE, WallSide.ESTE, WallSide.OESTE, WallSide.SUR));
+    }
+
+    /** Agrega una ventana o puerta en el primer lugar libre de esas paredes (en ese orden). */
+    public Outcome<Opening> addOpening(OpeningType type, List<WallSide> order) {
+        Opening o = Opening.create(ids.next(type.id()), type);
+        // Si la pared es baja, la puerta se achica para caber (deja 5 cm bajo el techo).
+        o.height = round(Math.min(o.height, project.room.height() - MARGIN));
         for (WallSide wall : order) {
             o.wall = wall;
             Double offset = findFreeOffset(o, null);
@@ -316,8 +322,8 @@ public final class Design {
                 return Outcome.ok(o);
             }
         }
-        String what = type == OpeningType.DOOR ? "puerta" : "ventana";
-        return Outcome.fail("No hay espacio libre en las paredes para otra " + what + ".");
+        return Outcome.fail("No hay espacio libre en " + (order.size() == 1 ? "esa pared" : "las paredes") + " para: "
+                + type.label().toLowerCase() + " (" + Units.number(o.width) + " m).");
     }
 
     /**
@@ -330,7 +336,7 @@ public final class Design {
     String validateOpening(Opening o, Opening self, boolean checkFurniture) {
         double len = wallLength(o.wall);
         double h = project.room.height();
-        boolean door = o.type == OpeningType.DOOR;
+        boolean door = o.type.isDoor();
         String name = door ? "La puerta" : "La ventana";
 
         String err = checkRange("El ancho", o.width, 0.3, len - 2 * MARGIN);
@@ -391,6 +397,7 @@ public final class Design {
         candidate.sill = round(candidate.sill);
         String error = validateOpening(candidate, o, true);
         if (error != null) return error;
+        o.type = candidate.type;
         o.wall = candidate.wall;
         o.offset = candidate.offset;
         o.width = candidate.width;
@@ -419,7 +426,7 @@ public final class Design {
             double len = wallLength(o.wall);
             Opening fitted = o.copy();
             fitted.width = round(Math.min(o.width, len - 0.1));
-            if (o.type == OpeningType.DOOR) {
+            if (o.type.isDoor()) {
                 fitted.height = round(Math.min(o.height, h - 0.05));
                 fitted.sill = 0;
             } else {
@@ -592,6 +599,7 @@ public final class Design {
         CatalogEntry e = catalog.get(type);
         CatalogEntry.Size s = e.defaults();
         Furniture f = new Furniture(ids.next(type), type, 0, 0, 0, s.width(), s.depth(), s.height(), e.defaultColor());
+        fitHeight(f, e);
         return placeNew(f, e.name(), null);
     }
 
@@ -603,7 +611,19 @@ public final class Design {
         RoomDims r = project.room;
         Furniture f = new Furniture(ids.next(type), type, round(Units.clamp(x, 0, r.width())), round(Units.clamp(z, 0, r.length())),
                 0, s.width(), s.depth(), s.height(), e.defaultColor());
+        fitHeight(f, e);
         return placeNew(f, e.name(), f);
+    }
+
+    /**
+     * Las escaleras llegan justo al techo (al piso de arriba); los demás muebles más altos que la
+     * habitación se achican hasta su alto, si su medida mínima lo permite.
+     */
+    private void fitHeight(Furniture f, CatalogEntry e) {
+        double h = project.room.height();
+        if (Catalog.isStair(f.type) || f.height > h) {
+            f.height = round(Math.max(e.heightRange().min(), Math.min(e.heightRange().max(), h)));
+        }
     }
 
     /** Crea una copia del mueble en el lugar libre más cercano al original. */
@@ -656,7 +676,7 @@ public final class Design {
             if (fp.overlaps(c.footprint())) return "Choca con " + label(c).toLowerCase() + ".";
         }
         for (Opening o : project.openings) {
-            if (o.type == OpeningType.DOOR && fp.overlaps(doorZone(o))) return "Bloquea el paso de " + label(o) + ".";
+            if (o.type.isDoor() && fp.overlaps(doorZone(o))) return "Bloquea el paso de " + label(o) + ".";
         }
         return null;
     }
@@ -1122,7 +1142,7 @@ public final class Design {
         }
         for (Opening o : project.openings) {
             if (covers(c, o)) return "Taparía " + label(o) + ".";
-            if (o.type == OpeningType.DOOR && fp.overlaps(doorZone(o))) return "Bloquearía el paso de " + label(o) + ".";
+            if (o.type.isDoor() && fp.overlaps(doorZone(o))) return "Bloquearía el paso de " + label(o) + ".";
         }
         return null;
     }

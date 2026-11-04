@@ -20,7 +20,6 @@ import pe.edu.unaj.amoblador3d.model.Column;
 import pe.edu.unaj.amoblador3d.model.Footprint;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Opening;
-import pe.edu.unaj.amoblador3d.model.OpeningType;
 import pe.edu.unaj.amoblador3d.model.Project;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
 
@@ -100,7 +99,7 @@ final class TemplatesDialog {
                 case OESTE -> { x = ox - th; z = oz + a0; w = th; h = a1 - a0; }
                 default -> { x = ox + r.width() * scale; z = oz + a0; w = th; h = a1 - a0; }
             }
-            g.setFill(o.type == OpeningType.DOOR ? Color.WHITE : Color.web("#9fd3ff"));
+            g.setFill(o.type.isDoor() ? Color.WHITE : Color.web("#9fd3ff"));
             g.fillRect(x, z, w, h);
         }
 

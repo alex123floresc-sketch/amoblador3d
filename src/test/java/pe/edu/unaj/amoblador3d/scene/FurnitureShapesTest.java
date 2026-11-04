@@ -22,6 +22,10 @@ class FurnitureShapesTest {
             CatalogEntry.Size s = e.defaults();
             Furniture f = new Furniture("x", e.id(), 0, 0, 0, s.width(), s.depth(), s.height(), e.defaultColor());
             CustomDesign d = FurnitureShapes.fromParametric(f, e.name());
+            if (Catalog.isStair(e.id())) {
+                assertNull(d, e.id() + ": las escaleras no se abren en el Diseñador");
+                continue;
+            }
             assertNotNull(d, e.id());
             assertNull(d.validate(), e.id() + ": " + d.validate());
             assertTrue(d.uses(CustomDesign.Paint.MAIN), e.id() + " debería tener piezas del color principal");

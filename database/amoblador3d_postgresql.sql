@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Amoblador3D: base de datos en PostgreSQL
 --
--- Versión en PostgreSQL de la base SQLite que usa la aplicación (esquema v2, ver
+-- Versión en PostgreSQL de la base SQLite que usa la aplicación (esquema v9, ver
 -- database/amoblador3d_sqlite.sql). Mismas tablas y columnas, con los tipos y
 -- reglas propios de PostgreSQL:
 --
@@ -104,7 +104,8 @@ CREATE TABLE opening (
     project_id  BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position    INTEGER          NOT NULL CHECK (position >= 0),    -- orden en la lista
     id          VARCHAR(40)      NOT NULL,
-    type        VARCHAR(10)      NOT NULL CHECK (type IN ('window', 'door')),
+    -- window, door (puerta), entry (principal), double, sliding (corrediza), garage (portón) o passage (vano)
+    type        VARCHAR(10)      NOT NULL CHECK (type IN ('window', 'door', 'entry', 'double', 'sliding', 'garage', 'passage')),
     wall        VARCHAR(10)      NOT NULL CHECK (wall IN ('norte', 'sur', 'este', 'oeste')),
     wall_offset DOUBLE PRECISION NOT NULL CHECK (wall_offset >= 0), -- desde la esquina izquierda de la pared
     width       DOUBLE PRECISION NOT NULL CHECK (width > 0),
@@ -152,7 +153,35 @@ CREATE TABLE furniture (
     height     DOUBLE PRECISION NOT NULL CHECK (height > 0),
     color      color_hex,                                    -- NULL: colores propios del modelo
     locked     BOOLEAN          NOT NULL DEFAULT FALSE,      -- bloqueado: no se mueve
+    color2     color_hex,                                    -- color secundario (NULL: automático)
+    finish     VARCHAR(12),                                  -- acabado: mate, satinado... (NULL: el típico)
     PRIMARY KEY (project_id, id)
+);
+
+-- Muebles hechos en el Diseñador de muebles: sus piezas en JSON.
+CREATE TABLE custom_design (
+    id         VARCHAR(60)  PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
+    data       JSONB        NOT NULL,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+-- Ambientes de una casa. El primero (data NULL) es el proyecto de las tablas de arriba; los
+-- demás guardan su contenido en JSON (el mismo formato de los archivos .amob3d).
+CREATE TABLE home_space (
+    project_id BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    position   INTEGER          NOT NULL CHECK (position >= 0),
+    id         VARCHAR(40)      NOT NULL,
+    name       VARCHAR(40)      NOT NULL,
+    x          DOUBLE PRECISION NOT NULL,                     -- esquina interior noroeste, ya girado
+    z          DOUBLE PRECISION NOT NULL,
+    data       JSONB,
+    rotation   SMALLINT         NOT NULL DEFAULT 0 CHECK (rotation IN (0, 90, 180, 270)), -- horario visto desde arriba
+    level      SMALLINT         NOT NULL DEFAULT 0 CHECK (level BETWEEN 0 AND 3),         -- 0 es el primer piso
+    PRIMARY KEY (project_id, position),
+    UNIQUE (project_id, id),
+    CHECK ((position = 0) = (data IS NULL))                  -- solo el primero va en las tablas
 );
 
 -- Modelos 3D importados por el usuario.
@@ -252,7 +281,7 @@ SELECT p.id,
        p.name,
        round((p.width * p.length)::numeric, 2) AS area_m2,
        (SELECT count(*) FROM opening   o WHERE o.project_id = p.id AND o.type = 'window') AS windows,
-       (SELECT count(*) FROM opening   o WHERE o.project_id = p.id AND o.type = 'door')   AS doors,
+       (SELECT count(*) FROM opening   o WHERE o.project_id = p.id AND o.type <> 'window') AS doors,
        (SELECT count(*) FROM light     l WHERE l.project_id = p.id)                      AS lights,
        (SELECT count(*) FROM furniture f WHERE f.project_id = p.id)                      AS furniture,
        p.updated_at

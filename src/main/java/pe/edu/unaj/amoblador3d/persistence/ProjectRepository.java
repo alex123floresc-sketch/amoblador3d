@@ -81,7 +81,8 @@ public final class ProjectRepository {
                 ps.setLong(1, projectId);
                 ps.executeUpdate();
             }
-            String sql = "INSERT INTO home_space (project_id, position, id, name, x, z, data) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO home_space (project_id, position, id, name, x, z, data, rotation, level)"
+                    + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement ps = c.prepareStatement(sql)) {
                 for (int i = 0; i < home.spaces.size(); i++) {
                     Home.Space s = home.spaces.get(i);
@@ -93,6 +94,8 @@ public final class ProjectRepository {
                     ps.setDouble(6, s.z);
                     if (i == 0) ps.setNull(7, Types.VARCHAR);
                     else ps.setString(7, ProjectJson.write(s.project));
+                    ps.setInt(8, s.rotation);
+                    ps.setInt(9, s.level);
                     ps.addBatch();
                 }
                 ps.executeBatch();
@@ -106,7 +109,7 @@ public final class ProjectRepository {
         Project first = load(id);
         if (first == null) return null;
         Home h = new Home();
-        String sql = "SELECT id, name, x, z, data FROM home_space WHERE project_id = ? ORDER BY position";
+        String sql = "SELECT id, name, x, z, data, rotation, level FROM home_space WHERE project_id = ? ORDER BY position";
         try (PreparedStatement ps = db.connection().prepareStatement(sql)) {
             ps.setLong(1, id);
             try (ResultSet rs = ps.executeQuery()) {
@@ -114,7 +117,8 @@ public final class ProjectRepository {
                     String data = rs.getString(5);
                     Project p = h.spaces.isEmpty() ? first : data == null ? null : ProjectJson.read(data);
                     if (p == null) throw new ProjectFormatException("Un ambiente de la casa está dañado.");
-                    h.spaces.add(new Home.Space(rs.getString(1), rs.getString(2), rs.getDouble(3), rs.getDouble(4), p));
+                    h.spaces.add(new Home.Space(rs.getString(1), rs.getString(2), rs.getDouble(3), rs.getDouble(4), p,
+                            rs.getInt(6), rs.getInt(7)));
                 }
             }
         }

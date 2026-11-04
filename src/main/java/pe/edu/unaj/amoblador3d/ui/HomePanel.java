@@ -39,6 +39,17 @@ final class HomePanel {
         /** Mueve el ambiente en el plano de la casa. Devuelve un error o null. */
         String move(Home.Space s, double x, double z);
 
+        /** Gira el ambiente sobre su centro (0, 90, 180 o 270°). Devuelve un error o null. */
+        String rotate(Home.Space s, int degrees);
+
+        /** Lleva el ambiente a otro piso. Devuelve un error o null. */
+        String moveToLevel(Home.Space s, int level);
+
+        /** Piso que se ve en la vista de la casa. */
+        int viewLevel();
+
+        void showLevel(int level);
+
         void addEmpty();
 
         void frame();
@@ -64,17 +75,25 @@ final class HomePanel {
 
             @Override
             public List<Field> fields() {
-                return List.of();
+                Home h = host.home();
+                List<Field.Option> levels = new ArrayList<>();
+                for (int l = 0; l < h.levels(); l++) levels.add(new Field.Option(String.valueOf(l), levelName(l)));
+                if (h.levels() < Home.MAX_LEVELS) {
+                    levels.add(new Field.Option(String.valueOf(h.levels()), levelName(h.levels()) + " (nuevo)"));
+                }
+                return List.of(Field.select("level", "Piso que se ve", levels));
             }
 
             @Override
             public Object get(String key) {
-                return null;
+                return key.equals("level") ? String.valueOf(host.viewLevel()) : null;
             }
 
             @Override
             public String set(String key, Object value) {
-                return "Campo desconocido: " + key;
+                if (!key.equals("level")) return "Campo desconocido: " + key;
+                host.showLevel(Integer.parseInt((String) value));
+                return null;
             }
 
             @Override
@@ -84,7 +103,7 @@ final class HomePanel {
 
             @Override
             public List<Action> actions() {
-                return List.of(new Action("+ Ambiente vacío", "Agrega un ambiente pegado a la casa", () -> {
+                return List.of(new Action("+ Ambiente vacío", "Agrega un ambiente en el piso que se ve, pegado a la casa", () -> {
                     host.addEmpty();
                     return null;
                 }), new Action("⤢ Encuadrar", "Ver la casa completa", () -> {
@@ -93,6 +112,12 @@ final class HomePanel {
                 }));
             }
         };
+    }
+
+    /** "Primer piso", "Segundo piso"... */
+    static String levelName(int level) {
+        String[] names = {"Primer piso", "Segundo piso", "Tercer piso", "Cuarto piso"};
+        return level < names.length ? names[level] : "Piso " + (level + 1);
     }
 
     /** Tabla de ambientes con su área y su presupuesto, y los totales. */
@@ -113,12 +138,14 @@ final class HomePanel {
         }
         double area = 0, total = 0;
         int row = 1;
-        for (Home.Space s : host.home().spaces) {
+        Home home = host.home();
+        boolean levels = home.levels() > 1;
+        for (Home.Space s : home.spaces) {
             RoomDims r = s.project.room;
             double a = r.width() * r.length(), t = host.total(s);
             area += a;
             total += t;
-            Label n = new Label(s.name);
+            Label n = new Label(levels ? "P" + (s.level + 1) + " · " + s.name : s.name);
             n.setMinWidth(40);
             grid.add(n, 0, row);
             grid.add(fixed(Units.number(Units.round(a)) + " m²"), 1, row);
@@ -133,12 +160,18 @@ final class HomePanel {
         grid.add(totalName, 0, row);
         grid.add(totalArea, 1, row);
         grid.add(totalMoney, 2, row);
-        Label hint = new Label("Haz clic en un ambiente para moverlo o cambiar sus medidas; doble clic para decorarlo. "
-                + "Al arrastrarlo, sus muros se pegan a los de los demás (Alt: sin imán). El presupuesto de cada ambiente "
-                + "incluye acabados y muebles (Proyecto → Metrado y presupuesto).");
+        long outside = home.exteriorDoors().size();
+        Label doors = new Label(home.levels() + (home.levels() == 1 ? " piso" : " pisos") + " · " + outside
+                + (outside == 1 ? " puerta da" : " puertas dan") + " al exterior"
+                + (outside == 0 ? "\n⚠ Agrega una puerta principal en una pared que dé a la calle." : ""));
+        doors.setWrapText(true);
+        Label hint = new Label("Haz clic en un ambiente para moverlo, girarlo o cambiar sus medidas; doble clic para "
+                + "decorarlo. Al arrastrarlo, sus muros se pegan a los de los demás (Alt: sin imán). Una puerta pegada al "
+                + "muro de otro ambiente abre paso entre los dos. El presupuesto de cada ambiente incluye acabados y "
+                + "muebles (Proyecto → Metrado y presupuesto).");
         hint.setWrapText(true);
         hint.getStyleClass().add("hint");
-        VBox box = new VBox(10, grid, hint);
+        VBox box = new VBox(10, grid, doors, hint);
         box.getStyleClass().add("properties-header");
         return box;
     }
@@ -169,6 +202,15 @@ final class HomePanel {
                 f.add(Field.section("Ubicación en la casa"));
                 f.add(Field.number("x", "Esquina X", -200, 200, 0.01, "m"));
                 f.add(Field.number("z", "Esquina Z", -200, 200, 0.01, "m"));
+                List<Field.Option> turns = new ArrayList<>();
+                for (int d = 0; d < 360; d += 90) {
+                    turns.add(new Field.Option(String.valueOf(d), d + "°" + (d == 0 ? " (como se dibujó)" : "")));
+                }
+                f.add(Field.select("rotation", "Giro", turns));
+                List<Field.Option> levels = new ArrayList<>();
+                int max = Math.min(Home.MAX_LEVELS, host.home().levels() + 1);
+                for (int l = 0; l < max; l++) levels.add(new Field.Option(String.valueOf(l), levelName(l)));
+                f.add(Field.select("level", "Piso", levels));
                 f.add(Field.section("Medidas de la habitación"));
                 f.add(Field.slider("width", "Ancho (X)", RoomDims.MIN_SIDE, 12, 0.05, "m"));
                 f.add(Field.slider("length", "Largo (Z)", RoomDims.MIN_SIDE, 12, 0.05, "m"));
@@ -183,6 +225,8 @@ final class HomePanel {
                 return switch (key) {
                     case "x" -> s.x;
                     case "z" -> s.z;
+                    case "rotation" -> String.valueOf(s.rotation);
+                    case "level" -> String.valueOf(s.level);
                     case "width" -> r.width();
                     case "length" -> r.length();
                     case "height" -> r.height();
@@ -193,6 +237,8 @@ final class HomePanel {
 
             @Override
             public String set(String key, Object value) {
+                if (key.equals("rotation")) return host.rotate(s, Integer.parseInt((String) value));
+                if (key.equals("level")) return host.moveToLevel(s, Integer.parseInt((String) value));
                 if (!(value instanceof Double v) || !Double.isFinite(v)) return "Escribe un número.";
                 RoomDims r = s.project.room;
                 return switch (key) {
@@ -219,6 +265,8 @@ final class HomePanel {
                             host.open(s);
                             return null;
                         }),
+                        new Action("⟳ Girar 90°", "Girarlo sobre su centro, en sentido horario",
+                                () -> host.rotate(s, (s.rotation + 90) % 360)),
                         new Action("Renombrar…", "Cambiar el nombre del ambiente", () -> {
                             host.rename(s);
                             return null;

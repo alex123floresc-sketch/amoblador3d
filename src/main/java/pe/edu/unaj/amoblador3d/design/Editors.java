@@ -123,10 +123,15 @@ public final class Editors {
             List<Option> walls = new ArrayList<>();
             for (WallSide w : WallSide.values()) walls.add(new Option(w.id(), w.label()));
             List<Field> fields = new ArrayList<>();
+            if (o.type.isDoor()) {
+                List<Option> types = new ArrayList<>();
+                for (OpeningType t : OpeningType.doors()) types.add(new Option(t.id(), t.label()));
+                fields.add(Field.select("type", "Tipo de puerta", types));
+            }
             fields.add(Field.select("wall", "Pared", walls));
             fields.add(Field.meters("offset", "Posición desde esquina", MARGIN, len - o.width - MARGIN));
             fields.add(Field.meters("width", "Ancho", 0.3, len - o.offset - MARGIN));
-            if (o.type == OpeningType.DOOR) {
+            if (o.type.isDoor()) {
                 fields.add(Field.meters("height", "Alto", 1.5, h - MARGIN));
             } else {
                 fields.add(Field.meters("height", "Alto", 0.3, h - o.sill - MARGIN));
@@ -138,6 +143,7 @@ public final class Editors {
         @Override
         public Object get(String key) {
             return switch (key) {
+                case "type" -> o.type.id();
                 case "wall" -> o.wall.id();
                 case "offset" -> o.offset;
                 case "width" -> o.width;
@@ -150,6 +156,18 @@ public final class Editors {
         @Override
         public String set(String key, Object value) {
             Opening c = o.copy();
+            if (key.equals("type")) {
+                OpeningType t = OpeningType.fromId((String) value);
+                if (!t.isDoor()) return "Elige un tipo de puerta.";
+                // Primero con las medidas típicas del tipo nuevo; si no caben, con las de ahora.
+                c.type = t;
+                c.width = t.defaultWidth();
+                c.height = Math.min(t.defaultHeight(), design.room().height() - MARGIN);
+                if (design.changeOpening(o, c) == null) return null;
+                Opening same = o.copy();
+                same.type = t;
+                return design.changeOpening(o, same);
+            }
             if (key.equals("wall")) {
                 c.wall = WallSide.fromId((String) value);
                 return design.changeOpening(o, c);
@@ -424,7 +442,8 @@ public final class Editors {
                 actions.add(new Action(e.kind() == CatalogEntry.Kind.MODEL ? "Colores originales" : "Colores por defecto",
                         "Quitar los colores y el acabado elegidos", this::originalColors, free));
             }
-            boolean designable = e.kind() == CatalogEntry.Kind.PARAMETRIC || e.kind() == CatalogEntry.Kind.CUSTOM;
+            boolean designable = (e.kind() == CatalogEntry.Kind.PARAMETRIC && !Catalog.isStair(f.type))
+                    || e.kind() == CatalogEntry.Kind.CUSTOM;
             if (onDesign != null && designable) {
                 actions.add(new Action("✎ Diseñar a partir de este…",
                         "Abrir el Diseñador de muebles con una copia editable de este mueble, pieza por pieza",

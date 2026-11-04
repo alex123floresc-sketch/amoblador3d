@@ -1,5 +1,5 @@
 -- =============================================================================
--- Amoblador3D: base de datos SQLite (esquema v6)
+-- Amoblador3D: base de datos SQLite (esquema v9)
 --
 -- Es el mismo esquema que la aplicación crea sola al arrancar
 -- (src/main/java/pe/edu/unaj/amoblador3d/persistence/Database.java), más un
@@ -33,7 +33,8 @@ CREATE TABLE opening (
     project_id  INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position    INTEGER NOT NULL,
     id          TEXT    NOT NULL,
-    type        TEXT    NOT NULL CHECK (type IN ('window', 'door')),
+    -- v9: puerta principal, doble, corrediza, portón de cochera y vano sin puerta
+    type        TEXT    NOT NULL CHECK (type IN ('window', 'door', 'entry', 'double', 'sliding', 'garage', 'passage')),
     wall        TEXT    NOT NULL CHECK (wall IN ('norte', 'sur', 'este', 'oeste')),
     wall_offset REAL    NOT NULL,
     width       REAL    NOT NULL,
@@ -135,8 +136,36 @@ CREATE TABLE room_column (
     PRIMARY KEY (project_id, id)
 );
 
+-- v7: color secundario y acabado de los muebles, y muebles hechos en el Diseñador (JSON).
+ALTER TABLE furniture ADD COLUMN color2 TEXT;
+ALTER TABLE furniture ADD COLUMN finish TEXT;
+
+CREATE TABLE custom_design (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- v8: casas con varios ambientes. El primer ambiente sigue en las tablas de arriba (data NULL);
+-- los demás guardan su contenido como JSON (el mismo formato de los archivos .amob3d).
+-- v9: rotation = giro horario visto desde arriba (0, 90, 180, 270); level = piso (0 es el primero).
+CREATE TABLE home_space (
+    project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+    position   INTEGER NOT NULL,
+    id         TEXT    NOT NULL,
+    name       TEXT    NOT NULL,
+    x          REAL    NOT NULL,
+    z          REAL    NOT NULL,
+    data       TEXT,
+    rotation   INTEGER NOT NULL DEFAULT 0,
+    level      INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (project_id, position)
+);
+
 -- La aplicación lee este número para saber que las tablas ya están creadas.
-PRAGMA user_version = 6;
+PRAGMA user_version = 9;
 
 -- -----------------------------------------------------------------------------
 -- Proyecto de ejemplo: dormitorio de 4 x 3.5 m
@@ -165,6 +194,9 @@ INSERT INTO furniture (project_id, position, id, type, x, z, rotation, width, de
     (1, 1, 'escritorio-1', 'escritorio', 3.3, 1.7, 0, 1.20, 0.6, 0.75, '#d9c6a5', 0),
     (1, 2, 'silla-1',      'silla',      1.0, 1.7, 0, 0.45, 0.5, 0.90, '#6d4c33', 0),
     (1, 3, 'closet-1',     'closet',     3.3, 2.3, 0, 1.20, 0.6, 2.00, '#e8e2d6', 0);
+
+INSERT INTO home_space (project_id, position, id, name, x, z, data, rotation, level) VALUES
+    (1, 0, 'ambiente-1', 'Dormitorio', 0.0, 0.0, NULL, 0, 0);
 
 INSERT INTO camera_view (project_id, position, name, mode, x, y, z, yaw, pitch, distance) VALUES
     (1, 0, 'Desde la puerta', 'walk', 2.0, 1.6, 2.9, 0.0, 0.0, 0.0);

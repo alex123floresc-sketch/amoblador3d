@@ -16,7 +16,7 @@ import java.sql.Statement;
  * tablas en el futuro, se agrega un paso en {@link #migrate()} y se sube {@link #SCHEMA_VERSION}.
  */
 public final class Database implements AutoCloseable {
-    static final int SCHEMA_VERSION = 8;
+    static final int SCHEMA_VERSION = 9;
 
     private static final String[] SCHEMA_V1 = {
         """
@@ -182,9 +182,34 @@ public final class Database implements AutoCloseable {
         )""",
     };
 
+    /**
+     * v9: ambientes girados y en varios pisos, y más tipos de puerta (principal, doble, corrediza,
+     * portón y vano). SQLite no deja cambiar un CHECK: la tabla opening se vuelve a crear.
+     */
+    private static final String[] SCHEMA_V9 = {
+        "ALTER TABLE home_space ADD COLUMN rotation INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE home_space ADD COLUMN level INTEGER NOT NULL DEFAULT 0",
+        """
+        CREATE TABLE opening_v9 (
+            project_id  INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+            position    INTEGER NOT NULL,
+            id          TEXT    NOT NULL,
+            type        TEXT    NOT NULL CHECK (type IN ('window', 'door', 'entry', 'double', 'sliding', 'garage', 'passage')),
+            wall        TEXT    NOT NULL CHECK (wall IN ('norte', 'sur', 'este', 'oeste')),
+            wall_offset REAL    NOT NULL,
+            width       REAL    NOT NULL,
+            height      REAL    NOT NULL,
+            sill        REAL    NOT NULL,
+            PRIMARY KEY (project_id, id)
+        )""",
+        "INSERT INTO opening_v9 SELECT project_id, position, id, type, wall, wall_offset, width, height, sill FROM opening",
+        "DROP TABLE opening",
+        "ALTER TABLE opening_v9 RENAME TO opening",
+    };
+
     /** Pasos de migración: el paso i lleva la base de la versión i a la i + 1. */
     private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7,
-        SCHEMA_V8};
+        SCHEMA_V8, SCHEMA_V9};
 
     private final Connection connection;
 

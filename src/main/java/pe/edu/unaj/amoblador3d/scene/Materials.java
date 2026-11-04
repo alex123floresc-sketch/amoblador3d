@@ -16,6 +16,7 @@ final class Materials {
     static final PhongMaterial FRAME = shiny(Color.web("#fafafa"), 0.3, 20);
     static final PhongMaterial GLASS = glass();
     static final PhongMaterial DOOR = shiny(Color.web("#8b5a2b"), 0.2, 16);
+    static final PhongMaterial ENTRY_DOOR = shiny(Color.web("#5a3a22"), 0.35, 24);
     static final PhongMaterial METAL = shiny(Color.web("#c0c0c0"));
     static final PhongMaterial MISSING = of(Color.rgb(217, 83, 79, 0.55));
     static final PhongMaterial PLACEHOLDER = of(Color.rgb(154, 163, 173, 0.4));

@@ -278,11 +278,16 @@ final class ViewCamera {
 
     /** Punto del piso (y = 0) bajo el píxel indicado, o null si el rayo no lo toca. */
     Point3D floorPoint(double sx, double sy) {
+        return planePoint(sx, sy, 0);
+    }
+
+    /** Igual que {@link #floorPoint}, sobre el plano horizontal a la altura {@code y} (el piso de arriba). */
+    Point3D planePoint(double sx, double sy, double y) {
         double ndcX = sx / width * 2 - 1, ndcY = 1 - sy / height * 2;
         Point3D dir = forward.add(right.multiply(ndcX * tanHalf * width / height)).add(up.multiply(ndcY * tanHalf));
         if (dir.getY() > -1e-6) return null; // mira hacia arriba u horizontal
-        double t = -eye.getY() / dir.getY();
-        return eye.add(dir.multiply(t));
+        double t = (y - eye.getY()) / dir.getY();
+        return t < 0 ? null : eye.add(dir.multiply(t));
     }
 
     private static double clamp(double v, double min, double max) {

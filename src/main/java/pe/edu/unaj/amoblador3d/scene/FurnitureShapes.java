@@ -93,6 +93,8 @@ public final class FurnitureShapes {
      * @return null si el mueble no es paramétrico
      */
     public static CustomDesign fromParametric(Furniture f, String name) {
+        // Las escaleras tienen piezas inclinadas o giradas, que el Diseñador no sabe representar.
+        if (pe.edu.unaj.amoblador3d.catalog.Catalog.isStair(f.type)) return null;
         Group g = ParametricBuilder.build(f);
         if (g == null) return null;
         CustomDesign d = new CustomDesign();

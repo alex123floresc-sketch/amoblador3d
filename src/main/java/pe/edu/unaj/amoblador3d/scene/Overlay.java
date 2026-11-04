@@ -18,7 +18,6 @@ import pe.edu.unaj.amoblador3d.model.Furniture;
 import pe.edu.unaj.amoblador3d.model.Light;
 import pe.edu.unaj.amoblador3d.model.LightType;
 import pe.edu.unaj.amoblador3d.model.Opening;
-import pe.edu.unaj.amoblador3d.model.OpeningType;
 import pe.edu.unaj.amoblador3d.model.RoomDims;
 import pe.edu.unaj.amoblador3d.model.Surface;
 import pe.edu.unaj.amoblador3d.util.Units;
@@ -259,7 +258,10 @@ final class Overlay {
 
     // ---------------------------------------------------------------- Planta
 
-    /** Ventana: línea por el centro del muro. Puerta: hoja abierta 90° y arco de giro. */
+    /**
+     * Ventana: línea por el centro del muro. Puerta: hoja abierta 90° y arco de giro (dos en la doble);
+     * corrediza: dos paños cruzados; portón: línea punteada; vano: solo el hueco.
+     */
     private void drawPlanSymbol(RoomDims r, Opening o) {
         WallFrame wall = WallFrame.of(o.wall, r);
         double y = r.height() + 0.01, t = r.wallThickness(), x0 = o.offset, x1 = x0 + o.width;
@@ -271,22 +273,45 @@ final class Overlay {
             xs[i] = s.getX();
             ys[i] = s.getY();
         }
-        g.setFill(o.type == OpeningType.DOOR ? Color.WHITE : Color.web("#9fd3ff"));
+        g.setFill(o.type.isDoor() ? Color.WHITE : Color.web("#9fd3ff"));
         g.fillPolygon(xs, ys, 4);
         g.setStroke(Color.web("#333333"));
         g.setLineWidth(1.2);
-        if (o.type == OpeningType.WINDOW) {
-            line(wall.point(x0, y, t / 2), wall.point(x1, y, t / 2));
-        } else {
-            Point3D prev = wall.point(x0, y, 0);
-            line(prev, wall.point(x0, y, -o.width)); // hoja abierta
-            prev = wall.point(x0, y, -o.width);
-            for (int i = 1; i <= 24; i++) {
-                double a = Math.PI / 2 * (i / 24.0);
-                Point3D next = wall.point(x0 + o.width * Math.sin(a), y, -o.width * Math.cos(a));
-                line(prev, next);
-                prev = next;
+        switch (o.type) {
+            case WINDOW -> line(wall.point(x0, y, t / 2), wall.point(x1, y, t / 2));
+            case DOUBLE -> {
+                double half = o.width / 2;
+                swing(wall, y, x0, half, 1);
+                swing(wall, y, x1, half, -1);
             }
+            case SLIDING -> {
+                // Dos paños que se cruzan en el centro, a distinta profundidad del muro.
+                double mid = (x0 + x1) / 2, ov = 0.04;
+                line(wall.point(x0, y, t / 2 - 0.03), wall.point(mid + ov, y, t / 2 - 0.03));
+                line(wall.point(mid - ov, y, t / 2 + 0.03), wall.point(x1, y, t / 2 + 0.03));
+            }
+            case GARAGE -> {
+                g.setLineDashes(6, 4);
+                line(wall.point(x0, y, t / 2), wall.point(x1, y, t / 2));
+                g.setLineDashes();
+            }
+            case PASSAGE -> { } // vano libre: solo el hueco
+            default -> swing(wall, y, x0, o.width, 1);
+        }
+    }
+
+    /**
+     * Hoja abierta 90° hacia dentro y su arco de giro. La bisagra está en {@code hinge} y la hoja
+     * mide {@code leaf}; {@code dir} 1 si cierra hacia +a lo largo del muro, -1 si hacia atrás.
+     */
+    private void swing(WallFrame wall, double y, double hinge, double leaf, int dir) {
+        Point3D prev = wall.point(hinge, y, -leaf);
+        line(wall.point(hinge, y, 0), prev); // hoja abierta
+        for (int i = 1; i <= 24; i++) {
+            double a = Math.PI / 2 * (i / 24.0);
+            Point3D next = wall.point(hinge + dir * leaf * Math.sin(a), y, -leaf * Math.cos(a));
+            line(prev, next);
+            prev = next;
         }
     }
 

@@ -74,6 +74,34 @@ class HomePersistenceTest {
     }
 
     @Test
+    void elGiroElPisoYLosTiposDePuertaSeGuardan() throws Exception {
+        Home h = house();
+        Home.Space kitchen = h.spaces.get(2);
+        kitchen.rotation = 90;
+        kitchen.level = 1;
+        kitchen.project.openings.add(new pe.edu.unaj.amoblador3d.model.Opening("garage-1",
+                pe.edu.unaj.amoblador3d.model.OpeningType.GARAGE, pe.edu.unaj.amoblador3d.model.WallSide.NORTE, 0.2, 2.6, 2.2, 0));
+        Home back = HomeJson.read(HomeJson.write(h), "X");
+        assertEquals(90, back.spaces.get(2).rotation);
+        assertEquals(1, back.spaces.get(2).level);
+        assertTrue(back.spaces.get(2).project.openings.stream().anyMatch(o -> o.type == pe.edu.unaj.amoblador3d.model.OpeningType.GARAGE));
+        try (Database db = new Database(dir.resolve("pisos.db"))) {
+            ProjectRepository repo = new ProjectRepository(db);
+            long id = repo.saveHome(null, "Dos pisos", h, null);
+            assertEquals(HomeJson.write(h), HomeJson.write(repo.loadHome(id)));
+            // El primer ambiente va en las tablas: su puerta de otro tipo pasa el CHECK de la tabla opening.
+            h.spaces.get(0).project.openings.get(0).type = pe.edu.unaj.amoblador3d.model.OpeningType.ENTRY;
+            repo.saveHome(id, "Dos pisos", h, null);
+            assertEquals(pe.edu.unaj.amoblador3d.model.OpeningType.ENTRY, repo.loadHome(id).spaces.get(0).project.openings.get(0).type);
+        }
+        // Valores fuera de rango en un archivo se corrigen al abrirlo.
+        String bad = HomeJson.write(h).replace("\"rotation\": 90", "\"rotation\": 100").replace("\"level\": 1", "\"level\": 9");
+        Home fixed = HomeJson.read(bad, "X");
+        assertEquals(90, fixed.spaces.get(2).rotation);
+        assertEquals(Home.MAX_LEVELS - 1, fixed.spaces.get(2).level);
+    }
+
+    @Test
     void unArchivoDeUnaSolaHabitacionEsUnaCasaDeUnAmbiente() throws Exception {
         Project p = room("Baño");
         Home h = HomeJson.read(ProjectJson.write(p), "Mi baño");

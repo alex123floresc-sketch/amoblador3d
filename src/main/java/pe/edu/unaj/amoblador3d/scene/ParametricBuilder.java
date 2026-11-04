@@ -5,6 +5,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Material;
 import javafx.scene.shape.Box;
 import javafx.scene.shape.Cylinder;
+import javafx.scene.transform.Rotate;
 import pe.edu.unaj.amoblador3d.model.Finish;
 import pe.edu.unaj.amoblador3d.model.Furniture;
 
@@ -83,6 +84,10 @@ final class ParametricBuilder {
             case "refrigeradora" -> fridge(f.width, f.depth, f.height, color);
             case "inodoro" -> toilet(f.width, f.depth, f.height, color);
             case "lavatorio" -> washbasin(f.width, f.depth, f.height, color);
+            case "escalera" -> straightStair(f.width, f.depth, f.height, color);
+            case "escalera-l" -> lStair(f.width, f.depth, f.height, color);
+            case "escalera-caracol" -> spiralStair(f.width, f.depth, f.height, color);
+            case "baranda" -> railing(f.width, f.depth, f.height, color);
             default -> null;
         };
     }
@@ -372,6 +377,126 @@ final class ParametricBuilder {
         box(g, Materials.shiny(Color.web("#cfd6dc"), 0.8, 50), w - 0.1, 0.004, d - 0.14, 0, basinTop, 0.03); // poza
         cylinder(g, color.accentOrMetal(), 0.015, 0.04, 0, h - 0.02, -d / 2 + 0.05); // grifo
         box(g, color.accentOrMetal(), 0.025, 0.015, 0.08, 0, h - 0.0075, -d / 2 + 0.09); // caño
+        return g;
+    }
+
+    // ---------------------------------------------------------------- Escaleras
+
+    /** Contrapaso ideal (m): la cantidad de peldaños sale del alto. */
+    private static final double RISER = 0.18;
+    /** Alto de los parantes del pasamanos sobre el peldaño. */
+    private static final double POST = 0.85;
+
+    /** Caja girada {@code angle} grados alrededor del eje {@code axis}, con su centro en (x, y, z). */
+    private static void turnedBox(Group g, Material m, double w, double h, double d, double x, double y, double z,
+                                  double angle, javafx.geometry.Point3D axis) {
+        if (w <= 0 || h <= 0 || d <= 0) return;
+        Box b = new Box(w, h, d);
+        b.setTranslateX(x);
+        b.setTranslateY(y);
+        b.setTranslateZ(z);
+        b.getTransforms().add(new Rotate(angle, axis));
+        b.setMaterial(m);
+        g.getChildren().add(b);
+    }
+
+    /**
+     * Pasamanos inclinado de (z0, y0) a (z1, y1) sobre la línea x, con parantes en los extremos.
+     * Si no cabe bajo el alto {@code top} (escaleras muy bajas), no se pone.
+     */
+    private static void handrailZ(Group g, Material m, double x, double z0, double y0, double z1, double y1, double top) {
+        if (Math.max(y0, y1) + POST + 0.05 > top || y0 < 0 || y1 < 0) return;
+        for (double[] p : new double[][] {{z0, y0}, {z1, y1}}) box(g, m, 0.04, POST, 0.04, x, p[1] + POST / 2, p[0]); // parantes
+        // Rotate en X lleva +Z hacia -Y: el ángulo va con el signo cambiado.
+        double angle = -Math.toDegrees(Math.atan2(y1 - y0, z1 - z0)), len = Math.hypot(z1 - z0, y1 - y0);
+        turnedBox(g, m, 0.05, 0.04, len, x, (y0 + y1) / 2 + POST, (z0 + z1) / 2, angle, Rotate.X_AXIS); // pasamanos
+    }
+
+    /** Peldaño macizo de {@code w} × {@code d} (centro en x, z) cuya huella queda a la altura {@code top}. */
+    private static void step(Group g, Material body, Material tread, double w, double d, double x, double z, double top) {
+        box(g, body, w, top - 0.04, d, x, (top - 0.04) / 2, z); // cuerpo
+        box(g, tread, w, 0.04, d, x, top - 0.02, z); // huella
+    }
+
+    /**
+     * Escalera recta: se sube desde el frente (+Z) hacia atrás (-Z) y el último peldaño llega al
+     * alto indicado (el piso de arriba). Pasamanos al lado derecho.
+     */
+    private static Group straightStair(double w, double d, double h, Style color) {
+        Group g = new Group();
+        Material wood = color.mat(), body = color.darker(0.85), rail = color.accent("#2f3236");
+        int n = Math.max(2, (int) Math.round(h / RISER));
+        double rise = h / n, run = d / n;
+        for (int i = 0; i < n; i++) step(g, body, wood, w, run, 0, d / 2 - run * (i + 0.5), (i + 1) * rise);
+        // El pasamanos sube junto a los peldaños, sin pasar del alto total.
+        // Los extremos se separan del borde: en escaleras empinadas el pasamanos inclinado sobresaldría.
+        double inset = Math.max(run / 2, 0.03);
+        handrailZ(g, rail, w / 2 - 0.03, d / 2 - inset, rise, -d / 2 + inset, Math.max(rise, h - POST - 0.05), h);
+        return g;
+    }
+
+    /**
+     * Escalera en L: un tramo sube por el lado derecho hacia atrás, un descanso en la esquina
+     * trasera derecha y un segundo tramo sube hacia la izquierda por el fondo.
+     */
+    private static Group lStair(double w, double d, double h, Style color) {
+        Group g = new Group();
+        Material wood = color.mat(), body = color.darker(0.85), rail = color.accent("#2f3236");
+        double fw = Math.min(1.0, Math.min(w, d) * 0.5); // ancho de los tramos
+        int n = Math.max(4, (int) Math.round(h / RISER));
+        double rise = h / n;
+        int n1 = n / 2; // el descanso es el peldaño n1
+        double run1 = (d - fw) / (n1 - 1), run2 = (w - fw) / (n - n1);
+        double xr = w / 2 - fw / 2, zb = -d / 2 + fw / 2; // centro del primer tramo y del segundo
+        for (int i = 0; i < n1 - 1; i++) step(g, body, wood, fw, run1, xr, d / 2 - run1 * (i + 0.5), (i + 1) * rise);
+        step(g, body, wood, fw, fw, xr, zb, n1 * rise); // descanso
+        for (int j = 0; j < n - n1; j++) step(g, body, wood, run2, fw, w / 2 - fw - run2 * (j + 0.5), zb, (n1 + j + 1) * rise);
+        // Pasamanos por el lado libre del primer tramo.
+        handrailZ(g, rail, w / 2 - fw + 0.03, d / 2 - Math.max(run1 / 2, 0.03), rise, -d / 2 + fw + 0.03, (n1 - 1) * rise, h);
+        return g;
+    }
+
+    /**
+     * Escalera de caracol: poste central y peldaños en abanico (30° cada uno, o más si son pocos,
+     * para dar al menos una vuelta) con parantes en la punta. Si la planta no es cuadrada, el
+     * caracol se estira hasta llenarla.
+     */
+    private static Group spiralStair(double w, double d, double h, Style color) {
+        Group g = new Group();
+        Material steel = color.mat(), tread = color.accent("#b08a5e");
+        double r = Math.min(w, d) / 2, pole = 0.05;
+        int n = Math.max(4, (int) Math.round(h / RISER));
+        double rise = h / n, step = Math.max(30, 360.0 / n);
+        cylinder(g, steel, pole, h, 0, h / 2, 0); // poste
+        // Ancho del peldaño en la punta, y su largo para que las esquinas no salgan del círculo.
+        double tw = Math.min((r - pole) * Math.toRadians(step) * 1.15, 0.5);
+        double outer = Math.sqrt(r * r - tw * tw / 4), len = outer - pole;
+        for (int i = 0; i < n; i++) {
+            double a = Math.toRadians(i * step), mid = pole + len / 2, top = (i + 1) * rise;
+            // Peldaño: largo en dirección radial (la Z local, antes de girar).
+            turnedBox(g, tread, tw, 0.04, len, Math.sin(a) * mid, top - 0.02, Math.cos(a) * mid, i * step, Rotate.Y_AXIS);
+            double ph = Math.min(0.9, h - top);
+            cylinder(g, steel, 0.012, ph, Math.sin(a) * (r - 0.03), top + ph / 2, Math.cos(a) * (r - 0.03)); // parante
+        }
+        if (Math.abs(w - d) < 1e-9) return g;
+        Group stretched = new Group(g);
+        g.getTransforms().add(new javafx.scene.transform.Scale(w / (2 * r), 1, d / (2 * r)));
+        return stretched;
+    }
+
+    /** Baranda recta: base, pasamanos arriba, riel abajo y barrotes cada ~12 cm. */
+    private static Group railing(double w, double d, double h, Style color) {
+        Group g = new Group();
+        Material m = color.mat();
+        double rail = Math.min(0.05, d);
+        box(g, m, w, 0.03, d, 0, 0.015, 0); // base atornillada al piso
+        box(g, m, w, 0.05, rail, 0, h - 0.025, 0); // pasamanos
+        box(g, m, w, 0.03, rail * 0.6, 0, 0.12, 0); // riel inferior
+        int n = Math.max(2, (int) Math.round(w / 0.12));
+        for (int i = 0; i <= n; i++) {
+            double x = -w / 2 + 0.02 + (w - 0.04) * i / n;
+            box(g, m, 0.02, h - 0.08, Math.min(0.02, d), x, 0.03 + (h - 0.08) / 2, 0); // barrote
+        }
         return g;
     }
 }

@@ -74,6 +74,10 @@ public final class PriceList {
         furniture("refrigeradora", 2200);
         furniture("inodoro", 350);
         furniture("lavatorio", 250);
+        furniture("escalera", 3500);
+        furniture("escalera-l", 5200);
+        furniture("escalera-caracol", 4800);
+        furniture("baranda", 300);
         DEFAULTS.put(BASEBOARD, 12.0); // por metro lineal
     }
 

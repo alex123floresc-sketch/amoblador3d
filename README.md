@@ -29,14 +29,18 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 ## Funciones
 
 - **Habitación**: ancho, largo, alto y grosor de muro; ventanas y puertas que no se superponen.
+  Tipos de puerta: normal, **principal**, **doble**, **corrediza**, **portón de cochera** y **vano
+  sin puerta** (botón **+ Puerta**; el tipo se cambia luego desde el panel). En una casa, la puerta
+  principal y el portón se ponen solos en una pared que da a la calle.
 - **Paredes, piso y techo**: 11 materiales (pintura, ladrillo, piedra, madera, cerámico, mármol,
   porcelanato, alfombra...) con texturas a escala real y cualquier color. El techo se ve en el
   recorrido. Zócalo con alto (o sin zócalo) y color a elección.
 - **Columnas, muros internos y habitación en L** (pestaña *Habitación*): bloques del piso al techo
   con su propio acabado. Los muebles no los atraviesan, no tapan ventanas ni puertas, el imán se
   pega a ellos y el metrado los descuenta del piso y suma sus caras a la pintura.
-- **Muebles**: 14 paramétricos (cama, mesa de noche, cómoda, closet, sofá, mueble de TV, librero,
-  mesa, silla, mueble de cocina, refrigeradora, inodoro, lavatorio y escritorio), tus propios
+- **Muebles**: 18 paramétricos (cama, mesa de noche, cómoda, closet, sofá, mueble de TV, librero,
+  mesa, silla, mueble de cocina, refrigeradora, inodoro, lavatorio, escritorio, escalera recta, en L
+  y de caracol, y baranda; las escaleras llegan solas al techo), tus propios
   diseños y modelos 3D `.glb/.gltf` (incluidos o importados), agrupados por categoría y con
   buscador. No chocan entre sí, con las paredes ni con el paso de las puertas.
 - **Casa con varios ambientes**: un proyecto puede tener sala, dormitorios, cocina, baño… Arriba
@@ -45,7 +49,10 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
   eliminar. **🏠 Casa completa** (Ctrl+4) muestra todos juntos en 3D o en planta: se arrastran para
   armar la distribución (los muros se pegan a los de los demás y nunca se enciman; Alt sin imán),
   se cambian sus medidas desde el panel y se ve el área y el presupuesto de cada ambiente y de toda
-  la casa. Doble clic en un ambiente para decorarlo. Se guarda todo junto (base de datos, archivo
+  la casa. Doble clic en un ambiente para decorarlo. Cada ambiente se puede **girar** de 90 en 90°
+  y llevar a otro **piso** (hasta 4): en el panel de la casa se elige qué piso se ve, y en 3D se
+  ven ese piso y los de abajo. Cuando la puerta de un ambiente queda pegada al muro de otro, ese
+  muro se abre para pasar; el resumen avisa si ninguna puerta da a la calle. Se guarda todo junto (base de datos, archivo
   `.amob3d` y autoguardado) y Ctrl+Z deshace también los cambios de la casa.
 - **Personalizar cada mueble** (panel derecho): ancho, profundidad y alto, agrandar o achicar todo
   un 10 %, volver a las medidas originales; **color principal** y **color secundario** (frazada,
@@ -169,6 +176,9 @@ Es JSON legible (el mismo de la versión Electron, más `surfaces`):
   "furniture": [{ "id": "cama-1", "type": "cama", "x": 2, "z": 1.6, "rotation": 0, "width": 1.4, "depth": 1.9, "height": 0.9, "color": "#8b6b4a" }]
 }
 ```
+
+Una casa con varios ambientes agrega `"space"` (nombre y ubicación del primero) y `"spaces"`
+(los demás, cada uno con `"x"`, `"z"`, `"rotation"` en grados y `"level"`, el piso, 0 el primero).
 
 Las medidas de la habitación son **interiores** (el espacio libre); los muros crecen hacia afuera.
 Coordenadas: el origen es la esquina interior **noroeste** a nivel del piso; X crece hacia el este,

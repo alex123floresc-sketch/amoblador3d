@@ -505,7 +505,7 @@ public final class MainWindow {
                         group("Paredes, piso y techo", buildSurfaceButtons()),
                         group("Ventanas y puertas", row(
                                 smallButton("+ Ventana", "Agrega una ventana en el primer lugar libre", () -> addOpening(OpeningType.WINDOW)),
-                                smallButton("+ Puerta", "Agrega una puerta en el primer lugar libre", () -> addOpening(OpeningType.DOOR)))),
+                                doorMenu())),
                         group("Columnas y forma", buildColumnButtons()))),
                 tab("💡 Luz", buildLightingControls()),
                 tab("☰ Lista", buildItemList()));
@@ -731,6 +731,8 @@ public final class MainWindow {
 
     /** Se soltó un ambiente que se arrastró en la vista de la casa. */
     private void spaceMoved() {
+        // Al soltarlo pueden abrirse o cerrarse pasos hacia los vecinos.
+        homeView.show(currentHome());
         history.commit();
         properties.refresh();
     }
@@ -777,8 +779,9 @@ public final class MainWindow {
             return;
         }
         currentHome();
-        double[] spot = home.freeSpot(p);
-        home.spaces.add(new Home.Space(home.nextId(), home.uniqueName(name), spot[0], spot[1], p));
+        int level = houseMode ? homeView.level() : home.spaces.get(active).level;
+        double[] spot = home.freeSpot(p, level);
+        home.spaces.add(new Home.Space(home.nextId(), home.uniqueName(name), spot[0], spot[1], p, 0, level));
         history.commit();
         boolean wasHouse = houseMode;
         switchSpace(home.spaces.size() - 1);
@@ -874,11 +877,8 @@ public final class MainWindow {
             d.load(s.project);
             List<String> warnings = d.setRoom(dims);
             Project resized = d.snapshot();
-            double t = dims.wallThickness();
-            double[] box = {s.x - t, s.z - t, s.x + dims.width() + t, s.z + dims.length() + t};
-            for (Home.Space o : home.spaces) {
-                if (o != s && Home.overlaps(box, o.outer())) return "Se encimaría con «" + o.name + "».";
-            }
+            Home.Space other = home.collision(s, s.x, s.z, s.rotation, s.level, resized.room);
+            if (other != null) return "Se encimaría con «" + other.name + "».";
             s.project = resized;
             if (home.spaces.indexOf(s) == active) design.load(resized);
             homeView.show(home);
@@ -894,8 +894,67 @@ public final class MainWindow {
             if (other != null) return "Se encimaría con «" + other.name + "».";
             s.x = nx;
             s.z = nz;
-            homeView.moved(s);
+            // Al moverlo pueden abrirse o cerrarse pasos hacia los vecinos: se redibuja la casa.
+            homeView.show(currentHome());
+            homeView.select(s);
             return null;
+        }
+
+        @Override
+        public String rotate(Home.Space s, int degrees) {
+            int r = Home.normalizeRotation(degrees);
+            if (r == s.rotation) return null;
+            // Gira sobre su centro: la esquina se corre para que el centro no se mueva.
+            RoomDims room = s.project.room;
+            double cx = s.x + s.planWidth() / 2, cz = s.z + s.planLength() / 2;
+            double nx = Units.round(cx - Home.planWidth(room, r) / 2), nz = Units.round(cz - Home.planLength(room, r) / 2);
+            Home.Space other = home.collision(s, nx, nz, r, s.level, room);
+            if (other != null) return "Al girarlo se encimaría con «" + other.name + "». Muévelo a un lugar más libre.";
+            s.rotation = r;
+            s.x = nx;
+            s.z = nz;
+            homeView.show(currentHome());
+            homeView.select(s);
+            return null;
+        }
+
+        @Override
+        public String moveToLevel(Home.Space s, int level) {
+            if (level == s.level) return null;
+            if (level < 0 || level >= Home.MAX_LEVELS) return "La casa puede tener hasta " + Home.MAX_LEVELS + " pisos.";
+            if (level > home.levels()) return "Primero agrega ambientes en " + HomePanel.levelName(home.levels()).toLowerCase() + ".";
+            // Queda encima de donde estaba; si ahí ya hay otro ambiente, en el primer lugar libre de ese piso.
+            double x = s.x, z = s.z;
+            if (home.collision(s, x, z, s.rotation, level, s.project.room) != null) {
+                Home rest = new Home();
+                for (Home.Space o : home.spaces) if (o != s) rest.spaces.add(o);
+                double[] spot = rest.freeSpot(s.project, level);
+                x = spot[0];
+                z = spot[1];
+            }
+            s.level = level;
+            s.x = x;
+            s.z = z;
+            homeView.show(currentHome());
+            homeView.setLevel(level);
+            homeView.select(s);
+            homeView.frame();
+            return null;
+        }
+
+        @Override
+        public int viewLevel() {
+            return homeView.level();
+        }
+
+        @Override
+        public void showLevel(int level) {
+            homeView.setLevel(level);
+            homeView.frame();
+            houseSelected = null;
+            showHousePanel();
+            status.setText(HomePanel.levelName(level) + (home.spaces.stream().anyMatch(o -> o.level == level) ? ""
+                    : ": todavía no tiene ambientes. Usa «+ Ambiente vacío» o el botón «＋ Ambiente» de arriba."));
         }
 
         @Override
@@ -1390,7 +1449,7 @@ public final class MainWindow {
 
     /** Color del punto de cada tipo de elemento en la lista. */
     private static String dotColor(Object entity) {
-        if (entity instanceof Opening o) return o.type == OpeningType.DOOR ? "#c08457" : "#9fd3ff";
+        if (entity instanceof Opening o) return o.type.isDoor() ? "#c08457" : "#9fd3ff";
         if (entity instanceof Light l) return l.type == LightType.SUN ? "#ffc845" : "#ffe2b8";
         if (entity instanceof Column) return "#b9b2a6";
         return "#7ee0a1";
@@ -1618,7 +1677,33 @@ public final class MainWindow {
     }
 
     private void addOpening(OpeningType type) {
+        // En una casa, la puerta principal y el portón van en una pared que da a la calle.
+        if ((type == OpeningType.ENTRY || type == OpeningType.GARAGE) && home.spaces.size() > 1) {
+            List<WallSide> outside = currentHome().exteriorWalls(home.spaces.get(active));
+            if (outside.isEmpty()) {
+                notify("Este ambiente no tiene paredes al exterior: está rodeado por otros ambientes.", Toast.Kind.ERROR);
+                return;
+            }
+            handle(design.addOpening(type, outside), this::select);
+            return;
+        }
         handle(design.addOpening(type), this::select);
+    }
+
+    /** Botón "+ Puerta" con un menú de tipos de puerta. */
+    private Node doorMenu() {
+        javafx.scene.control.MenuButton b = new javafx.scene.control.MenuButton("+ Puerta");
+        b.setTooltip(new Tooltip("Agrega una puerta en el primer lugar libre: normal, principal, doble, corrediza, "
+                + "portón o vano sin puerta"));
+        b.setFocusTraversable(false);
+        b.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(b, Priority.ALWAYS);
+        for (OpeningType t : OpeningType.doors()) {
+            MenuItem item = new MenuItem(t.label() + "  (" + Units.number(t.defaultWidth()) + " m)");
+            item.setOnAction(e -> addOpening(t));
+            b.getItems().add(item);
+        }
+        return b;
     }
 
     private void addLight(LightType type) {
@@ -2164,7 +2249,7 @@ public final class MainWindow {
                 target.add(new SeparatorMenuItem());
                 for (var v : saved) target.add(item(v.name(), null, () -> goToView(v)));
             }
-            List<Opening> doors = design.openings().stream().filter(o -> o.type == OpeningType.DOOR).toList();
+            List<Opening> doors = design.openings().stream().filter(o -> o.type.isDoor()).toList();
             if (!doors.isEmpty()) {
                 target.add(new SeparatorMenuItem());
                 for (Opening d : doors) target.add(item("Desde " + design.label(d).toLowerCase(), null, () -> walkFromDoor(d)));
@@ -2349,6 +2434,7 @@ public final class MainWindow {
     private Map<String, Supplier<CustomDesign>> designerTemplates() {
         Map<String, Supplier<CustomDesign>> t = new LinkedHashMap<>(FurnitureDesigner.basicTemplates());
         for (CatalogEntry e : catalog.list(CatalogEntry.Kind.PARAMETRIC)) {
+            if (Catalog.isStair(e.id())) continue; // sus piezas inclinadas no caben en el Diseñador
             t.put("Copia de: " + e.name(), () -> {
                 CatalogEntry.Size s = e.defaults();
                 Furniture f = new Furniture("x", e.id(), 0, 0, 0, s.width(), s.depth(), s.height(), e.defaultColor());

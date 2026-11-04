@@ -73,7 +73,7 @@ Con `-SinPruebas` es más rápido (no corre las pruebas antes). Pesa unos 60 MB 
 .\mvnw.cmd test
 ```
 
-Debe terminar con `Tests run: 25, Failures: 0, Errors: 0` y `BUILD SUCCESS`.
+Debe terminar con `Tests run: 99, Failures: 0, Errors: 0` y `BUILD SUCCESS`.
 
 ## 6. Abrirlo desde un IDE (opcional)
 
@@ -114,10 +114,11 @@ scripts de la base de datos:
 | `amoblador3d_sqlite.sql` | El esquema exacto que usa la aplicación, con un proyecto de ejemplo. |
 | `amoblador3d_postgresql.sql` | La misma base escrita en PostgreSQL, con reglas extra y vistas de consulta. |
 
-Tablas (esquema v6): `project` (medidas, luz ambiental y zócalo), `surface` (piso, paredes y techo),
-`opening` (ventanas y puertas), `light`, `furniture`, `room_column` (columnas, muros internos y
-recortes en L), `camera_view` (vistas guardadas), `catalog_model` (modelos 3D importados) y `price`
-(precios que cambiaste en el presupuesto). Al abrir una base de una versión anterior, la aplicación
+Tablas (esquema v9): `project` (medidas, luz ambiental y zócalo), `surface` (piso, paredes y techo),
+`opening` (ventanas y los seis tipos de puerta), `light`, `furniture`, `room_column` (columnas,
+muros internos y recortes en L), `camera_view` (vistas guardadas), `home_space` (los ambientes de
+la casa, con su giro y su piso), `custom_design` (muebles del Diseñador), `catalog_model` (modelos
+3D importados) y `price` (precios que cambiaste en el presupuesto). Al abrir una base de una versión anterior, la aplicación
 la actualiza sola sin perder nada.
 
 ### Ver la base SQLite
