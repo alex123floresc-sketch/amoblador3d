@@ -1,6 +1,6 @@
 # 09 · Manual de instalación y despliegue
 
-Versión 1.0 · noviembre de 2026 · Software 2.0.0
+Versión 1.1 · noviembre de 2026 · Software 2.0.0
 
 Hay tres formas de instalar Amoblador3D. Elige según quién lo va a usar.
 
@@ -104,3 +104,11 @@ La aplicación usa SQLite. Para revisar el modelo de datos en PostgreSQL 13+:
 ```
 
 Instrucciones para pgAdmin y consultas de ejemplo en [`GUIA_EJECUCION.md`](../GUIA_EJECUCION.md#bases-de-datos).
+
+## Historial del documento
+
+<!-- Tabla: Historial de cambios de este documento -->
+| Versión | Fecha | Cambios | Responsable |
+|---|---|---|---|
+| 1.0 | 2026-11-03 | Versión inicial | Equipo del proyecto |
+| 1.1 | 2026-11-06 | Títulos específicos para tablas | Equipo del proyecto |

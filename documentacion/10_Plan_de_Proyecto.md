@@ -1,6 +1,6 @@
 # 10 · Plan del proyecto, cronograma y riesgos
 
-Versión 1.0 · noviembre de 2026
+Versión 1.1 · noviembre de 2026
 
 ## 1. Metodología
 
@@ -50,7 +50,8 @@ flowchart LR
 | 5 | Autoguardado e instalador | 2026-10-25 | 2026-10-25 | `2df95ef` |
 | 6 | Columnas, muros, L, techo, zócalo | 2026-10-25 | 2026-10-25 | `3c42b81` |
 | 7 | Casa multiambiente, diseñador de muebles | 2026-10-26 | 2026-10-27 | `fe6f6be` |
-| 8 | Tipos de puerta, escaleras, pisos, registro de errores, CI, documentación | 2026-10-28 | 2026-11-03 | (pendiente) |
+| 8 | Tipos de puerta, escaleras, pisos, registro de errores, CI, documentación | 2026-10-28 | 2026-11-04 | `6d277dc`…`56587b4` |
+| 8.1 | Carátula institucional, encabezados e índices de tablas y figuras en los Word | 2026-11-06 | 2026-11-06 | `77cf676` |
 
 <!-- Figura: Diagrama de Gantt del proyecto -->
 ```mermaid
@@ -63,9 +64,9 @@ gantt
     section Funciones
     Fases 1 a 6                  :done, 2026-10-25, 1d
     Fase 7 Casa y diseñador      :done, 2026-10-26, 2026-10-27
-    Fase 8 Puertas, pisos, calidad :active, 2026-10-28, 2026-11-03
+    Fase 8 Puertas, pisos, calidad :done, 2026-10-28, 2026-11-04
     section Cierre
-    Documentación                :active, 2026-11-03, 1d
+    Documentación                :done, 2026-11-03, 2026-11-06
     Sustentación                 :milestone, 2026-11-10, 0d
 ```
 
@@ -112,3 +113,11 @@ Probabilidad e impacto: 1 (bajo) a 3 (alto). Exposición = P × I.
 | **Total** | | | `[completar]` |
 
 Todo el software usado es libre o gratuito, por lo que el costo del producto es solo el de las horas de trabajo.
+
+## Historial del documento
+
+<!-- Tabla: Historial de cambios de este documento -->
+| Versión | Fecha | Cambios | Responsable |
+|---|---|---|---|
+| 1.0 | 2026-11-03 | Versión inicial | Equipo del proyecto |
+| 1.1 | 2026-11-06 | Cronograma con los commits reales de la fase 8 y la entrega de documentación; Gantt actualizado | Equipo del proyecto |

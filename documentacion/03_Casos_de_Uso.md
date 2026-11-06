@@ -1,6 +1,6 @@
 # 03 · Casos de uso
 
-Versión 1.0 · noviembre de 2026
+Versión 1.1 · noviembre de 2026
 
 ## 1. Actores
 
@@ -117,6 +117,8 @@ flowchart LR
 |---|---|
 | Actor | Usuario |
 | Requisitos | RF-10 a RF-13 |
+| Precondición | Hay un proyecto abierto con al menos un ambiente |
+| Postcondición | La superficie elegida muestra el material y color nuevos, y el presupuesto se recalcula |
 
 **Flujo básico:**
 1. El usuario hace clic en una pared, el piso o el techo (o usa *Paredes, piso y techo*).
@@ -133,6 +135,7 @@ flowchart LR
 |---|---|
 | Actor | Usuario |
 | Requisitos | RF-14 a RF-16 |
+| Precondición | Hay un proyecto abierto y la vista activa es la de un ambiente (no *Casa completa*) |
 | Postcondición | El mueble está dentro del ambiente sin chocar con nada |
 
 **Flujo básico:**
@@ -152,6 +155,8 @@ flowchart LR
 |---|---|
 | Actor | Usuario |
 | Requisitos | RF-17 a RF-20, RF-23 |
+| Precondición | Hay al menos un mueble en el ambiente |
+| Postcondición | Los muebles editados siguen sin chocar entre sí ni con paredes, puertas o ventanas, y el cambio queda en el historial |
 
 **Flujo básico:**
 1. El usuario selecciona uno o varios muebles (clic, Shift/Ctrl + clic, rectángulo, Ctrl+A).
@@ -160,46 +165,111 @@ flowchart LR
 4. El sistema valida cada cambio y registra un paso en el historial.
 
 **Flujos alternativos:**
+- 1a. El mueble está bloqueado → no se mueve ni se elimina.
 - 2a. El destino choca → el mueble se desliza a lo largo del obstáculo o se queda donde estaba.
 - 3a. La nueva medida choca → no se aplica y se explica.
-- 1a. El mueble está bloqueado → no se mueve ni se elimina.
 - Copiar/pegar (Ctrl+C/V) entre proyectos; si no cabe al pegar, se explica.
 
 ### CU-07 Importar modelo 3D
 
+<!-- Tabla: Especificación del caso de uso CU-07 Importar modelo 3D -->
+| Campo | Descripción |
+|---|---|
+| Actor | Usuario |
+| Requisitos | RF-21 |
+| Precondición | Hay un proyecto abierto y el usuario tiene un archivo `.glb` o `.gltf` |
+| Postcondición | El modelo aparece en el catálogo con sus medidas reales y se puede colocar como cualquier mueble |
+
+**Flujo básico:**
 1. El usuario elige *Archivo → Importar modelo 3D* y un archivo `.glb/.gltf`.
 2. El sistema lee el modelo y propone sus medidas.
-3. El usuario corrige nombre, giro y medidas reales (con "Mantener proporciones").
+3. El usuario corrige nombre, giro y medidas reales (con *Mantener proporciones*).
 4. El sistema copia el archivo a la carpeta de modelos, lo registra en la base y lo muestra en el catálogo.
 
-**Alternativo:** 2a. El archivo está dañado o usa compresión no soportada (Draco/Meshopt) → error claro.
+**Flujos alternativos:**
+- 2a. El archivo está dañado o usa compresión no soportada (Draco/Meshopt) → el sistema muestra un error que dice la causa y no importa nada.
 
 ### CU-08 Diseñar mueble
 
+<!-- Tabla: Especificación del caso de uso CU-08 Diseñar mueble -->
+| Campo | Descripción |
+|---|---|
+| Actor | Usuario |
+| Requisitos | RF-22 |
+| Precondición | La aplicación está abierta |
+| Postcondición | El diseño queda guardado en la base de datos y aparece en *Mis diseños* del catálogo |
+
+**Flujo básico:**
 1. El usuario abre el **Diseñador de muebles** (Ctrl+Shift+D), vacío, desde plantilla o desde un mueble del catálogo.
 2. Agrega piezas (caja, cilindro, esfera, barra) y define medidas y posición en centímetros, color y acabado.
 3. Guarda el diseño con nombre y categoría.
 4. El sistema valida el diseño y lo agrega al catálogo.
 
-**Alternativo:** desde un mueble colocado, *Diseñar a partir de este…* reemplaza el mueble en el mismo lugar.
+**Flujos alternativos:**
+- 1a. Desde un mueble colocado, *Diseñar a partir de este…* abre el diseñador y, al guardar, reemplaza el mueble en el mismo lugar.
+- 4a. Al diseño le falta el nombre, no tiene piezas o una pieza tiene medidas fuera de rango (máximo 6 × 6 × 4 m en total) → el sistema dice qué corregir y no guarda.
 
 ### CU-09 Visualizar y recorrer
 
+<!-- Tabla: Especificación del caso de uso CU-09 Visualizar y recorrer -->
+| Campo | Descripción |
+|---|---|
+| Actor | Usuario |
+| Requisitos | RF-24 a RF-28 |
+| Precondición | Hay un proyecto abierto |
+| Postcondición | La vista elegida queda activa; si se guardó una vista, queda en el proyecto |
+
+**Flujo básico:**
 1. El usuario cambia entre **3D** (Ctrl+1), **Planta** (Ctrl+2) y **Recorrido** (Ctrl+3).
-2. En recorrido camina con W/A/S/D y flechas; el sistema impide atravesar paredes y muebles.
+2. En recorrido camina con W/A/S/D y las flechas; el sistema impide atravesar paredes y muebles.
 3. Opcional: guarda la vista actual con un nombre, activa el modo noche (N) o mide distancias (M).
+
+**Flujos alternativos:**
+- 2a. El usuario camina hacia una pared o un mueble → la cámara se detiene en el borde.
 
 ### CU-10 Obtener presupuesto e informe
 
-1. El usuario pulsa **💰 Presupuesto** (Ctrl+P).
+<!-- Tabla: Especificación del caso de uso CU-10 Obtener presupuesto e informe -->
+| Campo | Descripción |
+|---|---|
+| Actor | Usuario |
+| Requisitos | RF-29 a RF-33 |
+| Precondición | Hay un proyecto abierto con al menos un ambiente |
+| Postcondición | El usuario obtiene el presupuesto en pantalla y, si lo pidió, el archivo CSV o PDF |
+
+**Flujo básico:**
+1. El usuario pulsa **Presupuesto** (Ctrl+P).
 2. El sistema calcula el metrado y el costo de acabados y muebles.
 3. El usuario cambia precios con doble clic; el sistema los guarda para todos los proyectos.
-4. El usuario exporta CSV o genera el **📄 PDF** (Ctrl+Shift+P).
+4. El usuario exporta a CSV o genera el **PDF** (Ctrl+Shift+P).
+
+**Flujos alternativos:**
+- 3a. El precio escrito no es un número válido o es negativo → no se acepta y se mantiene el anterior.
+- 4a. No se puede escribir el archivo (carpeta sin permiso o archivo abierto en otro programa) → el diálogo muestra *No se pudo exportar* con la causa.
 
 ### CU-11 Recuperar trabajo
 
+<!-- Tabla: Especificación del caso de uso CU-11 Recuperar trabajo -->
+| Campo | Descripción |
+|---|---|
+| Actor | Temporizador de autoguardado (inicia), Usuario |
+| Requisitos | RF-38 |
+| Precondición | Hay cambios sin guardar en el proyecto abierto |
+| Postcondición | El trabajo se recupera tal como estaba en la última copia automática |
+
+**Flujo básico:**
 1. Cada 60 s, si hay cambios sin guardar, el temporizador escribe una copia de recuperación.
 2. Si la aplicación se cierra de golpe, al volver a abrirla el sistema ofrece recuperar la copia.
-3. El usuario acepta; el proyecto se abre marcado como "sin guardar".
+3. El usuario acepta; el proyecto se abre marcado como *sin guardar*.
 
-**Alternativo:** 2a. La copia está dañada → se descarta sin afectar el inicio.
+**Flujos alternativos:**
+- 2a. La copia está dañada → se descarta sin afectar el inicio.
+- 3a. El usuario elige *Cancelar* → la copia se descarta y no se recupera nada.
+
+## Historial del documento
+
+<!-- Tabla: Historial de cambios de este documento -->
+| Versión | Fecha | Cambios | Responsable |
+|---|---|---|---|
+| 1.0 | 2026-11-03 | Versión inicial | Equipo del proyecto |
+| 1.1 | 2026-11-06 | Fichas completas de CU-07 a CU-11; precondición y postcondición en CU-04 a CU-06; flujos alternativos verificados con el código | Equipo del proyecto |

@@ -1,7 +1,7 @@
 # 07 · Manual de usuario
 
 **Amoblador3D 2.0.0**: diseñador de interiores 3D con medidas reales
-Versión del manual 2.0 · noviembre de 2026 · Norma de referencia: ISO/IEC/IEEE 26514
+Versión del manual 2.1 · noviembre de 2026 · Norma de referencia: ISO/IEC/IEEE 26514
 
 ---
 
@@ -457,3 +457,11 @@ Pulsa `F1` dentro de la aplicación para verlos todos.
 | Planta | Vista desde arriba, como un plano |
 | Vano | Abertura en la pared sin puerta |
 | Zócalo | Franja al pie de las paredes |
+
+## Historial del documento
+
+<!-- Tabla: Historial de cambios de este documento -->
+| Versión | Fecha | Cambios | Responsable |
+|---|---|---|---|
+| 2.0 | 2026-11-03 | Versión para Amoblador3D 2.0.0 | Equipo del proyecto |
+| 2.1 | 2026-11-06 | Títulos específicos para tablas; índice de figuras con las capturas | Equipo del proyecto |

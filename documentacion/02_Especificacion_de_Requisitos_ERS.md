@@ -1,7 +1,7 @@
 # 02 · Especificación de requisitos de software (ERS)
 
 Basado en IEEE 830-1998 e ISO/IEC/IEEE 29148:2018.
-Versión 1.0 · noviembre de 2026 · Software: Amoblador3D 2.0.0
+Versión 1.1 · noviembre de 2026 · Software: Amoblador3D 2.0.0
 
 ## 1. Introducción
 
@@ -198,3 +198,11 @@ Clasificados según ISO/IEC 25010.
 | RF-24 a RF-28 | CU-09 | Pruebas manuales (ver doc. 06) |
 | RF-29 a RF-33 | CU-10 | `EstimateTest` |
 | RF-34 a RF-40 | CU-01, CU-11 | `PersistenceTest`, `HistoryTest`, `RecoveryTest`, `TemplatesTest` |
+
+## Historial del documento
+
+<!-- Tabla: Historial de cambios de este documento -->
+| Versión | Fecha | Cambios | Responsable |
+|---|---|---|---|
+| 1.0 | 2026-11-03 | Versión inicial | Equipo del proyecto |
+| 1.1 | 2026-11-06 | Títulos específicos para cada tabla de requisitos; historial del documento | Equipo del proyecto |

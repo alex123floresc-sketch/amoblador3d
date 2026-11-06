@@ -10,3 +10,6 @@ target/
 node_modules/
 dist/
 release/
+
+# Archivos temporales de Word/Office
+~$*

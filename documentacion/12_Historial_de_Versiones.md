@@ -2,7 +2,19 @@
 
 Formato basado en *Keep a Changelog*. Fechas en formato AAAA-MM-DD.
 
-## [2.0.0 — Fase 8] — 2026-11-03 (en la rama `fase-7-casa-y-disenador`, aún sin commit)
+## [2.0.1 — Documentación] — 2026-11-06 — `77cf676`
+
+### Cambiado
+- Los Word de `documentacion/doc 2` usan la **carátula institucional de la UNAJ** (logo, facultad,
+  escuela, integrantes, docente y asignatura) y un **encabezado** con el logo en todas las páginas
+  salvo la carátula; el número de página pasa al pie.
+- Cada documento incluye **índice de tablas** e **índice de figuras** con título específico y página.
+- Todas las tablas y diagramas tienen un título propio (`<!-- Tabla: … -->` en el Markdown).
+- Datos del equipo completados en el acta, el informe final y el índice.
+- Casos de uso CU-04 a CU-11 con ficha completa (requisitos, precondición, postcondición y flujos alternativos).
+- Cada documento técnico termina con su historial de cambios.
+
+## [2.0.0 — Fase 8] — 2026-11-04 — `6d277dc`…`56587b4` (rama `fase-7-casa-y-disenador`)
 
 ### Agregado
 - Seis tipos de puerta: normal, principal, doble, corrediza, portón de cochera y vano sin puerta.

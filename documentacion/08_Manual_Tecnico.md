@@ -1,6 +1,6 @@
 # 08 · Manual técnico del desarrollador
 
-Versión 2.0 · noviembre de 2026 · Software 2.0.0
+Versión 2.1 · noviembre de 2026 · Software 2.0.0
 
 Para quien va a compilar, mantener o extender Amoblador3D. La arquitectura completa está en el
 documento 04 y la base de datos en el 05; aquí se explica **cómo trabajar con el código**.
@@ -354,3 +354,11 @@ npm run generar
 - [ ] Si cambió la base: nueva migración, scripts de `database/` y documento 05 actualizados.
 - [ ] Si cambió la interfaz: manual de usuario (07) y capturas actualizados.
 - [ ] Historial de versiones (12) actualizado.
+
+## Historial del documento
+
+<!-- Tabla: Historial de cambios de este documento -->
+| Versión | Fecha | Cambios | Responsable |
+|---|---|---|---|
+| 2.0 | 2026-11-03 | Versión para Amoblador3D 2.0.0 | Equipo del proyecto |
+| 2.1 | 2026-11-06 | Títulos específicos para tablas y para el diagrama de arranque | Equipo del proyecto |

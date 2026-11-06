@@ -1,6 +1,6 @@
 # 06 · Plan y reporte de pruebas
 
-Basado en ISO/IEC/IEEE 29119-3. Versión 1.0 · noviembre de 2026 · Software 2.0.0
+Basado en ISO/IEC/IEEE 29119-3. Versión 1.1 · noviembre de 2026 · Software 2.0.0
 
 ## 1. Plan de pruebas
 
@@ -101,9 +101,9 @@ y que los cambios nuevos no rompen lo que ya funcionaba (regresión).
 | CP-12 | `unaPuertaPegadaAOtroAmbienteLeAbrePaso` | Dos ambientes vecinos, una puerta en el muro común | El muro del vecino se abre en ese tramo |
 | CP-13 | `losPisosSeApilanYNoChocanEntreSi` | Ambientes en piso 0 y piso 1 en el mismo lugar | Se permite (distinto piso) |
 | CP-14 | `todosLosMueblesCabenEnSusMedidas` | Cada uno de los 18 paramétricos | Su geometría ocupa exactamente ancho × profundidad × alto |
-| CP-16 | `losModelosComprimidosConDracoSeRechazanConUnMensajeClaro` | glTF con `KHR_draco_mesh_compression` | Error que menciona Draco |
-| CP-17 | `seAplicaLaTransformacionDeLosNodos` | Nodo padre trasladado y nodo hijo escalado ×2 | Los vértices quedan movidos y escalados |
-| CP-15 | `seGuardanLosMensajesYLasTrazasEnElArchivo` | Un aviso y un error con excepción | El registro contiene ambos y la traza |
+| CP-15 | `losModelosComprimidosConDracoSeRechazanConUnMensajeClaro` | glTF con `KHR_draco_mesh_compression` | Error que menciona Draco |
+| CP-16 | `seAplicaLaTransformacionDeLosNodos` | Nodo padre trasladado y nodo hijo escalado ×2 | Los vértices quedan movidos y escalados |
+| CP-17 | `seGuardanLosMensajesYLasTrazasEnElArchivo` | Un aviso y un error con excepción | El registro contiene ambos y la traza |
 
 ### 2.3 Cobertura de código (JaCoCo)
 
@@ -168,3 +168,11 @@ Ejecutar antes de cada entrega con `.\mvnw.cmd javafx:run` y marcar el resultado
 2. Pruebas de interfaz con TestFX + Monocle (sin pantalla) para los flujos PM-01 a PM-09.
 3. ~~Fijar un umbral mínimo de cobertura~~ — hecho: 70 % en los paquetes de dominio y datos.
 4. Subir la cobertura de ramas de `catalog` y `util` (52 % y 55 %).
+
+## Historial del documento
+
+<!-- Tabla: Historial de cambios de este documento -->
+| Versión | Fecha | Cambios | Responsable |
+|---|---|---|---|
+| 1.0 | 2026-11-03 | Versión inicial | Equipo del proyecto |
+| 1.1 | 2026-11-06 | Casos de prueba CP-15 a CP-17 renumerados en orden; títulos de tablas | Equipo del proyecto |

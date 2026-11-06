@@ -1,6 +1,6 @@
 # 05 · Diseño de base de datos
 
-Versión 1.0 · noviembre de 2026 · Esquema **v9** · Motor: SQLite 3 (embebido)
+Versión 1.1 · noviembre de 2026 · Esquema **v9** · Motor: SQLite 3 (embebido)
 
 Archivo: `%APPDATA%\Amoblador3D\amoblador3d.db`. La aplicación crea y actualiza las tablas sola al
 arrancar (`persistence/Database.java`). Scripts de referencia: `database/amoblador3d_sqlite.sql`
@@ -270,3 +270,11 @@ cada uno en su transacción, los pasos que faltan.
 | `project_summary` | Cada proyecto con área y cantidad de muebles, luces y aberturas |
 | `project_occupancy` | Porcentaje del piso ocupado por muebles |
 | `project_finishes` | Material y color de cada pared y del piso |
+
+## Historial del documento
+
+<!-- Tabla: Historial de cambios de este documento -->
+| Versión | Fecha | Cambios | Responsable |
+|---|---|---|---|
+| 1.0 | 2026-11-03 | Versión inicial | Equipo del proyecto |
+| 1.1 | 2026-11-06 | Título propio para el diccionario de datos de cada tabla y para el modelo entidad-relación | Equipo del proyecto |

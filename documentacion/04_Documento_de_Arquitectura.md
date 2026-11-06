@@ -1,6 +1,6 @@
 # 04 · Documento de arquitectura de software
 
-Basado en ISO/IEC/IEEE 42010 y el modelo C4. Versión 1.0 · noviembre de 2026 · Software 2.0.0
+Basado en ISO/IEC/IEEE 42010 y el modelo C4. Versión 1.1 · noviembre de 2026 · Software 2.0.0
 
 ## 1. Objetivos y restricciones de la arquitectura
 
@@ -186,3 +186,11 @@ flowchart LR
 | `Design` grande | ~1 200 líneas con todas las reglas | Separar `OpeningRules`, `FurnitureRules`, `ColumnRules` detrás de la misma fachada |
 | Ciclo `catalog` ↔ `persistence` | `UserModels` usa `CatalogRepository` y `ProjectJson` usa `CustomDesign` | Invertir con una interfaz `ModelStore` en `catalog` |
 | Cobertura de `ui` y `scene` | 0 % y 25 % (ver doc. 06) | Pruebas de interfaz con TestFX en modo *headless* (Monocle) |
+
+## Historial del documento
+
+<!-- Tabla: Historial de cambios de este documento -->
+| Versión | Fecha | Cambios | Responsable |
+|---|---|---|---|
+| 1.0 | 2026-11-03 | Versión inicial | Equipo del proyecto |
+| 1.1 | 2026-11-06 | Títulos específicos para tablas y diagramas | Equipo del proyecto |
