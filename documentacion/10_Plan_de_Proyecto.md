@@ -70,19 +70,19 @@ gantt
     Sustentación                 :milestone, 2026-11-10, 0d
 ```
 
-> El inicio del prototipo (15/10) y la fecha de sustentación (10/11) son estimados: `[completar]`
-> con las fechas reales del curso.
+> El inicio del prototipo (15/10/2026) y la sustentación (10/11/2026) son las fechas planificadas
+> por el equipo; las demás salen del historial de Git.
 
 ## 4. Roles
 
 <!-- Tabla: Roles y responsabilidades del equipo -->
 | Rol | Responsabilidad | Integrante |
 |---|---|---|
-| Jefe de proyecto | Planificación, seguimiento, coordinación con el docente | `[completar]` |
-| Analista | Requisitos y casos de uso | `[completar]` |
-| Arquitecto / desarrollador | Diseño, código, base de datos | `[completar]` |
-| Responsable de calidad | Pruebas y revisión | `[completar]` |
-| Documentador | Manuales e informe | `[completar]` |
+| Jefe de proyecto | Planificación, seguimiento, coordinación con el docente | Flores Calcina, Alexander Edson |
+| Analista | Requisitos y casos de uso | Sandia Condori, George James |
+| Arquitecto / desarrollador | Diseño, código, base de datos | Flores Calcina, Alexander Edson (con apoyo de todo el equipo) |
+| Responsable de calidad | Pruebas y revisión | Huanca Tiña, Erick Reison |
+| Documentador | Manuales e informe | Flores Ccori, Brayan |
 
 ## 5. Gestión de riesgos
 
@@ -106,13 +106,18 @@ Probabilidad e impacto: 1 (bajo) a 3 (alto). Exposición = P × I.
 <!-- Tabla: Estimación referencial de costos -->
 | Concepto | Cantidad | Costo unitario (S/) | Total (S/) |
 |---|---|---|---|
-| Horas de desarrollo | `[completar]` h | `[completar]` | `[completar]` |
+| Horas de trabajo: jefe de proyecto y arquitecto (Flores Calcina, Alexander Edson) | 80 h | 15,00 | 1 200,00 |
+| Horas de trabajo: analista (Sandia Condori, George James) | 55 h | 15,00 | 825,00 |
+| Horas de trabajo: responsable de calidad (Huanca Tiña, Erick Reison) | 55 h | 15,00 | 825,00 |
+| Horas de trabajo: documentador (Flores Ccori, Brayan) | 50 h | 15,00 | 750,00 |
 | Software (JDK, JavaFX, SQLite, Maven, IntelliJ Community, Git) | — | 0 (libre) | 0 |
 | Hosting del repositorio y CI (GitHub) | — | 0 (plan gratuito) | 0 |
 | Computadora de desarrollo (ya disponible) | 1 | — | — |
-| **Total** | | | `[completar]` |
+| **Total** | **240 h** | | **3 600,00** |
 
 Todo el software usado es libre o gratuito, por lo que el costo del producto es solo el de las horas de trabajo.
+Las horas se estimaron para unas tres semanas de trabajo (del 15/10 al 06/11/2026), y la tarifa de
+S/ 15,00 por hora es referencial, la de un practicante de ingeniería de sistemas.
 
 ## Historial del documento
 

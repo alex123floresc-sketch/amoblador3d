@@ -8,8 +8,10 @@
 **Asignatura:** Bases de Datos · **Docente:** Noe Tipo Mamani
 **Integrantes:** Flores Calcina, Alexander Edson · Sandia Condori, George James · Huanca Tiña, Erick Reison · Flores Ccori, Brayan
 
-> Los pocos datos que aún faltan (semestre, reparto de roles, horas y costos reales) están marcados
-> como `[completar]`. Búscalos con Ctrl+F antes de entregar.
+**Semestre:** 2026-II · **Jefe de proyecto:** Flores Calcina, Alexander Edson
+
+> Si agregas texto que el equipo debe revisar antes de entregar, márcalo como `[completar]`: en
+> los Word aparece resaltado en amarillo.
 
 ## Documentos
 

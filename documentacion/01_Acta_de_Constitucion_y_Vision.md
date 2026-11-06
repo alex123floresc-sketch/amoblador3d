@@ -10,7 +10,7 @@
 | Asignatura | Bases de Datos |
 | Docente | Noe Tipo Mamani |
 | Integrantes | Flores Calcina, Alexander Edson; Sandia Condori, George James; Huanca Tiña, Erick Reison; Flores Ccori, Brayan |
-| Semestre | `[completar]` |
+| Semestre | 2026-II |
 | Versión del documento | 1.1 — noviembre de 2026 |
 
 ## 1. Problema
@@ -112,7 +112,7 @@ Desarrollar una aplicación de escritorio que permita diseñar y amoblar ambient
 | Rol | Nombre | Firma | Fecha |
 |---|---|---|---|
 | Docente | Noe Tipo Mamani | | |
-| Jefe de proyecto | `[completar]` | | |
+| Jefe de proyecto | Flores Calcina, Alexander Edson | | |
 
 ## Historial del documento
 

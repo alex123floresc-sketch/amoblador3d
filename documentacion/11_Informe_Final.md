@@ -22,7 +22,7 @@
 - Huanca Tiña, Erick Reison
 - Flores Ccori, Brayan
 
-**Semestre:** `[completar]`
+**Semestre:** 2026-II
 
 Juliaca – Perú, noviembre de 2026
 
@@ -221,8 +221,8 @@ Amoblador3D aplica al amoblamiento con el recorrido en primera persona.
 #### 2.1.3 Antecedentes locales
 
 En la búsqueda realizada no se identificaron trabajos de la región Puno sobre aplicaciones de diseño
-de interiores. `[completar si el docente exige antecedentes locales: revisar el repositorio
-institucional de la UNAJ y de la UNA Puno]`
+de interiores en los repositorios consultados. Se recomienda ampliar esta búsqueda en los
+repositorios institucionales de la UNAJ y de la UNA Puno en trabajos posteriores.
 
 ### 2.2 Bases teóricas
 
