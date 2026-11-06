@@ -9,6 +9,7 @@ arrancar (`persistence/Database.java`). Scripts de referencia: `database/amoblad
 
 ## 1. Modelo entidad-relación
 
+<!-- Figura: Modelo entidad-relación de la base de datos -->
 ```mermaid
 erDiagram
     project ||--o{ surface      : "tiene acabados"
@@ -120,6 +121,7 @@ fechas ISO-8601 en UTC.
 
 ### `project` — un proyecto (casa); guarda las medidas del primer ambiente
 
+<!-- Tabla: Diccionario de datos de la tabla project -->
 | Columna | Tipo | Nulo | Restricción | Descripción |
 |---|---|---|---|---|
 | id | INTEGER | No | PK autoincremental | Identificador |
@@ -135,6 +137,7 @@ fechas ISO-8601 en UTC.
 
 ### `surface` — acabado de cada superficie
 
+<!-- Tabla: Diccionario de datos de la tabla surface -->
 | Columna | Tipo | Restricción | Descripción |
 |---|---|---|---|
 | project_id | INTEGER | PK, FK → project ON DELETE CASCADE | |
@@ -144,6 +147,7 @@ fechas ISO-8601 en UTC.
 
 ### `opening` — ventanas y puertas
 
+<!-- Tabla: Diccionario de datos de la tabla opening -->
 | Columna | Tipo | Restricción | Descripción |
 |---|---|---|---|
 | project_id | INTEGER | PK, FK | |
@@ -157,6 +161,7 @@ fechas ISO-8601 en UTC.
 
 ### `light` — luces
 
+<!-- Tabla: Diccionario de datos de la tabla light -->
 | Columna | Tipo | Descripción |
 |---|---|---|
 | project_id, id | INTEGER, TEXT | PK compuesta |
@@ -168,6 +173,7 @@ fechas ISO-8601 en UTC.
 
 ### `furniture` — muebles colocados
 
+<!-- Tabla: Diccionario de datos de la tabla furniture -->
 | Columna | Tipo | Descripción |
 |---|---|---|
 | project_id, id | INTEGER, TEXT | PK compuesta (`cama-1`) |
@@ -181,6 +187,7 @@ fechas ISO-8601 en UTC.
 
 ### `room_column` — columnas, muros internos y recortes en L (v6)
 
+<!-- Tabla: Diccionario de datos de la tabla room_column -->
 | Columna | Tipo | Descripción |
 |---|---|---|
 | kind | TEXT | CHECK IN (`column`, `wall`, `notch`) |
@@ -190,6 +197,7 @@ fechas ISO-8601 en UTC.
 
 ### `camera_view` — vistas guardadas (v5)
 
+<!-- Tabla: Diccionario de datos de la tabla camera_view -->
 | Columna | Descripción |
 |---|---|
 | mode | `3d` (órbita), `plan` (planta), `walk` (recorrido) |
@@ -197,6 +205,7 @@ fechas ISO-8601 en UTC.
 
 ### `home_space` — ambientes de la casa (v8, v9)
 
+<!-- Tabla: Diccionario de datos de la tabla home_space -->
 | Columna | Descripción |
 |---|---|
 | position | Orden; el 0 es el ambiente guardado en las tablas de arriba (`data` NULL) |
@@ -208,6 +217,7 @@ fechas ISO-8601 en UTC.
 
 ### `custom_design`, `catalog_model`, `price` — datos globales (no dependen de un proyecto)
 
+<!-- Tabla: Tablas globales custom_design, catalog_model y price -->
 | Tabla | Contenido |
 |---|---|
 | `custom_design` | Muebles del Diseñador: `data` es JSON con las piezas |
@@ -235,6 +245,7 @@ fechas ISO-8601 en UTC.
 La versión se guarda en `PRAGMA user_version`. Al abrir una base antigua se aplican, en orden y
 cada uno en su transacción, los pasos que faltan.
 
+<!-- Tabla: Historial de migraciones del esquema -->
 | Versión | Cambio |
 |---|---|
 | v1 | `project`, `opening`, `light`, `furniture`, `catalog_model` |
@@ -253,6 +264,7 @@ cada uno en su transacción, los pasos que faltan.
 
 ## 6. Vistas de consulta (solo PostgreSQL)
 
+<!-- Tabla: Vistas de consulta disponibles en PostgreSQL -->
 | Vista | Qué muestra |
 |---|---|
 | `project_summary` | Cada proyecto con área y cantidad de muebles, luces y aberturas |

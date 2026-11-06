@@ -9,6 +9,7 @@ docente**: si alguna difiere, manda la de la universidad.
 
 ## 1. Normas aplicadas a cada documento
 
+<!-- Tabla: Normas de contenido y formato aplicadas a cada documento -->
 | Documento | Norma de contenido | Norma de formato |
 |---|---|---|
 | 01 Acta de constitución y visión | PMBOK 7.ª ed. (PMI) | APA 7.ª ed. |
@@ -26,6 +27,7 @@ docente**: si alguna difiere, manda la de la universidad.
 
 ## 2. Formato de página (APA 7.ª edición)
 
+<!-- Tabla: Formato de página según APA 7.ª edición -->
 | Elemento | Norma | Cómo quedó en los Word |
 |---|---|---|
 | Tamaño de papel | A4 (en Perú; APA original usa Carta) | A4 |
@@ -35,7 +37,9 @@ docente**: si alguna difiere, manda la de la universidad.
 | Alineación | A la izquierda, sin justificar | A la izquierda |
 | Sangría | 1,27 cm en la primera línea de cada párrafo | 1,27 cm |
 | Espacio entre párrafos | Ninguno adicional | Ninguno |
-| Número de página | Arriba a la derecha, desde la carátula | Arriba a la derecha |
+| Número de página | Arriba a la derecha, desde la carátula | Al pie, a la derecha (arriba va el encabezado institucional); la carátula no lleva número |
+| Encabezado | Encabezado breve (APA 7 para estudiantes no lo exige) | Encabezado institucional de la UNAJ: logo a la derecha, universidad, facultad y escuela, con un filete inferior |
+| Carátula | Datos de la institución y del trabajo | Modelo institucional de la UNAJ: logo, facultad, escuela, título, integrantes, docente, asignatura, lugar y año |
 | Tablas | Interlineado sencillo o 1,5 permitido | Sencillo, 10 pt |
 
 > Muchas universidades peruanas piden **interlineado 1,5** y **margen izquierdo de 3 cm** para
@@ -44,6 +48,7 @@ docente**: si alguna difiere, manda la de la universidad.
 
 ## 3. Niveles de títulos (APA 7)
 
+<!-- Tabla: Niveles de títulos según APA 7 -->
 | Nivel | Formato | Uso en los documentos |
 |---|---|---|
 | 1 | Centrado, negrita, mayúsculas y minúsculas | Secciones principales (`1. Introducción`) |
@@ -56,6 +61,12 @@ docente**: si alguna difiere, manda la de la universidad.
 
 - Se numeran en orden de aparición con números arábigos: **Tabla 1**, **Figura 1**.
 - Encima de cada una va el número **en negrita** y debajo, en la línea siguiente, el título **en cursiva**.
+- Cada documento incluye, después del índice general, un **índice de tablas** y un **índice de figuras**
+  con el número, el título y la página de cada una (no se generan si el documento no tiene tablas o figuras).
+- En el Markdown, el título de cada tabla o diagrama se escribe en un comentario justo antes del
+  bloque: `<!-- Tabla: Requisitos funcionales de los muebles -->` o `<!-- Figura: Modelo entidad-relación -->`.
+  El título debe decir **qué contiene** la tabla o figura, no repetir el nombre de la sección. En las
+  capturas de pantalla el título es el texto alternativo de la imagen (`![título](ruta)`).
 - Las tablas llevan solo líneas horizontales: arriba, debajo del encabezado y al final. Sin líneas verticales.
 - Si la tabla o figura no es propia, debajo se escribe una **Nota** con la fuente:
   *Nota.* Adaptado de *Título* (p. 23), por Autor, Año.
@@ -66,6 +77,7 @@ docente**: si alguna difiere, manda la de la universidad.
 
 ### 5.1 Citas en el texto
 
+<!-- Tabla: Formatos de citas en el texto -->
 | Tipo | Ejemplo |
 |---|---|
 | Parentética | Las pruebas automatizadas detectan regresiones (Sommerville, 2016). |
@@ -82,6 +94,7 @@ docente**: si alguna difiere, manda la de la universidad.
 - Orden alfabético por apellido del primer autor; **sangría francesa** de 1,27 cm; interlineado doble.
 - Solo se incluyen las obras citadas en el texto.
 
+<!-- Tabla: Formato de la lista de referencias por tipo de fuente -->
 | Tipo de fuente | Formato |
 |---|---|
 | Libro | Apellido, A. A. (Año). *Título en cursiva* (ed.). Editorial. |
@@ -96,7 +109,7 @@ docente**: si alguna difiere, manda la de la universidad.
 Estructura habitual de los informes de proyectos en universidades públicas del Perú (verifica el
 orden exacto en la guía de tu escuela):
 
-1. **Carátula:** universidad, escuela, título, curso, docente, integrantes, ciudad y año.
+1. **Carátula:** universidad, facultad, escuela, logo, tipo de trabajo, título, integrantes, docente, asignatura, ciudad y año.
 2. **Resumen** (150 a 250 palabras) y **palabras clave** (3 a 6).
 3. **Abstract** y **keywords** (traducción al inglés).
 4. **Índice** general, de tablas y de figuras.
@@ -113,6 +126,7 @@ orden exacto en la guía de tu escuela):
 
 ## 7. Redacción técnica y académica
 
+<!-- Tabla: Reglas de redacción técnica y académica -->
 | Regla | Correcto | Evitar |
 |---|---|---|
 | Persona impersonal o tercera persona | «Se desarrolló una aplicación…» | «Yo hice…», «Hicimos…» (salvo que la guía lo permita) |
@@ -139,8 +153,7 @@ orden exacto en la guía de tu escuela):
 ## 9. Lista de verificación antes de entregar
 
 - [ ] Reemplazar todos los `[completar]` (resaltados en amarillo en los Word).
-- [ ] Actualizar el índice: clic derecho sobre él → *Actualizar campos* → *Actualizar toda la tabla*.
-- [ ] Insertar las capturas de pantalla del informe final (sección 4.5).
+- [ ] Actualizar los índices (general, de tablas y de figuras): *Ctrl+E* (seleccionar todo) y luego *F9* → *Actualizar toda la tabla*.
 - [ ] Agregar antecedentes y discusión en el informe final.
 - [ ] Revisar ortografía (*Revisar → Ortografía y gramática*, idioma Español (Perú)).
 - [ ] Revisar que cada tabla y figura tenga número y título y que se mencione en el texto.

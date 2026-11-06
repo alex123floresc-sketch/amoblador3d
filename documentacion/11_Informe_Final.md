@@ -1,8 +1,10 @@
 # UNIVERSIDAD NACIONAL DE JULIACA
 
-### Escuela Profesional de `[completar]`
+### Facultad de Ciencias de Ingenierías
 
-### Curso: `[completar]`
+### Escuela Profesional de Ingeniería de Sistemas y Software
+
+### Asignatura: Bases de Datos
 
 &nbsp;
 
@@ -12,11 +14,13 @@
 
 &nbsp;
 
-**Docente:** `[completar]`
+**Docente:** Noe Tipo Mamani
 
 **Integrantes:**
-- `[Apellidos y nombres — código]`
-- `[Apellidos y nombres — código]`
+- Flores Calcina, Alexander Edson
+- Sandia Condori, George James
+- Huanca Tiña, Erick Reison
+- Flores Ccori, Brayan
 
 **Semestre:** `[completar]`
 
@@ -262,6 +266,7 @@ permite detectar regresiones en cada cambio (Pressman y Maxim, 2020).
 
 ### 2.3 Definición de términos básicos
 
+<!-- Tabla: Definición de términos básicos -->
 | Término | Definición |
 |---|---|
 | Ambiente | Habitación de la vivienda con sus medidas, aberturas, luces y muebles |
@@ -287,6 +292,7 @@ cobertura, cumplimiento de requisitos).
 Se siguió un modelo **iterativo e incremental** con prácticas ágiles. Cada fase entregó un incremento
 funcional y probado, en su propia rama de Git, con su migración de base de datos y su documentación.
 
+<!-- Tabla: Fases del desarrollo iterativo e incremento logrado en cada una -->
 | Fase | Incremento |
 |---|---|
 | Base | Migración a Java, escena 3D, acabados, proyectos en SQLite |
@@ -301,6 +307,7 @@ funcional y probado, en su propia rama de Git, con su migración de base de dato
 
 ### 3.3 Técnicas e instrumentos
 
+<!-- Tabla: Técnicas e instrumentos de recolección de datos -->
 | Técnica | Instrumento | Uso |
 |---|---|---|
 | Revisión documental | Repositorios institucionales, ALICIA, normas técnicas | Antecedentes y bases teóricas |
@@ -312,6 +319,7 @@ funcional y probado, en su propia rama de Git, con su migración de base de dato
 
 ### 3.4 Herramientas
 
+<!-- Tabla: Herramientas utilizadas por categoría -->
 | Categoría | Herramienta |
 |---|---|
 | Lenguaje | Java 21 |
@@ -332,6 +340,7 @@ funcional y probado, en su propia rama de Git, con su migración de base de dato
 Se especificaron 40 requisitos funcionales y 14 no funcionales (documento 02) y 11 casos de uso
 (documento 03).
 
+<!-- Tabla: Resumen de requisitos funcionales por grupo -->
 | Grupo | Requisitos funcionales | Ejemplos |
 |---|---|---|
 | Ambiente y casa | RF-01 a RF-09 | Medidas de 1 a 30 m; seis tipos de puerta; hasta 4 pisos |
@@ -346,6 +355,7 @@ Se especificaron 40 requisitos funcionales y 14 no funcionales (documento 02) y 
 Se adoptó una arquitectura en capas en la que las reglas del negocio no dependen de la interfaz
 gráfica, lo que permitió probarlas sin abrir ventanas (documento 04).
 
+<!-- Figura: Arquitectura en capas de Amoblador3D -->
 ```mermaid
 flowchart TB
     UI[Presentación: ui y scene · JavaFX] --> DOM[Dominio: design, estimate, report, catalog, model]
@@ -376,6 +386,7 @@ aceptar el movimiento
 
 **Cálculo del metrado.** Para cada superficie:
 
+<!-- Tabla: Fórmulas de los algoritmos principales -->
 | Concepto | Fórmula |
 |---|---|
 | Área de paredes | perímetro × alto − Σ (ancho × alto de cada ventana y puerta) + caras visibles de columnas |
@@ -409,6 +420,7 @@ propiedades del ambiente, la vista central y un panel de propiedades del element
 
 ### 5.1 Cumplimiento de objetivos
 
+<!-- Tabla: Cumplimiento de los objetivos específicos -->
 | Objetivo específico | Resultado | Logro |
 |---|---|---|
 | OE1 Modelar ambientes y casas | Ambientes de 1 a 30 m, en L, con columnas; casas de hasta 30 ambientes en 4 pisos | Logrado |
@@ -422,6 +434,7 @@ propiedades del ambiente, la vista central y un panel de propiedades del element
 Se ejecutaron 114 casos automatizados en 20 clases de prueba, con 100 % de aprobación (03/11/2026).
 La construcción exige al menos 70 % de cobertura en los paquetes de dominio y datos.
 
+<!-- Tabla: Cobertura de las pruebas automáticas por paquete -->
 | Paquete | Cobertura de instrucciones | Cobertura de ramas |
 |---|---|---|
 | `estimate` (presupuesto) | 92 % | 84 % |
@@ -438,6 +451,7 @@ documento 06.
 
 ### 5.3 Métricas del producto
 
+<!-- Tabla: Métricas del producto -->
 | Métrica | Valor |
 |---|---|
 | Líneas de código Java (producción y pruebas) | ≈ 19 400 |

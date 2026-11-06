@@ -11,6 +11,7 @@ y que los cambios nuevos no rompen lo que ya funcionaba (regresión).
 
 ### 1.2 Niveles y tipos de prueba
 
+<!-- Tabla: Niveles y tipos de prueba aplicados -->
 | Nivel | Qué se prueba | Herramienta | Automatizada |
 |---|---|---|---|
 | Unitarias | Reglas de `Design`, `Footprint`, `Quantities`, `Snapper`, `History`, formato JSON | JUnit 5 | Sí |
@@ -27,6 +28,7 @@ y que los cambios nuevos no rompen lo que ya funcionaba (regresión).
 
 ### 1.4 Entorno
 
+<!-- Tabla: Entorno de ejecución de las pruebas -->
 | Elemento | Valor |
 |---|---|
 | Sistema operativo | Windows 11 Home 10.0.26200 |
@@ -46,6 +48,7 @@ y que los cambios nuevos no rompen lo que ya funcionaba (regresión).
 
 **Fecha de ejecución:** 03/11/2026 · **Comando:** `mvnw verify` · **Resultado:** ✅ BUILD SUCCESS
 
+<!-- Tabla: Resumen de métricas de las pruebas automáticas -->
 | Métrica | Valor |
 |---|---|
 | Clases de prueba | 20 |
@@ -55,6 +58,7 @@ y que los cambios nuevos no rompen lo que ya funcionaba (regresión).
 
 ### 2.1 Resultados por clase
 
+<!-- Tabla: Resultados de las pruebas por clase -->
 | Paquete | Clase de prueba | Casos | Resultado | Requisitos |
 |---|---|---|---|---|
 | catalog | `CatalogTest` | 2 | ✅ | RF-14 |
@@ -80,6 +84,7 @@ y que los cambios nuevos no rompen lo que ya funcionaba (regresión).
 
 ### 2.2 Casos de prueba destacados
 
+<!-- Tabla: Casos de prueba destacados -->
 | Id | Caso (método) | Entrada | Resultado esperado |
 |---|---|---|---|
 | CP-01 | `losMueblesNuevosNoChocanEntreSiNiConLaPuerta` | Agregar varios muebles en un dormitorio de 4 × 3,5 m | Ninguna huella se solapa con otra ni con el giro de la puerta |
@@ -104,6 +109,7 @@ y que los cambios nuevos no rompen lo que ya funcionaba (regresión).
 
 Datos de `target/site/jacoco/jacoco.csv` del 03/11/2026.
 
+<!-- Tabla: Cobertura de código por paquete según JaCoCo -->
 | Paquete | Instrucciones | Ramas | Líneas | Comentario |
 |---|---|---|---|---|
 | `estimate` | 92 % | 84 % | 93 % | Lógica de presupuesto |
@@ -127,6 +133,7 @@ integración continua.
 
 Ejecutar antes de cada entrega con `.\mvnw.cmd javafx:run` y marcar el resultado.
 
+<!-- Tabla: Lista de comprobación de pruebas manuales de sistema -->
 | Id | Paso | Resultado esperado | Resultado |
 |---|---|---|---|
 | PM-01 | Abrir la aplicación por primera vez | Aparece la pantalla de bienvenida | `[ ]` |
@@ -147,6 +154,7 @@ Ejecutar antes de cada entrega con `.\mvnw.cmd javafx:run` y marcar el resultado
 
 ## 4. Defectos encontrados y corregidos (resumen histórico)
 
+<!-- Tabla: Defectos encontrados y corregidos por fase -->
 | Fase | Defecto | Corrección |
 |---|---|---|
 | Migración a Java | Un error al guardar podía dejar el proyecto a medio escribir | Guardado en transacción (`Database.transaction`) |

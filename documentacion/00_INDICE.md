@@ -4,14 +4,19 @@
 **Institución:** Universidad Nacional de Juliaca (UNAJ)
 **Versión del software:** 2.0.0 · **Versión de la documentación:** 1.0 · **Fecha:** noviembre de 2026
 
-> Los datos que solo conoce el equipo (integrantes, docente, curso, semestre) están marcados como
-> `[completar]`. Búscalos con Ctrl+F antes de entregar.
+**Facultad:** Facultad de Ciencias de Ingenierías · **Escuela:** Ingeniería de Sistemas y Software
+**Asignatura:** Bases de Datos · **Docente:** Noe Tipo Mamani
+**Integrantes:** Flores Calcina, Alexander Edson · Sandia Condori, George James · Huanca Tiña, Erick Reison · Flores Ccori, Brayan
+
+> Los pocos datos que aún faltan (semestre, reparto de roles, horas y costos reales) están marcados
+> como `[completar]`. Búscalos con Ctrl+F antes de entregar.
 
 ## Documentos
 
 Un proyecto de software universitario debe tener estos documentos. Están ordenados según las
 etapas del ciclo de vida: **inicio → requisitos → diseño → construcción → pruebas → entrega**.
 
+<!-- Tabla: Documentos del proyecto, propósito, lectores y norma de referencia -->
 | N.° | Documento | Para qué sirve | Quién lo lee | Norma de referencia |
 |---|---|---|---|---|
 | 01 | [Acta de constitución y documento de visión](01_Acta_de_Constitucion_y_Vision.md) | Qué problema se resuelve, objetivos, alcance, interesados | Docente, equipo | PMBOK 7 |
@@ -30,6 +35,7 @@ etapas del ciclo de vida: **inicio → requisitos → diseño → construcción 
 
 ### Documentos que ya existen en la raíz del repositorio
 
+<!-- Tabla: Documentos complementarios ubicados en la raíz del repositorio -->
 | Archivo | Contenido |
 |---|---|
 | [`README.md`](../README.md) | Presentación del proyecto, funciones, atajos y formato `.amob3d` |
@@ -47,13 +53,24 @@ etapas del ciclo de vida: **inicio → requisitos → diseño → construcción 
 ## Versión en Word (carpeta `doc 2`)
 
 En [`doc 2`](doc%202) están los mismos documentos en formato Word (`.docx`), con normas **APA 7**:
-carátula, índice automático, Times New Roman 12, márgenes de 2,54 cm, sangría de 1,27 cm, número
-de página arriba a la derecha, títulos por niveles, tablas y figuras numeradas y los diagramas como
-imágenes. El detalle de las normas está en el documento 13.
+
+- **Carátula institucional de la UNAJ** (logo, facultad, escuela, título, integrantes, docente,
+  asignatura, lugar y año).
+- **Encabezado** en todas las páginas, salvo la carátula: logo de la UNAJ, universidad, facultad y
+  escuela. El número de página va al pie, a la derecha.
+- **Índice general** automático y, cuando el documento las tiene, **índice de tablas** e
+  **índice de figuras** con el título específico y la página de cada una.
+- Times New Roman 12, márgenes de 2,54 cm, sangría de 1,27 cm, títulos por niveles, tablas y figuras
+  numeradas con su título en cursiva y los diagramas como imágenes.
+
+El detalle de las normas está en el documento 13. Los datos de la carátula están en `META`, al
+inicio de [`herramientas/generar.js`](herramientas/generar.js), y los logos en `herramientas/recursos/`.
 
 - Los textos `[completar]` aparecen **resaltados en amarillo**.
 - Al abrir un documento, Word puede preguntar si desea **actualizar los campos**: responde *Sí* para
-  que se llene el índice.
+  que se llenen los índices y sus números de página.
+- Para dar título a una tabla o diagrama nuevo, escribe antes del bloque un comentario
+  `<!-- Tabla: título -->` o `<!-- Figura: título -->`. Si no lo pones, se usa el nombre de la sección.
 - Los Word se generan a partir de estos Markdown. Si cambias un `.md`, vuelve a generarlos (necesita
   Node.js y Microsoft Edge, que dibuja los diagramas):
 

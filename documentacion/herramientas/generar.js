@@ -1,4 +1,5 @@
-// Convierte documentacion/*.md en documentos Word con formato APA 7 (carpeta "doc 2").
+// Convierte documentacion/*.md en documentos Word con formato APA 7 (carpeta "doc 2"):
+// carátula institucional UNAJ, encabezado con logo, índice general, índice de tablas e índice de figuras.
 // Uso: node generar.js <carpeta documentacion> <carpeta salida>
 const fs = require('fs');
 const path = require('path');
@@ -7,7 +8,9 @@ const { marked } = require('marked');
 const {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell,
   WidthType, BorderStyle, ShadingType, ImageRun, PageBreak, Header, PageNumber, TableOfContents,
-  LevelFormat, VerticalAlign, ExternalHyperlink, PageOrientation,
+  LevelFormat, VerticalAlign, ExternalHyperlink, PageOrientation, Footer, Bookmark, PageReference,
+  TabStopType, LeaderType, HorizontalPositionAlign, HorizontalPositionRelativeFrom,
+  VerticalPositionRelativeFrom, TextWrappingType,
 } = require('docx');
 
 const SRC = process.argv[2];
@@ -95,21 +98,27 @@ function mermaidPng(code) {
 function makeConverter(opts) {
   let tables = 0, figures = 0, lastHeading = '', inReferences = false;
   const body = [];
+  // Títulos escritos en el Markdown como <!-- Tabla: ... --> o <!-- Figura: ... --> antes del bloque.
+  const pending = {};
+  const take = (kind) => { const t = pending[kind]; delete pending[kind]; return t; };
+  const index = { Tabla: [], Figura: [] }; // alimenta los índices de tablas y de figuras
   const lineSpacing = opts.double ? 480 : 360;
 
   const para = (children, extra = {}) =>
     new Paragraph({ children, spacing: { line: lineSpacing, before: 0, after: 0 }, indent: { firstLine: INDENT }, ...extra });
 
   function caption(kind, n, title) {
+    const id = (kind === 'Tabla' ? 'tabla_' : 'figura_') + n;
+    index[kind].push({ n, title, id });
     body.push(new Paragraph({ keepNext: true, spacing: { before: 240, after: 0, line: lineSpacing },
-      children: [new TextRun({ text: `${kind} ${n}`, bold: true, font: FONT })] }));
+      children: [new Bookmark({ id, children: [new TextRun({ text: `${kind} ${n}`, bold: true, font: FONT })] })] }));
     body.push(new Paragraph({ keepNext: true, spacing: { after: 120, line: lineSpacing },
       children: [new TextRun({ text: title, italics: true, font: FONT })] }));
   }
 
   function table(t) {
     tables++;
-    caption('Tabla', tables, lastHeading || opts.title);
+    caption('Tabla', tables, take('Tabla') || lastHeading || opts.title);
     const cols = t.header.length;
     const lens = t.header.map((h, i) => Math.max(plain(h.tokens).length,
       ...t.rows.map((r) => Math.min(plain(r[i] && r[i].tokens).length, 70)), 4));
@@ -153,7 +162,7 @@ function makeConverter(opts) {
   // Captura de pantalla: Figura N, título en cursiva, imagen y nota (APA 7).
   function picture(img) {
     figures++;
-    caption('Figura', figures, clean(img.text || lastHeading));
+    caption('Figura', figures, take('Figura') || clean(img.text || lastHeading));
     const data = fs.readFileSync(path.join(SRC, decodeURI(img.href)));
     const w = data.readUInt32BE(16), h = data.readUInt32BE(20);
     const maxW = opts.double ? 470 : 600; // con interlineado doble caben dos capturas por página
@@ -173,7 +182,7 @@ function makeConverter(opts) {
       // Un diagrama muy ancho se vería diminuto en vertical: va solo en una página horizontal.
       const wide = w > 640 && w / h > 1.3;
       const start = body.length;
-      caption('Figura', figures, lastHeading || opts.title);
+      caption('Figura', figures, take('Figura') || lastHeading || opts.title);
       const maxW = wide ? 900 : 600, maxH = wide ? 410 : 740;
       const k = Math.min(1, maxW / w, maxH / h);
       body.push(new Paragraph({ alignment: AlignmentType.CENTER, keepNext: true, spacing: { after: 60 },
@@ -246,36 +255,78 @@ function makeConverter(opts) {
           else block(inner);
         }
         break;
+      case 'html': {
+        const m = /<!--\s*(Tabla|Figura):\s*([\s\S]*?)\s*-->/.exec(t.text);
+        if (m) pending[m[1]] = m[2];
+        break;
+      }
       case 'hr': if (opts.hrIsPageBreak) body.push(new Paragraph({ children: [new PageBreak()] })); break;
       default: break;
     }
   }
-  return { block, body, counts: () => ({ tables, figures }) };
+  return { block, body, index, counts: () => ({ tables, figures }) };
 }
 
 // ------------------------------------------------------------------ documento
+// Datos de la carátula institucional (modelo de la UNAJ entregado por el equipo).
 const META = {
   universidad: 'UNIVERSIDAD NACIONAL DE JULIACA',
-  escuela: 'Escuela Profesional de [completar]',
+  facultad: 'Facultad de Ciencias de Ingenierías',
+  escuela: 'ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMAS Y SOFTWARE',
+  tipo: 'MONOGRAFÍA',
   proyecto: 'Amoblador3D: diseñador de interiores 3D con medidas reales',
+  integrantes: ['Flores Calcina Alexander Edson', 'Sandia Condori George James', 'Huanca Tiña Erick Reison', 'Flores Ccori Brayan'],
+  docente: 'NOE TIPO MAMANI',
+  asignatura: 'Bases de Datos',
+  lugar: 'JULIACA – PERÚ',
+  anio: '2026',
 };
+const RECURSOS = path.join(__dirname, 'recursos');
+const LOGO_CARATULA = fs.readFileSync(path.join(RECURSOS, 'logo_unaj_caratula.png'));
+const LOGO_ENCABEZADO = fs.readFileSync(path.join(RECURSOS, 'logo_unaj_encabezado.png'));
+const LOGO_ALT = { name: 'Logo UNAJ', title: 'Logo UNAJ', description: 'Logotipo de la Universidad Nacional de Juliaca' };
 
 function cover(title, subtitle) {
-  const c = (txt, o = {}) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { line: 480, before: o.before || 0 },
-    children: [text(txt, { bold: o.bold, size: o.size })] });
+  const c = (txt, o = {}) => new Paragraph({ alignment: AlignmentType.CENTER,
+    spacing: { line: o.line || 300, before: o.before || 0, after: o.after === undefined ? 120 : o.after },
+    children: [new TextRun({ text: txt, bold: o.bold, size: o.size, color: o.color, font: o.font || FONT })] });
   return [
-    c(META.universidad, { bold: true, size: 28 }),
-    c(META.escuela),
-    c(title, { bold: true, size: 28, before: 1800 }),
-    ...(subtitle ? [c(subtitle, { size: 24 })] : []),
-    ...(subtitle ? [] : [c('Proyecto: ' + META.proyecto, { before: 240 })]),
-    c('Curso: [completar]', { before: 1200 }),
-    c('Docente: [completar]'),
-    c('Integrantes:'),
-    c('[Apellidos y nombres — código]'),
-    c('[Apellidos y nombres — código]'),
-    c('Juliaca – Perú', { before: 1200 }),
-    c('Noviembre de 2026'),
+    c(META.universidad, { bold: true, size: 30, color: '1B2A4A', after: 60 }),
+    c(META.facultad, { bold: true, color: '595959', font: 'Calibri', after: 300 }),
+    c(META.escuela, { size: 22, color: '595959', after: 360 }),
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 600 },
+      children: [new ImageRun({ type: 'png', data: LOGO_CARATULA, transformation: { width: 259, height: 94 }, altText: LOGO_ALT })] }),
+    c(META.tipo, { bold: true, after: 480 }),
+    c(title.toUpperCase(), { bold: true, size: 30, line: 360 }),
+    c(subtitle || 'Proyecto: ' + META.proyecto, { line: 360, after: 720 }),
+    c('PRESENTADO POR:', { bold: true }),
+    ...META.integrantes.map((n) => c(n, { after: 0 })),
+    c('DOCENTE:', { bold: true, before: 360 }),
+    c(META.docente),
+    c('ASIGNATURA:', { bold: true, before: 120 }),
+    c(META.asignatura, { after: 720 }),
+    c(META.lugar, { bold: true, after: 0 }),
+    c(META.anio, { bold: true, after: 0 }),
+    new Paragraph({ children: [new PageBreak()] }),
+  ];
+}
+
+/** Índice de tablas o de figuras: número, título y página (campo PAGEREF al marcador de cada leyenda). */
+function captionIndex(kind, items) {
+  if (!items.length) return [];
+  return [
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 },
+      children: [new TextRun({ text: kind === 'Tabla' ? 'Índice de tablas' : 'Índice de figuras', bold: true, font: FONT, size: 24 })] }),
+    ...items.map((it) => new Paragraph({
+      tabStops: [{ type: TabStopType.LEFT, position: 1134 }, { type: TabStopType.RIGHT, position: CONTENT_W, leader: LeaderType.DOT }],
+      indent: { left: 1134, hanging: 1134 },
+      spacing: { line: 276, before: 0, after: 100 },
+      children: [
+        new TextRun({ text: `${kind} ${it.n}`, bold: true, font: FONT }),
+        new TextRun({ text: '\t' + it.title + '\t', italics: true, font: FONT }),
+        new TextRun({ children: [new PageReference(it.id)], font: FONT }),
+      ],
+    })),
     new Paragraph({ children: [new PageBreak()] }),
   ];
 }
@@ -298,21 +349,40 @@ function headingStyle(id, name, size, opts) {
 
 /** Parte el contenido en secciones: vertical normal y una horizontal por cada diagrama ancho. */
 function sections(children) {
-  const header = () => ({ default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT,
-    children: [new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 24 })] })] }) });
-  const margin = { top: 1440, bottom: 1440, left: 1440, right: 1440, header: 708, footer: 708 };
+  // Encabezado institucional: logo a la derecha, tres líneas en negrita y un filete; número de página al pie.
+  const hp = (children, last) => new Paragraph({ spacing: { line: 240, before: 0, after: 0 },
+    border: last ? { bottom: { style: BorderStyle.SINGLE, size: 6, color: '156082', space: 4 } } : undefined, children });
+  const ht = (txt) => new TextRun({ text: txt, bold: true, font: FONT, size: 22 });
+  const header = () => new Header({ children: [
+    hp([new ImageRun({ type: 'png', data: LOGO_ENCABEZADO, transformation: { width: 140, height: 40 }, altText: LOGO_ALT,
+      floating: { horizontalPosition: { relative: HorizontalPositionRelativeFrom.MARGIN, align: HorizontalPositionAlign.RIGHT },
+        verticalPosition: { relative: VerticalPositionRelativeFrom.PARAGRAPH, offset: 0 },
+        wrap: { type: TextWrappingType.NONE }, allowOverlap: true } }),
+    ht('Universidad Nacional de Juliaca')]),
+    hp([ht('Facultad de Ciencias de Ingenierías')]),
+    hp([ht('Escuela Profesional de Ingeniería de Sistemas y Software')], true),
+  ] });
+  const footer = () => new Footer({ children: [new Paragraph({ alignment: AlignmentType.RIGHT,
+    children: [new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 22 })] })] });
+  const empty = (K) => new K({ children: [new Paragraph({ children: [] })] });
+  const margin = { top: 1700, bottom: 1440, left: 1440, right: 1440, header: 708, footer: 708 };
   const portrait = { page: { size: { width: 11906, height: 16838 }, margin } };
   const landscape = { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE }, margin } };
   const out = [];
+  // La primera sección empieza con la carátula: esa página va sin encabezado ni número.
+  const sec = (props, kids) => out.length === 0
+    ? { properties: { ...props, titlePage: true }, headers: { default: header(), first: empty(Header) },
+      footers: { default: footer(), first: empty(Footer) }, children: kids }
+    : { properties: props, headers: { default: header() }, footers: { default: footer() }, children: kids };
   let current = [];
   for (const c of children) {
     if (c && c.landscape) {
-      if (current.length) out.push({ properties: portrait, headers: header(), children: current });
-      out.push({ properties: landscape, headers: header(), children: c.landscape });
+      if (current.length) out.push(sec(portrait, current));
+      out.push(sec(landscape, c.landscape));
       current = [];
     } else current.push(c);
   }
-  out.push({ properties: portrait, headers: header(), children: current.length ? current : [new Paragraph({ children: [] })] });
+  out.push(sec(portrait, current.length ? current : [new Paragraph({ children: [] })]));
   return out;
 }
 
@@ -358,7 +428,7 @@ async function convert(file) {
   }
 
   const doc = new Document({
-    creator: 'Equipo Amoblador3D', title, description: 'Documentación del proyecto Amoblador3D',
+    creator: META.integrantes.join('; '), title, description: 'Documentación del proyecto Amoblador3D',
     features: { updateFields: true },
     styles: {
       default: { document: { run: { font: FONT, size: 24 }, paragraph: { spacing: { line: isReport ? 480 : 360 } } } },
@@ -373,7 +443,8 @@ async function convert(file) {
         alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: INDENT * (l + 1), hanging: 360 } } } })) },
       ...numberingConfigs,
     ] },
-    sections: sections([...cover(title, subtitle), ...toc(), ...conv.body]),
+    sections: sections([...cover(title, subtitle), ...toc(),
+      ...captionIndex('Tabla', conv.index.Tabla), ...captionIndex('Figura', conv.index.Figura), ...conv.body]),
   });
   const outName = base + '.docx';
   const c = conv.counts();
@@ -389,4 +460,5 @@ async function convert(file) {
 (async () => {
   const files = fs.readdirSync(SRC).filter((f) => /^\d\d_.*\.md$/.test(f)).sort();
   for (const f of files) await convert(f);
-})().catch((e) => { console.error(e); process.exit(1); });
+})().catch((e) => { console.error(e); process.exitCode = 1; })
+  .finally(() => fs.rmSync(WORK, { recursive: true, force: true }));

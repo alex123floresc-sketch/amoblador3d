@@ -7,6 +7,7 @@ documento 04 y la base de datos en el 05; aquí se explica **cómo trabajar con 
 
 ## 1. Entorno de desarrollo
 
+<!-- Tabla: Herramientas del entorno de desarrollo -->
 | Herramienta | Versión | Nota |
 |---|---|---|
 | JDK | 21 o superior | Temurin recomendado. El build falla con un mensaje claro si es menor (maven-enforcer) |
@@ -35,6 +36,7 @@ documento 04 y la base de datos en el 05; aquí se explica **cómo trabajar con 
 .\packaging\crear-instalador.ps1   # versión para Windows con Java incluido
 ```
 
+<!-- Tabla: Propiedades de la JVM para configurar la ejecución -->
 | Propiedad de la JVM | Para qué |
 |---|---|
 | `-Damoblador.home=C:\temp\prueba` | Usar otra carpeta de datos (pruebas, USB, capturas) |
@@ -70,6 +72,7 @@ amoblador3d/
 
 ### 4.1 Arranque
 
+<!-- Figura: Diagrama de secuencia del arranque de la aplicación -->
 ```mermaid
 sequenceDiagram
     participant L as Launcher.main
@@ -117,6 +120,7 @@ private <T> void handle(Outcome<T> outcome, Consumer<T> onOk) {
 
 ### 4.3 Guardado, archivos y autoguardado
 
+<!-- Tabla: Mecanismos de guardado, archivos y autoguardado -->
 | Mecanismo | Clase | Detalle |
 |---|---|---|
 | Base de datos | `ProjectRepository.saveHome / loadHome` | Todo en una transacción (`Database.transaction`). El primer ambiente va en tablas; los demás, como JSON en `home_space` |
@@ -226,6 +230,7 @@ class MiReglaTest {
 }
 ```
 
+<!-- Tabla: Guía para escribir pruebas según lo que se prueba -->
 | Qué probar | Cómo |
 |---|---|
 | Reglas | `new Design(new Catalog())` y sus métodos |
@@ -239,6 +244,7 @@ paquetes de dominio no puede bajar del 70 % (lo revisa `mvnw verify`).
 
 ## 8. Depuración
 
+<!-- Tabla: Situaciones de depuración y qué hacer -->
 | Situación | Qué hacer |
 |---|---|
 | Quiero ver qué pasó en la PC de un usuario | Pídele *Ayuda → Abrir registro de errores* y el archivo `amoblador3d-0.log` |
@@ -252,6 +258,7 @@ paquetes de dominio no puede bajar del 70 % (lo revisa `mvnw verify`).
 
 La aplicación registra lo que pasa con `java.util.logging` (clase `util/AppLog.java`):
 
+<!-- Tabla: Ubicación del registro de errores -->
 | Qué | Dónde |
 |---|---|
 | Archivo | `%APPDATA%\Amoblador3D\logs\amoblador3d-0.log` (5 archivos de 1 MB que rotan) |
@@ -273,6 +280,7 @@ cualquier hilo se registra y muestra el aviso "Algo salió mal".
 request*: instala Temurin 21 en Windows, ejecuta `mvnw verify` y publica como artefactos los
 resultados de las pruebas, el informe de cobertura y el `amoblador3d.jar`.
 
+<!-- Tabla: Controles de integración continua y calidad -->
 | Control | Herramienta | Falla si… |
 |---|---|---|
 | Versión de Java y Maven | maven-enforcer | JDK menor que 21 o Maven menor que 3.6.3 |
@@ -292,6 +300,7 @@ resultados de las pruebas, el informe de cobertura y el `amoblador3d.jar`.
 
 ## 12. Herramientas de documentación
 
+<!-- Tabla: Herramientas para generar la documentación -->
 | Herramienta | Ubicación | Qué hace |
 |---|---|---|
 | Capturas de pantalla | `src/test/java/.../ui/Capturas.java` | Abre la aplicación con una carpeta temporal, recorre sus pantallas con los menús y guarda PNG en `documentacion/capturas` |
@@ -316,6 +325,7 @@ npm run generar
 
 ## 13. Dependencias
 
+<!-- Tabla: Dependencias del proyecto, versión y licencia -->
 | Librería | Versión | Licencia | Uso |
 |---|---|---|---|
 | OpenJFX (javafx-controls) | 21.0.4 | GPL v2 + Classpath Exception | Interfaz y 3D |
@@ -327,6 +337,7 @@ npm run generar
 
 ## 14. Problemas conocidos para el desarrollador
 
+<!-- Tabla: Problemas conocidos para el desarrollador -->
 | Síntoma | Causa y solución |
 |---|---|
 | `java -jar` dice que faltan componentes de JavaFX | Se ejecutó `App` en vez de `Launcher`. Usa siempre `Launcher` como clase principal |

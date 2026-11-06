@@ -19,6 +19,7 @@ detallado está en el documento [01](01_Acta_de_Constitucion_y_Vision.md#4-alcan
 
 ### 1.3 Definiciones
 
+<!-- Tabla: Definiciones de términos usados en la especificación -->
 | Término | Significado |
 |---|---|
 | Ambiente | Una habitación de la casa (sala, dormitorio…), con sus medidas, aberturas, luces y muebles |
@@ -46,6 +47,7 @@ Aplicación autónoma (no depende de servidores). Guarda los datos localmente en
 
 ### 2.2 Usuarios
 
+<!-- Tabla: Perfiles de usuario, conocimientos y uso principal -->
 | Perfil | Conocimientos | Uso principal |
 |---|---|---|
 | Usuario doméstico | Computación básica | Probar distribuciones y colores de su casa |
@@ -71,6 +73,7 @@ versión 2.0.0.
 
 ### 3.1 Ambiente y casa
 
+<!-- Tabla: Requisitos funcionales del ambiente y la casa -->
 | Código | Requisito | Prioridad |
 |---|---|---|
 | RF-01 | El sistema debe permitir definir ancho y largo (1 a 30 m), alto (2 a 6 m) y grosor de muro (0,05 a 0,50 m) de un ambiente. | A |
@@ -85,6 +88,7 @@ versión 2.0.0.
 
 ### 3.2 Acabados
 
+<!-- Tabla: Requisitos funcionales de los acabados -->
 | Código | Requisito | Prioridad |
 |---|---|---|
 | RF-10 | El sistema debe permitir elegir material y color de cada pared, del piso y del techo entre 11 materiales. | A |
@@ -94,6 +98,7 @@ versión 2.0.0.
 
 ### 3.3 Muebles
 
+<!-- Tabla: Requisitos funcionales de los muebles -->
 | Código | Requisito | Prioridad |
 |---|---|---|
 | RF-14 | El sistema debe ofrecer un catálogo de muebles agrupado por categorías con buscador que ignore mayúsculas y tildes. | A |
@@ -109,6 +114,7 @@ versión 2.0.0.
 
 ### 3.4 Visualización
 
+<!-- Tabla: Requisitos funcionales de visualización -->
 | Código | Requisito | Prioridad |
 |---|---|---|
 | RF-24 | El sistema debe mostrar el ambiente en vista 3D, planta 2D con cotas y recorrido en primera persona. | A |
@@ -119,6 +125,7 @@ versión 2.0.0.
 
 ### 3.5 Presupuesto e informes
 
+<!-- Tabla: Requisitos funcionales de presupuesto e informes -->
 | Código | Requisito | Prioridad |
 |---|---|---|
 | RF-29 | El sistema debe calcular m² de piso y paredes descontando ventanas, puertas y columnas, y los metros de zócalo. | A |
@@ -129,6 +136,7 @@ versión 2.0.0.
 
 ### 3.6 Proyectos
 
+<!-- Tabla: Requisitos funcionales de gestión de proyectos -->
 | Código | Requisito | Prioridad |
 |---|---|---|
 | RF-34 | El sistema debe guardar, abrir, renombrar y eliminar proyectos en una base de datos local, con miniatura. | A |
@@ -143,6 +151,7 @@ versión 2.0.0.
 
 Clasificados según ISO/IEC 25010.
 
+<!-- Tabla: Requisitos no funcionales y forma de verificación -->
 | Código | Característica | Requisito | Cómo se verifica |
 |---|---|---|---|
 | RNF-01 | Adecuación funcional | Las medidas se manejan en metros con precisión de 1 cm. | Pruebas `DesignTest`, `EstimateTest` |
@@ -162,6 +171,7 @@ Clasificados según ISO/IEC 25010.
 
 ## 5. Reglas de negocio
 
+<!-- Tabla: Reglas de negocio del sistema -->
 | Código | Regla |
 |---|---|
 | RN-01 | Las medidas del ambiente son interiores; los muros crecen hacia afuera. |
@@ -176,6 +186,7 @@ Clasificados según ISO/IEC 25010.
 
 ## 6. Matriz de trazabilidad (resumen)
 
+<!-- Tabla: Matriz de trazabilidad entre requisitos, casos de uso y pruebas -->
 | Requisito | Caso de uso | Pruebas automáticas |
 |---|---|---|
 | RF-01 a RF-04 | CU-02 | `DesignTest`, `DoorsAndStairsTest` |

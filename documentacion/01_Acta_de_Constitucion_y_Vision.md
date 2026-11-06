@@ -1,13 +1,15 @@
 # 01 · Acta de constitución y documento de visión
 
+<!-- Tabla: Datos generales del proyecto -->
 | Campo | Valor |
 |---|---|
 | Proyecto | Amoblador3D — Diseñador de interiores 3D con medidas reales |
 | Institución | Universidad Nacional de Juliaca (UNAJ) |
-| Escuela profesional | `[completar]` |
-| Curso | `[completar]` |
-| Docente | `[completar]` |
-| Integrantes | `[completar: apellidos y nombres, código]` |
+| Facultad | Facultad de Ciencias de Ingenierías |
+| Escuela profesional | Ingeniería de Sistemas y Software |
+| Asignatura | Bases de Datos |
+| Docente | Noe Tipo Mamani |
+| Integrantes | Flores Calcina, Alexander Edson; Sandia Condori, George James; Huanca Tiña, Erick Reison; Flores Ccori, Brayan |
 | Semestre | `[completar]` |
 | Versión del documento | 1.0 — noviembre de 2026 |
 
@@ -41,6 +43,7 @@ Desarrollar una aplicación de escritorio que permita diseñar y amoblar ambient
 
 ### Objetivos específicos
 
+<!-- Tabla: Objetivos específicos e indicadores de logro -->
 | Código | Objetivo | Indicador de logro |
 |---|---|---|
 | OE1 | Modelar habitaciones y casas de varios ambientes con medidas interiores reales | Medidas en metros con precisión de 1 cm; hasta 4 pisos |
@@ -73,6 +76,7 @@ Desarrollar una aplicación de escritorio que permita diseñar y amoblar ambient
 
 ## 5. Interesados (stakeholders)
 
+<!-- Tabla: Interesados del proyecto, su interés e influencia -->
 | Interesado | Interés | Influencia |
 |---|---|---|
 | Usuario final (familias, estudiantes, pequeños contratistas) | Diseñar su vivienda y saber cuánto gastará | Alta |
@@ -104,7 +108,8 @@ Desarrollar una aplicación de escritorio que permita diseñar y amoblar ambient
 
 ## 9. Aprobación
 
+<!-- Tabla: Firmas de aprobación del acta de constitución -->
 | Rol | Nombre | Firma | Fecha |
 |---|---|---|---|
-| Docente | `[completar]` | | |
+| Docente | Noe Tipo Mamani | | |
 | Jefe de proyecto | `[completar]` | | |

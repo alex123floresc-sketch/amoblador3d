@@ -18,6 +18,7 @@ Se usó un modelo **iterativo e incremental** con prácticas ágiles (inspirado 
 
 ## 2. Estructura de desglose del trabajo (EDT)
 
+<!-- Figura: Estructura de desglose del trabajo (EDT) -->
 ```mermaid
 flowchart LR
     P[Amoblador3D]
@@ -37,6 +38,7 @@ flowchart LR
 
 ## 3. Cronograma (real, según el historial de Git)
 
+<!-- Tabla: Cronograma real de fases y entregables -->
 | Fase | Entregable | Inicio | Fin | Commit |
 |---|---|---|---|---|
 | 0 | Prototipo Electron + Three.js | — | 2026-10-21 | `d6d7335` |
@@ -50,6 +52,7 @@ flowchart LR
 | 7 | Casa multiambiente, diseñador de muebles | 2026-10-26 | 2026-10-27 | `fe6f6be` |
 | 8 | Tipos de puerta, escaleras, pisos, registro de errores, CI, documentación | 2026-10-28 | 2026-11-03 | (pendiente) |
 
+<!-- Figura: Diagrama de Gantt del proyecto -->
 ```mermaid
 gantt
     dateFormat YYYY-MM-DD
@@ -71,6 +74,7 @@ gantt
 
 ## 4. Roles
 
+<!-- Tabla: Roles y responsabilidades del equipo -->
 | Rol | Responsabilidad | Integrante |
 |---|---|---|
 | Jefe de proyecto | Planificación, seguimiento, coordinación con el docente | `[completar]` |
@@ -83,6 +87,7 @@ gantt
 
 Probabilidad e impacto: 1 (bajo) a 3 (alto). Exposición = P × I.
 
+<!-- Tabla: Matriz de riesgos del proyecto -->
 | Id | Riesgo | P | I | Exp. | Respuesta | Estado |
 |---|---|---|---|---|---|---|
 | R1 | Rendimiento 3D bajo en PCs de laboratorio | 2 | 3 | 6 | Reconstruir solo lo que cambia; materiales compartidos; texturas con caché | Mitigado |
@@ -97,6 +102,7 @@ Probabilidad e impacto: 1 (bajo) a 3 (alto). Exposición = P × I.
 
 ## 6. Estimación de costos (referencial)
 
+<!-- Tabla: Estimación referencial de costos -->
 | Concepto | Cantidad | Costo unitario (S/) | Total (S/) |
 |---|---|---|---|
 | Horas de desarrollo | `[completar]` h | `[completar]` | `[completar]` |

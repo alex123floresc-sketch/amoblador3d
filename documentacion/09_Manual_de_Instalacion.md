@@ -4,6 +4,7 @@ Versión 1.0 · noviembre de 2026 · Software 2.0.0
 
 Hay tres formas de instalar Amoblador3D. Elige según quién lo va a usar.
 
+<!-- Tabla: Opciones de instalación según el tipo de usuario -->
 | Opción | Para quién | Necesita Java | Dificultad |
 |---|---|---|---|
 | A. Versión para Windows con Java incluido | Usuario final | No | Muy fácil |
@@ -12,6 +13,7 @@ Hay tres formas de instalar Amoblador3D. Elige según quién lo va a usar.
 
 ## Requisitos del equipo
 
+<!-- Tabla: Requisitos mínimos y recomendados del equipo -->
 | Elemento | Mínimo | Recomendado |
 |---|---|---|
 | Sistema operativo | Windows 10 64 bits | Windows 11 |
@@ -69,6 +71,7 @@ internet y tarda unos minutos). Detalle completo y problemas frecuentes: [`GUIA_
 
 ## Datos del usuario
 
+<!-- Tabla: Ubicación de los datos del usuario -->
 | Qué | Dónde |
 |---|---|
 | Proyectos, diseños, precios | `%APPDATA%\Amoblador3D\amoblador3d.db` |

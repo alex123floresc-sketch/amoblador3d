@@ -4,6 +4,7 @@ Basado en ISO/IEC/IEEE 42010 y el modelo C4. Versión 1.0 · noviembre de 2026 �
 
 ## 1. Objetivos y restricciones de la arquitectura
 
+<!-- Tabla: Objetivos de la arquitectura y decisiones que los cumplen -->
 | Objetivo | Decisión que lo cumple |
 |---|---|
 | Reglas del negocio que se puedan probar sin interfaz gráfica | Los paquetes `model`, `design`, `estimate`, `persistence` y `report` **no importan JavaFX** |
@@ -17,6 +18,7 @@ Apache PDFBox 3.0 · JUnit 5.13 · Maven (con Maven Wrapper) · JaCoCo · GitHub
 
 ## 2. Vista de contexto (C4 nivel 1)
 
+<!-- Figura: Vista de contexto del sistema (C4, nivel 1) -->
 ```mermaid
 flowchart LR
     U([👤 Usuario]) -->|diseña, amuebla, presupuesta| A[Amoblador3D<br/>aplicación de escritorio]
@@ -31,6 +33,7 @@ flowchart LR
 Es una aplicación monolítica de escritorio organizada en capas. Las dependencias van de arriba
 hacia abajo:
 
+<!-- Figura: Vista de contenedores y capas (C4, nivel 2) -->
 ```mermaid
 flowchart TB
     subgraph Presentación [Presentación · JavaFX]
@@ -59,6 +62,7 @@ flowchart TB
     model --> util
 ```
 
+<!-- Tabla: Paquetes del código fuente y sus responsabilidades -->
 | Paquete | Clases | Responsabilidad | Depende de JavaFX |
 |---|---|---|---|
 | `model` | 16 | Entidades: `Project`, `Home`, `RoomDims`, `Opening`, `Furniture`, `Light`, `Column`, `Surface`, `Footprint`… | No |
@@ -74,6 +78,7 @@ flowchart TB
 
 ## 4. Vista de componentes: clases clave (C4 nivel 3)
 
+<!-- Figura: Diagrama de clases clave (C4, nivel 3) -->
 ```mermaid
 classDiagram
     class Home { +List~Space~ spaces; +MAX_SPACES=30; +MAX_LEVELS=4 }
@@ -103,6 +108,7 @@ classDiagram
 
 Toda acción que cambia el proyecto sigue el mismo camino:
 
+<!-- Figura: Diagrama de secuencia del flujo de un cambio en el diseño -->
 ```mermaid
 sequenceDiagram
     actor U as Usuario
@@ -131,6 +137,7 @@ registra y avisa al usuario.
 
 ## 6. Vista física / despliegue
 
+<!-- Figura: Vista física y de despliegue -->
 ```mermaid
 flowchart LR
     subgraph PC[Computadora del usuario · Windows 10/11]
@@ -146,6 +153,7 @@ flowchart LR
 
 ## 7. Decisiones de arquitectura (ADR)
 
+<!-- Tabla: Registro de decisiones de arquitectura (ADR) -->
 | N.° | Decisión | Alternativas | Motivo |
 |---|---|---|---|
 | ADR-01 | Migrar de Electron + Three.js a **Java + JavaFX** | Seguir con Electron | Curso basado en Java; menor consumo de memoria; un solo lenguaje para reglas, pruebas y UI |
@@ -160,6 +168,7 @@ flowchart LR
 
 ## 8. Atributos de calidad
 
+<!-- Tabla: Atributos de calidad y tácticas aplicadas -->
 | Atributo | Táctica |
 |---|---|
 | Fiabilidad | Transacciones en cada guardado; `ProjectValidator` revisa datos antes de mostrarlos; autoguardado; registro de errores |
@@ -170,6 +179,7 @@ flowchart LR
 
 ## 9. Deuda técnica conocida
 
+<!-- Tabla: Deuda técnica conocida y propuestas de mejora -->
 | Tema | Detalle | Propuesta |
 |---|---|---|
 | `MainWindow` muy grande | ~2 440 líneas (eran ~2 600; el catálogo ya se separó en `CatalogPanel`): menús, barra, panel lateral, casa, archivo… | Seguir extrayendo: `FileActions` (abrir/guardar/exportar), `HomeController` (ambientes), `SidebarBuilder` |

@@ -4,6 +4,7 @@ Versión 1.0 · noviembre de 2026
 
 ## 1. Actores
 
+<!-- Tabla: Actores del sistema -->
 | Actor | Tipo | Descripción |
 |---|---|---|
 | Usuario | Principal | Persona que diseña y amobla sus ambientes |
@@ -12,6 +13,7 @@ Versión 1.0 · noviembre de 2026
 
 ## 2. Diagrama de casos de uso
 
+<!-- Figura: Diagrama de casos de uso de Amoblador3D -->
 ```mermaid
 flowchart LR
     U([👤 Usuario])
@@ -41,6 +43,7 @@ flowchart LR
 
 ### CU-01 Gestionar proyectos
 
+<!-- Tabla: Especificación del caso de uso CU-01 Gestionar proyectos -->
 | Campo | Descripción |
 |---|---|
 | Actor | Usuario |
@@ -64,6 +67,7 @@ flowchart LR
 
 ### CU-02 Configurar ambiente
 
+<!-- Tabla: Especificación del caso de uso CU-02 Configurar ambiente -->
 | Campo | Descripción |
 |---|---|
 | Actor | Usuario |
@@ -87,6 +91,7 @@ flowchart LR
 
 ### CU-03 Armar la casa
 
+<!-- Tabla: Especificación del caso de uso CU-03 Armar la casa -->
 | Campo | Descripción |
 |---|---|
 | Actor | Usuario |
@@ -107,6 +112,7 @@ flowchart LR
 
 ### CU-04 Elegir acabados
 
+<!-- Tabla: Especificación del caso de uso CU-04 Elegir acabados -->
 | Campo | Descripción |
 |---|---|
 | Actor | Usuario |
@@ -122,6 +128,7 @@ flowchart LR
 
 ### CU-05 Colocar muebles
 
+<!-- Tabla: Especificación del caso de uso CU-05 Colocar muebles -->
 | Campo | Descripción |
 |---|---|
 | Actor | Usuario |
@@ -140,6 +147,7 @@ flowchart LR
 
 ### CU-06 Editar muebles
 
+<!-- Tabla: Especificación del caso de uso CU-06 Editar muebles -->
 | Campo | Descripción |
 |---|---|
 | Actor | Usuario |

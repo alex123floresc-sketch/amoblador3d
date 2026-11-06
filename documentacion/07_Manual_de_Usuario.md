@@ -38,6 +38,7 @@ conocimientos de arquitectura ni de programas de diseño. Basta con saber usar e
 
 ### 1.2 Convenciones
 
+<!-- Tabla: Convenciones tipográficas del manual -->
 | Convención | Significado | Ejemplo |
 |---|---|---|
 | **Negrita** | Botón, pestaña o campo de la pantalla | Pulsa **Guardar** |
@@ -60,6 +61,7 @@ si algo no entra en la realidad, tampoco entra en Amoblador3D.
 
 ## 3. Requisitos e instalación
 
+<!-- Tabla: Requisitos mínimos del equipo -->
 | Necesitas | Mínimo |
 |---|---|
 | Sistema | Windows 10 u 11 (también Linux o macOS con Java) |
@@ -80,6 +82,7 @@ Al abrir la aplicación aparece la pantalla **¿Qué quieres hacer hoy?**
 
 ![Pantalla de bienvenida](capturas/01_bienvenida.png)
 
+<!-- Tabla: Opciones de la pantalla de bienvenida -->
 | Opción | Qué hace |
 |---|---|
 | **Habitación vacía** | Empieza de cero con una habitación de 4 × 3,5 m |
@@ -98,6 +101,7 @@ Debajo aparecen tus **proyectos recientes**. Si no quieres ver esta pantalla al 
 
 ![Ventana principal con un mueble seleccionado](capturas/04_ambiente_3d_mueble_seleccionado.png)
 
+<!-- Tabla: Zonas de la ventana principal -->
 | Zona | Ubicación | Para qué sirve |
 |---|---|---|
 | **Barra de menús** | Arriba | *Archivo, Editar, Proyecto, Ver, Herramientas, Ayuda* |
@@ -111,6 +115,7 @@ Debajo aparecen tus **proyectos recientes**. Si no quieres ver esta pantalla al 
 
 **Ratón en la vista 3D:**
 
+<!-- Tabla: Acciones con el ratón en la vista 3D -->
 | Acción | Resultado |
 |---|---|
 | Clic | Seleccionar un mueble, pared, abertura o luz (clic en el vacío: deseleccionar) |
@@ -127,6 +132,7 @@ Pestaña **Ambiente** del panel izquierdo.
 
 ### 6.1 Medidas
 
+<!-- Tabla: Rangos permitidos para las medidas del ambiente -->
 | Campo | Rango | Nota |
 |---|---|---|
 | Ancho (X) y Largo (Z) | 1 a 30 m | Medidas **interiores**: mide de pared a pared por dentro |
@@ -185,6 +191,7 @@ Si no cabe derecho, la aplicación lo prueba girado. Si no cabe de ninguna forma
 
 ### 8.2 Mover, girar y cambiar medidas
 
+<!-- Tabla: Formas de mover, girar y redimensionar un mueble -->
 | Acción | Cómo |
 |---|---|
 | Mover | Arrastrar con el ratón · flechas (5 cm) · `Shift` + flechas (1 cm) · campos **Posición X/Z** |
@@ -229,6 +236,7 @@ Botón **Diseñar mueble** (`Ctrl+Shift+D`).
 
 ![Diseñador de muebles](capturas/10_disenador_de_muebles.png)
 
+<!-- Tabla: Zonas del diseñador de muebles -->
 | Zona | Uso |
 |---|---|
 | **Nombre** y **Empezar desde…** (arriba) | Nombre del mueble; plantilla (mesa, mesa redonda, estante, banco) o un mueble del catálogo para empezar |
@@ -249,6 +257,7 @@ Pestaña **Luz**.
 
 ![Pestaña Luz con el modo noche activado](capturas/08_luz_modo_noche.png)
 
+<!-- Tabla: Tipos de luz disponibles -->
 | Botón | Tipo |
 |---|---|
 | **+ Bombilla** | Luz puntual, ilumina en todas direcciones |
@@ -282,6 +291,7 @@ Pestaña **Luz**.
 
 ## 12. Ver y recorrer
 
+<!-- Tabla: Modos de vista y sus atajos -->
 | Vista | Atajo | Uso |
 |---|---|---|
 | **Vista 3D** | `Ctrl+1` | Girar alrededor del ambiente |
@@ -324,6 +334,7 @@ cotas, vista 3D, ventanas y puertas, muebles y presupuesto. Listo para imprimir 
 
 ## 14. Guardar y compartir proyectos
 
+<!-- Tabla: Formas de guardar y compartir proyectos -->
 | Acción | Dónde | Nota |
 |---|---|---|
 | Guardar / Guardar como | `Ctrl+S` / *Archivo* | En la base de datos local, con miniatura |
@@ -377,6 +388,7 @@ se cierra de golpe (corte de luz, error), al volver a abrirla te ofrece **recupe
 
 Los avisos aparecen unos segundos sobre la vista (o en una ventana si necesitan respuesta).
 
+<!-- Tabla: Mensajes del sistema y acciones recomendadas -->
 | Mensaje | Qué significa | Qué hacer |
 |---|---|---|
 | *No hay espacio libre para …* | El mueble no entra en ningún lugar libre del ambiente | Achica o mueve otros muebles, o agranda el ambiente |
@@ -395,6 +407,7 @@ Los avisos aparecen unos segundos sobre la vista (o en una ventana si necesitan 
 
 Pulsa `F1` dentro de la aplicación para verlos todos.
 
+<!-- Tabla: Atajos de teclado -->
 | Tecla | Acción |
 |---|---|
 | `Ctrl+N` / `Ctrl+O` / `Ctrl+S` | Nuevo / Abrir / Guardar |
@@ -417,6 +430,7 @@ Pulsa `F1` dentro de la aplicación para verlos todos.
 
 ## 18. Preguntas frecuentes y solución de problemas
 
+<!-- Tabla: Problemas frecuentes y su solución -->
 | Problema | Solución |
 |---|---|
 | No puedo mover un mueble | Puede estar **bloqueado** (pulsa `L`) o chocaría con algo en ese lugar |
@@ -432,6 +446,7 @@ Pulsa `F1` dentro de la aplicación para verlos todos.
 
 ## 19. Glosario
 
+<!-- Tabla: Glosario del manual de usuario -->
 | Término | Significado |
 |---|---|
 | Alféizar | Altura desde el piso hasta el borde inferior de la ventana |
