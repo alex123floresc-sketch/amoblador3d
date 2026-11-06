@@ -64,6 +64,9 @@ En [`doc 2`](doc%202) están los mismos documentos en formato Word (`.docx`), co
   **índice de figuras** con el título específico y la página de cada una.
 - Times New Roman 12, márgenes de 2,54 cm, sangría de 1,27 cm, títulos por niveles, tablas y figuras
   numeradas con su título en cursiva y los diagramas como imágenes.
+- Diseño con los colores de la UNAJ (azul marino y dorado): marco doble en la carátula, títulos en
+  azul con filete dorado, tablas con encabezado azul y filas alternadas, figuras enmarcadas, notas en
+  recuadro y pie de página con el nombre del documento y «Página X de Y».
 
 El detalle de las normas está en el documento 13. Los datos de la carátula están en `META`, al
 inicio de [`herramientas/generar.js`](herramientas/generar.js), y los logos en `herramientas/recursos/`.

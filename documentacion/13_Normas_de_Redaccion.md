@@ -37,7 +37,8 @@ docente**: si alguna difiere, manda la de la universidad.
 | Alineación | A la izquierda, sin justificar | A la izquierda |
 | Sangría | 1,27 cm en la primera línea de cada párrafo | 1,27 cm |
 | Espacio entre párrafos | Ninguno adicional | Ninguno |
-| Número de página | Arriba a la derecha, desde la carátula | Al pie, a la derecha (arriba va el encabezado institucional); la carátula no lleva número |
+| Número de página | Arriba a la derecha, desde la carátula | Al pie, a la derecha, como «Página X de Y» junto al nombre del documento (arriba va el encabezado institucional); la carátula no lleva número |
+| Diseño visual | APA no lo regula | Colores de la UNAJ: títulos en azul marino con filete dorado, tablas con encabezado azul y filas alternadas, figuras con marco fino y marco doble en la carátula |
 | Encabezado | Encabezado breve (APA 7 para estudiantes no lo exige) | Encabezado institucional de la UNAJ: logo a la derecha, universidad, facultad y escuela, con un filete inferior |
 | Carátula | Datos de la institución y del trabajo | Modelo institucional de la UNAJ: logo, facultad, escuela, título, integrantes, docente, asignatura, lugar y año |
 | Tablas | Interlineado sencillo o 1,5 permitido | Sencillo, 10 pt |
