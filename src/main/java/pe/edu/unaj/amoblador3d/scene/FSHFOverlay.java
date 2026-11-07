@@ -1,0 +1,372 @@
+package pe.edu.unaj.amoblador3d.scene;
+
+import java.util.List;
+import javafx.geometry.Point2D;
+import javafx.geometry.Point3D;
+import javafx.geometry.VPos;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import pe.edu.unaj.amoblador3d.design.FSHFDesign;
+import pe.edu.unaj.amoblador3d.design.FSHFSnapper;
+import pe.edu.unaj.amoblador3d.model.FSHFColumn;
+import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
+import pe.edu.unaj.amoblador3d.model.FSHFLight;
+import pe.edu.unaj.amoblador3d.model.FSHFLightType;
+import pe.edu.unaj.amoblador3d.model.FSHFOpening;
+import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
+import pe.edu.unaj.amoblador3d.model.FSHFSurface;
+import pe.edu.unaj.amoblador3d.util.FSHFUnits;
+
+/**
+ * Capa 2D dibujada encima de la vista 3D: cotas (estilo plano de arquitectura), contorno de
+ * lo seleccionado, símbolos de puertas y ventanas en planta y la dirección del sol.
+ * Se dibuja encima de todo, así las cotas se ven aunque haya paredes delante.
+ */
+final class FSHFOverlay {
+    private static final Color DIM = Color.web("#ffd166");
+    private static final Color SELECT = Color.web("#4f9cf9");
+    private static final Color MEASURE = Color.web("#ff6b9a");
+    private static final Color GUIDE = Color.web("#ff4fd8");
+    private static final Color LOCKED = Color.web("#f0a04b");
+    private static final Font LABEL_FONT = Font.font("System", FontWeight.BOLD, 12);
+
+    final Canvas canvas = new Canvas();
+    private GraphicsContext g;
+    private FSHFViewCamera cam;
+    private Color outlineColor = SELECT;
+
+    void draw(FSHFViewCamera cam, FSHFDesign design, FSHFLightView lights, List<Object> selection, boolean showDimensions) {
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawOn(gc, cam, design, lights, selection, showDimensions);
+    }
+
+    /** Dibuja en otro lienzo (para exportar imágenes más grandes que la pantalla). */
+    void drawOn(GraphicsContext gc, FSHFViewCamera cam, FSHFDesign design, FSHFLightView lights, List<Object> selection,
+                boolean showDimensions) {
+        this.cam = cam;
+        g = gc;
+        FSHFRoomDims r = design.room();
+        boolean plan = cam.mode == FSHFViewCamera.Mode.PLAN;
+
+        if (plan) for (FSHFOpening o : design.openings()) drawPlanSymbol(r, o);
+        if (!plan) {
+            g.setStroke(Color.web("#ffc845"));
+            g.setLineWidth(2);
+            for (FSHFLightView.SunInfo s : lights.suns()) arrow(s.helper(), s.windowCenter());
+        }
+        if (showDimensions) {
+            double gap = r.wallThickness() + 0.4; // separación de las cotas respecto al interior
+            dimension(p(0, 0.01, r.length()), p(r.width(), 0.01, r.length()), p(0, 0, 1), gap); // ancho, fuera del muro sur
+            dimension(p(r.width(), 0.01, 0), p(r.width(), 0.01, r.length()), p(1, 0, 0), gap); // largo, fuera del muro este
+            if (!plan) dimension(p(0, 0, r.length()), p(0, r.height(), r.length()), p(-1, 0, 0), gap); // alto
+        }
+        if (selection.size() == 1) {
+            drawSelection(r, lights, selection.get(0), plan);
+        } else {
+            // Varios muebles: solo el contorno de cada uno (las cotas de todos serían ilegibles).
+            for (Object o : selection) if (o instanceof FSHFFurniture f) furnitureOutline(f);
+        }
+    }
+
+    /** Contorno suave del mueble que está bajo el ratón (antes de hacer clic). */
+    void drawHover(FSHFFurniture f) {
+        g.setLineDashes(6, 4);
+        outlineColor = Color.rgb(255, 255, 255, 0.75);
+        double a = Math.toRadians(f.rotation), c = Math.cos(a), s = Math.sin(a);
+        outline(f.width, f.height, f.depth, (lx, ly, lz) -> p(f.x + lx * c + lz * s, ly, f.z - lx * s + lz * c));
+        outlineColor = SELECT;
+        g.setLineDashes();
+    }
+
+    /** Asas para estirar y girar el mueble seleccionado ({@code active}: la que está bajo el ratón o se arrastra). */
+    void drawHandles(FSHFFurniture f, List<FSHFFurnitureHandles.Handle> handles, FSHFFurnitureHandles.Kind active) {
+        Point3D frontMid = null, rotate = null;
+        for (FSHFFurnitureHandles.Handle h : handles) {
+            if (h.kind() == FSHFFurnitureHandles.Kind.FRONT) frontMid = h.at();
+            if (h.kind() == FSHFFurnitureHandles.Kind.ROTATE) rotate = h.at();
+        }
+        if (frontMid != null && rotate != null) {
+            g.setStroke(Color.rgb(255, 255, 255, 0.7));
+            g.setLineWidth(1.5);
+            g.setLineDashes(4, 3);
+            line(frontMid, rotate);
+            g.setLineDashes();
+        }
+        for (FSHFFurnitureHandles.Handle h : handles) {
+            Point2D s = cam.project(h.at());
+            if (s == null) continue;
+            boolean on = h.kind() == active;
+            double r = on ? 9 : 7;
+            g.setFill(Color.rgb(0, 0, 0, 0.35));
+            g.fillOval(s.getX() - r - 1, s.getY() - r + 1, 2 * r + 2, 2 * r + 2); // sombra
+            switch (h.kind()) {
+                case ROTATE -> {
+                    g.setFill(on ? Color.web("#ffd166") : SELECT);
+                    g.fillOval(s.getX() - r - 2, s.getY() - r - 2, 2 * r + 4, 2 * r + 4);
+                    g.setStroke(Color.WHITE);
+                    g.setLineWidth(2);
+                    g.strokeArc(s.getX() - r + 3, s.getY() - r + 3, 2 * r - 6, 2 * r - 6, 30, 270, javafx.scene.shape.ArcType.OPEN);
+                }
+                case TOP -> {
+                    g.setFill(on ? Color.web("#ffd166") : Color.WHITE);
+                    g.fillPolygon(new double[] {s.getX(), s.getX() + r, s.getX(), s.getX() - r},
+                            new double[] {s.getY() - r - 2, s.getY(), s.getY() + r + 2, s.getY()}, 4);
+                    g.setStroke(SELECT);
+                    g.setLineWidth(2);
+                    g.strokePolygon(new double[] {s.getX(), s.getX() + r, s.getX(), s.getX() - r},
+                            new double[] {s.getY() - r - 2, s.getY(), s.getY() + r + 2, s.getY()}, 4);
+                }
+                default -> {
+                    g.setFill(on ? Color.web("#ffd166") : Color.WHITE);
+                    g.fillOval(s.getX() - r, s.getY() - r, 2 * r, 2 * r);
+                    g.setStroke(SELECT);
+                    g.setLineWidth(2.5);
+                    g.strokeOval(s.getX() - r, s.getY() - r, 2 * r, 2 * r);
+                }
+            }
+        }
+    }
+
+    /** Guías del imán: líneas punteadas sobre el piso que muestran a qué se pegó el mueble. */
+    void drawGuides(List<FSHFSnapper.Guide> guides) {
+        if (guides.isEmpty()) return;
+        g.setStroke(GUIDE);
+        g.setLineWidth(3);
+        g.setLineDashes(10, 6);
+        for (FSHFSnapper.Guide gd : guides) line(p(gd.x1(), 0.02, gd.z1()), p(gd.x2(), 0.02, gd.z2()));
+        g.setLineDashes();
+    }
+
+    /** Rectángulo de selección (coordenadas de pantalla). */
+    void drawBand(double x0, double y0, double x1, double y1) {
+        double x = Math.min(x0, x1), y = Math.min(y0, y1), w = Math.abs(x1 - x0), h = Math.abs(y1 - y0);
+        g.setFill(Color.rgb(79, 156, 249, 0.15));
+        g.fillRect(x, y, w, h);
+        g.setStroke(SELECT);
+        g.setLineWidth(1.2);
+        g.setLineDashes(5, 3);
+        g.strokeRect(x, y, w, h);
+        g.setLineDashes();
+    }
+
+    /** Contorno de un mueble (naranja si está bloqueado). */
+    private void furnitureOutline(FSHFFurniture f) {
+        double a = Math.toRadians(f.rotation), c = Math.cos(a), s = Math.sin(a);
+        outlineColor = f.locked ? LOCKED : SELECT;
+        outline(f.width, f.height, f.depth, (lx, ly, lz) -> p(f.x + lx * c + lz * s, ly, f.z - lx * s + lz * c));
+        outlineColor = SELECT;
+    }
+
+    /** Línea de la herramienta de medir entre dos puntos del piso, con su distancia. */
+    void drawMeasure(Point3D a, Point3D b) {
+        Point3D lift = p(0, 0.02, 0); // un poco sobre el piso para que no lo tape en 3D
+        Point2D sa = cam.project(a.add(lift));
+        if (sa != null) {
+            g.setFill(MEASURE);
+            g.fillOval(sa.getX() - 4, sa.getY() - 4, 8, 8);
+        }
+        if (b == null) return;
+        g.setStroke(MEASURE);
+        g.setLineWidth(2.2);
+        g.setLineDashes(8, 5);
+        line(a.add(lift), b.add(lift));
+        g.setLineDashes();
+        Point2D sb = cam.project(b.add(lift));
+        if (sb != null) g.fillOval(sb.getX() - 4, sb.getY() - 4, 8, 8);
+        if (a.distance(b) > 0.005) label(a.midpoint(b).add(lift), FSHFUnits.meters(a.distance(b)));
+    }
+
+    private static Point3D p(double x, double y, double z) {
+        return new Point3D(x, y, z);
+    }
+
+    // ---------------------------------------------------------------- Selección
+
+    private void drawSelection(FSHFRoomDims r, FSHFLightView lights, Object selected, boolean plan) {
+        if (selected instanceof FSHFFurniture f) {
+            double a = Math.toRadians(f.rotation), c = Math.cos(a), s = Math.sin(a);
+            // Esquinas locales del mueble llevadas al mundo (mismo giro que javafx Rotate en Y).
+            java.util.function.BiFunction<Double, Double, double[]> world = (lx, lz) ->
+                    new double[] {f.x + lx * c + lz * s, f.z - lx * s + lz * c};
+            furnitureOutline(f);
+            double hw = f.width / 2, hd = f.depth / 2;
+            double[] fl = world.apply(-hw, hd), fr = world.apply(hw, hd), br = world.apply(hw, -hd);
+            double[] front = world.apply(0.0, 1.0), side = world.apply(1.0, 0.0), left = world.apply(-1.0, 0.0);
+            Point3D frontDir = p(front[0] - f.x, 0, front[1] - f.z), sideDir = p(side[0] - f.x, 0, side[1] - f.z);
+            dimension(p(fl[0], 0.01, fl[1]), p(fr[0], 0.01, fr[1]), frontDir, 0.15); // ancho
+            dimension(p(br[0], 0.01, br[1]), p(fr[0], 0.01, fr[1]), sideDir, 0.15); // profundidad
+            if (!plan) dimension(p(fl[0], 0, fl[1]), p(fl[0], f.height, fl[1]), p(left[0] - f.x, 0, left[1] - f.z), 0.15); // alto
+        } else if (selected instanceof FSHFOpening o) {
+            FSHFWallFrame wall = FSHFWallFrame.of(o.wall, r);
+            double a0 = o.offset - 0.02, y0 = o.sill - 0.02, d0 = -0.03;
+            double w = o.width + 0.04, h = o.height + 0.04, d = r.wallThickness() + 0.06;
+            outline(w, h, d, (lx, ly, lz) -> wall.point(a0 + lx + w / 2, y0 + ly, d0 + lz + d / 2));
+        } else if (selected instanceof FSHFColumn c) {
+            double h = r.height();
+            outline(c.width, h, c.depth, (lx, ly, lz) -> p(c.x + lx, ly, c.z + lz));
+            dimension(p(c.minX(), 0.01, c.maxZ()), p(c.maxX(), 0.01, c.maxZ()), p(0, 0, 1), 0.15); // ancho
+            dimension(p(c.maxX(), 0.01, c.minZ()), p(c.maxX(), 0.01, c.maxZ()), p(1, 0, 0), 0.15); // profundidad
+        } else if (selected instanceof FSHFSurface s && s.isCeiling()) {
+            outline(r.width(), 0.02, r.length(), (lx, ly, lz) -> p(r.width() / 2 + lx, r.height() + ly, r.length() / 2 + lz));
+        } else if (selected instanceof FSHFSurface s && s.isFloor()) {
+            outline(r.width(), 0.02, r.length(), (lx, ly, lz) -> p(r.width() / 2 + lx, ly, r.length() / 2 + lz));
+        } else if (selected instanceof FSHFSurface s) {
+            FSHFWallFrame wall = FSHFWallFrame.of(s.wallSide(), r);
+            double len = r.wallLength(s.wallSide()), t = r.wallThickness();
+            outline(len, r.height(), t, (lx, ly, lz) -> wall.point(len / 2 + lx, ly, t / 2 + lz));
+        } else if (selected instanceof FSHFLight l) {
+            Point3D c = lights.helperPosition(l);
+            if (c == null) return;
+            outline(0.22, 0.22, 0.22, (lx, ly, lz) -> c.add(lx, ly - 0.11, lz));
+            if (l.type == FSHFLightType.SPOT) {
+                g.setStroke(DIM);
+                g.setLineWidth(1.5);
+                g.setLineDashes(6, 4);
+                line(c, p(l.targetX, 0, l.targetZ));
+                g.setLineDashes();
+            }
+        }
+    }
+
+    private interface Corner {
+        Point3D at(double lx, double ly, double lz);
+    }
+
+    /** Contorno de una caja: x ∈ [-w/2, w/2], y ∈ [0, h], z ∈ [-d/2, d/2] (en coordenadas locales). */
+    private void outline(double w, double h, double d, Corner corner) {
+        Point3D[] v = new Point3D[8];
+        int i = 0;
+        for (double y : new double[] {0, h}) {
+            for (double[] xz : new double[][] {{-w / 2, -d / 2}, {w / 2, -d / 2}, {w / 2, d / 2}, {-w / 2, d / 2}}) {
+                v[i++] = corner.at(xz[0], y, xz[1]);
+            }
+        }
+        g.setStroke(outlineColor);
+        g.setLineWidth(2);
+        for (int k = 0; k < 4; k++) {
+            line(v[k], v[(k + 1) % 4]);
+            line(v[k + 4], v[(k + 1) % 4 + 4]);
+            line(v[k], v[k + 4]);
+        }
+    }
+
+    // ---------------------------------------------------------------- Planta
+
+    /**
+     * Ventana: línea por el centro del muro. Puerta: hoja abierta 90° y arco de giro (dos en la doble);
+     * corrediza: dos paños cruzados; portón: línea punteada; vano: solo el hueco.
+     */
+    private void drawPlanSymbol(FSHFRoomDims r, FSHFOpening o) {
+        FSHFWallFrame wall = FSHFWallFrame.of(o.wall, r);
+        double y = r.height() + 0.01, t = r.wallThickness(), x0 = o.offset, x1 = x0 + o.width;
+        double[] xs = new double[4], ys = new double[4];
+        Point3D[] quad = {wall.point(x0, y, 0), wall.point(x1, y, 0), wall.point(x1, y, t), wall.point(x0, y, t)};
+        for (int i = 0; i < 4; i++) {
+            Point2D s = cam.project(quad[i]);
+            if (s == null) return;
+            xs[i] = s.getX();
+            ys[i] = s.getY();
+        }
+        g.setFill(o.type.isDoor() ? Color.WHITE : Color.web("#9fd3ff"));
+        g.fillPolygon(xs, ys, 4);
+        g.setStroke(Color.web("#333333"));
+        g.setLineWidth(1.2);
+        switch (o.type) {
+            case WINDOW -> line(wall.point(x0, y, t / 2), wall.point(x1, y, t / 2));
+            case DOUBLE -> {
+                double half = o.width / 2;
+                swing(wall, y, x0, half, 1);
+                swing(wall, y, x1, half, -1);
+            }
+            case SLIDING -> {
+                // Dos paños que se cruzan en el centro, a distinta profundidad del muro.
+                double mid = (x0 + x1) / 2, ov = 0.04;
+                line(wall.point(x0, y, t / 2 - 0.03), wall.point(mid + ov, y, t / 2 - 0.03));
+                line(wall.point(mid - ov, y, t / 2 + 0.03), wall.point(x1, y, t / 2 + 0.03));
+            }
+            case GARAGE -> {
+                g.setLineDashes(6, 4);
+                line(wall.point(x0, y, t / 2), wall.point(x1, y, t / 2));
+                g.setLineDashes();
+            }
+            case PASSAGE -> { } // vano libre: solo el hueco
+            default -> swing(wall, y, x0, o.width, 1);
+        }
+    }
+
+    /**
+     * Hoja abierta 90° hacia dentro y su arco de giro. La bisagra está en {@code hinge} y la hoja
+     * mide {@code leaf}; {@code dir} 1 si cierra hacia +a lo largo del muro, -1 si hacia atrás.
+     */
+    private void swing(FSHFWallFrame wall, double y, double hinge, double leaf, int dir) {
+        Point3D prev = wall.point(hinge, y, -leaf);
+        line(wall.point(hinge, y, 0), prev); // hoja abierta
+        for (int i = 1; i <= 24; i++) {
+            double a = Math.PI / 2 * (i / 24.0);
+            Point3D next = wall.point(hinge + dir * leaf * Math.sin(a), y, -leaf * Math.cos(a));
+            line(prev, next);
+            prev = next;
+        }
+    }
+
+    private void arrow(Point3D from, Point3D to) {
+        Point2D a = cam.project(from), b = cam.project(to);
+        if (a == null || b == null) return;
+        g.strokeLine(a.getX(), a.getY(), b.getX(), b.getY());
+        double angle = Math.atan2(b.getY() - a.getY(), b.getX() - a.getX());
+        for (double side : new double[] {-0.45, 0.45}) {
+            g.strokeLine(b.getX(), b.getY(), b.getX() - 10 * Math.cos(angle + side), b.getY() - 10 * Math.sin(angle + side));
+        }
+    }
+
+    // ---------------------------------------------------------------- Cotas
+
+    /**
+     * Cota entre dos puntos: línea principal, líneas de extensión, marcas diagonales en los
+     * extremos y una etiqueta con el valor.
+     *
+     * @param offsetDir dirección hacia donde se separa la cota del objeto
+     * @param offset    separación en metros
+     */
+    private void dimension(Point3D start, Point3D end, Point3D offsetDir, double offset) {
+        Point3D n = offsetDir.normalize();
+        Point3D a = start.add(n.multiply(offset)), b = end.add(n.multiply(offset));
+        Point3D dir = b.subtract(a).normalize();
+        Point3D tick = dir.add(n).normalize().multiply(0.08);
+        Point3D extra = n.multiply(0.1); // la línea de extensión sobrepasa un poco la cota
+        g.setStroke(DIM);
+        g.setLineWidth(1.3);
+        line(a, b);
+        line(start, a.add(extra));
+        line(end, b.add(extra));
+        line(a.subtract(tick), a.add(tick));
+        line(b.subtract(tick), b.add(tick));
+        label(a.midpoint(b), FSHFUnits.meters(start.distance(end)));
+    }
+
+    private void line(Point3D from, Point3D to) {
+        Point2D a = cam.project(from), b = cam.project(to);
+        if (a != null && b != null) g.strokeLine(a.getX(), a.getY(), b.getX(), b.getY());
+    }
+
+    private void label(Point3D at, String text) {
+        Point2D s = cam.project(at);
+        if (s == null) return;
+        Text measure = new Text(text);
+        measure.setFont(LABEL_FONT);
+        double w = measure.getLayoutBounds().getWidth() + 10, h = 18;
+        g.setFill(Color.rgb(255, 255, 255, 0.92));
+        g.fillRoundRect(s.getX() - w / 2, s.getY() - h / 2, w, h, 6, 6);
+        g.setFill(Color.web("#1a1a1a"));
+        g.setFont(LABEL_FONT);
+        g.setTextAlign(TextAlignment.CENTER);
+        g.setTextBaseline(VPos.CENTER);
+        g.fillText(text, s.getX(), s.getY());
+    }
+}

@@ -47,7 +47,7 @@ $common = @(
     '--description', 'Diseñador de interiores 3D con medidas reales',
     '--input', $in,
     '--main-jar', 'amoblador3d.jar',
-    '--main-class', 'pe.edu.unaj.amoblador3d.Launcher',
+    '--main-class', 'pe.edu.unaj.amoblador3d.FSHFLauncher',
     '--icon', (Join-Path $root 'packaging\amoblador3d.ico'),
     '--add-modules', $modules,
     '--java-options', '--enable-native-access=ALL-UNNAMED',

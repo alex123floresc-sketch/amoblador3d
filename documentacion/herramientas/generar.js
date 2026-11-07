@@ -425,7 +425,6 @@ function toc() {
   return [
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [new TextRun({ text: 'Índice', bold: true, font: FONT, size: 24 })] }),
     new TableOfContents('Índice', { hyperlink: true, headingStyleRange: '1-3' }),
-    new Paragraph({ spacing: { before: 240 }, children: [new TextRun({ text: 'Si el índice aparece vacío: clic derecho sobre él → Actualizar campos → Actualizar toda la tabla.', italics: true, size: 18, font: FONT, color: '7F7F7F' })] }),
     new Paragraph({ children: [new PageBreak()] }),
   ];
 }

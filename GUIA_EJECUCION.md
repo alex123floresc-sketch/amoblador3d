@@ -78,12 +78,12 @@ Debe terminar con `Tests run: 114, Failures: 0, Errors: 0` y `BUILD SUCCESS`.
 ## 6. Abrirlo desde un IDE (opcional)
 
 - **IntelliJ IDEA**: *File → Open* y elige la carpeta (la reconoce como proyecto Maven). Ejecuta
-  la clase `pe.edu.unaj.amoblador3d.Launcher`, o en el panel *Maven*: `Plugins → javafx → javafx:run`.
-- **VS Code**: instala el *Extension Pack for Java*, abre la carpeta y ejecuta `Launcher.java`
+  la clase `pe.edu.unaj.amoblador3d.FSHFLauncher`, o en el panel *Maven*: `Plugins → javafx → javafx:run`.
+- **VS Code**: instala el *Extension Pack for Java*, abre la carpeta y ejecuta `FSHFLauncher.java`
   (botón *Run* sobre el método `main`).
 - **NetBeans**: *File → Open Project*, elige la carpeta y pulsa *Run*.
 
-Se ejecuta `Launcher` y no `App` porque JavaFX no arranca desde un `.jar` si la clase principal
+Se ejecuta `FSHFLauncher` y no `FSHFApp` porque JavaFX no arranca desde un `.jar` si la clase principal
 hereda de `Application`.
 
 ## Dónde se guardan los datos

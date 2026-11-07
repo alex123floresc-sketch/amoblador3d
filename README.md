@@ -159,10 +159,10 @@ El modelo se escala a las medidas indicadas aunque haya sido modelado en centím
 
 ### Opción C: mueble paramétrico (por código)
 
-Crea su método en `scene/ParametricBuilder.java`, regístralo en `build`, declara sus medidas y su
-categoría en `catalog/Catalog.java` y su precio referencial en `estimate/PriceList.java`.
+Crea su método en `scene/FSHFParametricBuilder.java`, regístralo en `build`, declara sus medidas y su
+categoría en `catalog/FSHFCatalog.java` y su precio referencial en `estimate/FSHFPriceList.java`.
 Regla: el mueble ocupa exactamente `x ∈ [-ancho/2, ancho/2]`, `z ∈ [-prof/2, prof/2]`,
-`y ∈ [0, alto]`, con el frente hacia +Z (`ParametricBuilderTest` lo revisa).
+`y ∈ [0, alto]`, con el frente hacia +Z (`FSHFParametricBuilderTest` lo revisa).
 
 ## Formato del proyecto (.amob3d)
 
@@ -201,7 +201,7 @@ PostgreSQL, con vistas de consulta). Cómo cargarlos: [GUIA_EJECUCION.md](GUIA_E
 
 ```
 src/main/java/pe/edu/unaj/amoblador3d/
-  Launcher, App   arranque
+  FSHFLauncher, FSHFApp   arranque
   model/          datos del proyecto (sin JavaFX)
   design/         reglas: colisiones, aberturas, luces, deshacer; campos del panel de propiedades
   persistence/    SQLite (con migraciones) y formato .amob3d

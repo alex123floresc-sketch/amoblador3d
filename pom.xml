@@ -14,7 +14,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
     <javafx.version>21.0.4</javafx.version>
-    <main.class>pe.edu.unaj.amoblador3d.Launcher</main.class>
+    <main.class>pe.edu.unaj.amoblador3d.FSHFLauncher</main.class>
     <!-- SQLite carga una librería nativa: sin esto, Java 22+ muestra avisos al arrancar -->
     <native.access>--enable-native-access=ALL-UNNAMED</native.access>
   </properties>
