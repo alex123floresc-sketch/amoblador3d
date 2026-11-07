@@ -27,7 +27,8 @@ Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frec
 **[GUIA_EJECUCION.md](GUIA_EJECUCION.md)**.
 
 Documentación completa del proyecto (requisitos, arquitectura, base de datos, pruebas, manual de
-usuario, manual técnico, instalación e informe final): **[documentacion/](documentacion/00_INDICE.md)**.
+usuario, manual técnico, instalación e informe final), en Word: **[documentacion/doc 2/](documentacion/doc%202)**.
+Empieza por `00_INDICE.docx`.
 
 ## Funciones
 
