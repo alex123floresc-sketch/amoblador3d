@@ -26,9 +26,20 @@ En Linux/macOS usa `./mvnw` en lugar de `.\mvnw.cmd`.
 Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frecuentes):
 **[GUIA_EJECUCION.md](GUIA_EJECUCION.md)**.
 
-Documentación completa del proyecto (requisitos, arquitectura, base de datos, pruebas, manual de
-usuario, manual técnico, instalación e informe final), en Word: **[documentacion/doc 2/](documentacion/doc%202)**.
-Empieza por `00_INDICE.docx`.
+Documentación completa del proyecto, en Word: **[documentacion/doc 2/](documentacion/doc%202)**.
+Empieza por `00_Guia_de_la_Documentacion.docx`, que explica qué contiene cada documento:
+
+| N.° | Documento |
+|---|---|
+| 00 | Guía de la documentación del proyecto (índice y normas de redacción) |
+| 01 | Acta de constitución y plan de gestión del proyecto |
+| 02 | Especificación de requisitos de software y casos de uso |
+| 03 | Documento de diseño de software (arquitectura y base de datos) |
+| 04 | Plan y reporte de pruebas de software |
+| 05 | Manual de usuario |
+| 06 | Manual de instalación y despliegue |
+| 07 | Manual técnico del desarrollador y registro de versiones |
+| 08 | Informe final del proyecto |
 
 ## Funciones
 
@@ -39,7 +50,7 @@ Empieza por `00_INDICE.docx`.
 - **Paredes, piso y techo**: 11 materiales (pintura, ladrillo, piedra, madera, cerámico, mármol,
   porcelanato, alfombra...) con texturas a escala real y cualquier color. El techo se ve en el
   recorrido. Zócalo con alto (o sin zócalo) y color a elección.
-- **Columnas, muros internos y habitación en L** (pestaña *Habitación*): bloques del piso al techo
+- **Columnas, muros internos y habitación en L** (pestaña *Ambiente*): bloques del piso al techo
   con su propio acabado. Los muebles no los atraviesan, no tapan ventanas ni puertas, el imán se
   pega a ellos y el metrado los descuenta del piso y suma sus caras a la pintura.
 - **Muebles**: 18 paramétricos (cama, mesa de noche, cómoda, closet, sofá, mueble de TV, librero,

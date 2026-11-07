@@ -285,9 +285,8 @@ const ROL = {
   calidad: 'Huanca Tiña, Erick Reison (responsable de calidad)',
   documentador: 'Flores Ccori, Brayan (documentador)',
 };
-const ELABORA = { '00': 'documentador', '01': 'jefe', '02': 'analista', '03': 'analista', '04': 'arquitecto',
-  '05': 'arquitecto', '06': 'calidad', '07': 'documentador', '08': 'arquitecto', '09': 'documentador',
-  '10': 'jefe', '11': 'documentador', '12': 'jefe', '13': 'documentador' };
+const ELABORA = { '00': 'documentador', '01': 'jefe', '02': 'analista', '03': 'arquitecto', '04': 'calidad',
+  '05': 'documentador', '06': 'documentador', '07': 'arquitecto', '08': 'documentador' };
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const fechaLarga = (iso) => { const [a, m, d] = iso.split('-').map(Number); return `${d} de ${MESES[m - 1]} de ${a}`; };
 const RECURSOS = path.join(__dirname, 'recursos');
@@ -349,7 +348,7 @@ function controlPage(info, conv) {
     ['Fecha', info.fecha ? fechaLarga(info.fecha) : '—'], ['Estado', META.estado],
     ['Norma de referencia', info.norma || '—'], ['Proyecto', info.proyecto],
     ['Elaborado por', ROL[ELABORA[info.n]] || 'Equipo del proyecto'],
-    ['Revisado por', info.n === '06' ? ROL.jefe : ROL.calidad],
+    ['Revisado por', ELABORA[info.n] === 'calidad' ? ROL.jefe : ROL.calidad],
     ['Aprobado por', ROL.jefe], ['Docente de la asignatura', META.docente],
   ];
   const md = '| Campo | Valor |\n|---|---|\n' + ficha.map(([k, v]) => `| **${k}** | ${esc(v)} |`).join('\n');
@@ -457,7 +456,7 @@ async function convert(file) {
   const { meta, body: md } = frontMatter(fs.readFileSync(path.join(SRC, file), 'utf8'));
   let tokens = marked.lexer(md);
   const base = path.basename(file, '.md');
-  const isReport = base.startsWith('11_');
+  const isReport = meta.tipo === 'informe';
   const h1 = tokens.find((t) => t.type === 'heading' && t.depth === 1);
   let title = h1 ? clean(plain(h1.tokens)).replace(/^\d+\s*·\s*/, '').trim() : base;
   let proyecto = META.proyecto;
