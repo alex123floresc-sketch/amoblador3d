@@ -15,16 +15,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFHome;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Panel derecho en la vista "Casa completa": el resumen de la casa (área y presupuesto de cada
- * ambiente) o las propiedades del ambiente elegido (ubicación en la casa y medidas).
- */
 final class FSHFHomePanel {
-    /** Lo que el panel necesita de la ventana principal. */
     interface Host {
         FSHFHome home();
 
-        /** Abre el ambiente para decorarlo. */
         void open(FSHFHome.Space s);
 
         void rename(FSHFHome.Space s);
@@ -33,19 +27,14 @@ final class FSHFHomePanel {
 
         void delete(FSHFHome.Space s);
 
-        /** Cambia las medidas de la habitación del ambiente. Devuelve un error o null. */
         String resize(FSHFHome.Space s, FSHFRoomDims dims);
 
-        /** Mueve el ambiente en el plano de la casa. Devuelve un error o null. */
         String move(FSHFHome.Space s, double x, double z);
 
-        /** Gira el ambiente sobre su centro (0, 90, 180 o 270°). Devuelve un error o null. */
         String rotate(FSHFHome.Space s, int degrees);
 
-        /** Lleva el ambiente a otro piso. Devuelve un error o null. */
         String moveToLevel(FSHFHome.Space s, int level);
 
-        /** Piso que se ve en la vista de la casa. */
         int viewLevel();
 
         void showLevel(int level);
@@ -54,13 +43,11 @@ final class FSHFHomePanel {
 
         void frame();
 
-        /** Total del presupuesto del ambiente (S/). */
         double total(FSHFHome.Space s);
     }
 
     private FSHFHomePanel() {}
 
-    /** Resumen de la casa: una fila por ambiente y el total. */
     static FSHFEditable overview(Host host) {
         return new FSHFEditable() {
             @Override
@@ -114,13 +101,11 @@ final class FSHFHomePanel {
         };
     }
 
-    /** "Primer piso", "Segundo piso"... */
     static String levelName(int level) {
         String[] names = {"Primer piso", "Segundo piso", "Tercer piso", "Cuarto piso"};
         return level < names.length ? names[level] : "Piso " + (level + 1);
     }
 
-    /** Tabla de ambientes con su área y su presupuesto, y los totales. */
     static Node summary(Host host) {
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -176,14 +161,12 @@ final class FSHFHomePanel {
         return box;
     }
 
-    /** Texto que nunca se corta con "..." (los números se ven completos; se acorta el nombre). */
     private static Label fixed(String text) {
         Label l = new Label(text);
         l.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
         return l;
     }
 
-    /** Propiedades de un ambiente en la casa. */
     static FSHFEditable space(Host host, FSHFHome.Space s) {
         return new FSHFEditable() {
             @Override

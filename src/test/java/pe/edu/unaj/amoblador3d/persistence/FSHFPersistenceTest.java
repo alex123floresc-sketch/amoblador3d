@@ -85,7 +85,7 @@ class FSHFPersistenceTest {
             FSHFProjectRepository repo = new FSHFProjectRepository(db);
             FSHFProject p = sample();
             long id = repo.save(null, "Dormitorio", p, null);
-            repo.save(id, "Dormitorio", p, null); // sobrescribir no duplica filas
+            repo.save(id, "Dormitorio", p, null);
             FSHFProject q = repo.load(id);
             assertEquals(FSHFProjectJson.write(p), FSHFProjectJson.write(q));
             assertEquals(1, repo.list().size());
@@ -97,7 +97,7 @@ class FSHFPersistenceTest {
     @Test
     void unaBaseDeLaVersionAnteriorSeActualiza() throws Exception {
         Path file = dir.resolve("v1.db");
-        // Base creada por la versión 1 (sin la tabla surface) con un proyecto.
+
         try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + file); Statement st = c.createStatement()) {
             st.execute("""
                     CREATE TABLE project (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -117,7 +117,7 @@ class FSHFPersistenceTest {
             FSHFProject p = new FSHFProjectRepository(db).load(1);
             assertNotNull(p);
             assertEquals(FSHFSurface.DEFAULT_FLOOR, p.floor.material);
-            // Y ya se puede guardar con superficies.
+
             p.floor.material = FSHFSurfaceMaterial.CERAMICO;
             new FSHFProjectRepository(db).save(1L, "Viejo", p, null);
             assertEquals(FSHFSurfaceMaterial.CERAMICO, new FSHFProjectRepository(db).load(1).floor.material);
@@ -142,7 +142,7 @@ class FSHFPersistenceTest {
         try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + file); Statement st = c.createStatement()) {
             for (String statement : sql.split(";")) if (!statement.isBlank()) st.execute(statement);
         }
-        // La aplicación reconoce las tablas (no intenta crearlas de nuevo) y el proyecto es válido.
+
         try (FSHFDatabase db = new FSHFDatabase(file)) {
             FSHFProject p = new FSHFProjectRepository(db).load(1);
             assertNotNull(p);
@@ -175,7 +175,7 @@ class FSHFPersistenceTest {
         d.loadDefault();
         d.saveView(new FSHFCameraView("Desde la puerta", FSHFCameraView.Kind.WALK, 1.5, 1.6, 3.2, 0.3, -0.1, 0));
         d.saveView(new FSHFCameraView("Planta", FSHFCameraView.Kind.PLAN, 2, 0, 1.75, 0, 0, 8));
-        d.saveView(new FSHFCameraView("  desde la PUERTA ", FSHFCameraView.Kind.ORBIT, 2, 1, 1.75, 0.5, 0.6, 9)); // reemplaza
+        d.saveView(new FSHFCameraView("  desde la PUERTA ", FSHFCameraView.Kind.ORBIT, 2, 1, 1.75, 0.5, 0.6, 9));
         assertEquals(2, d.views().size());
         assertEquals(FSHFCameraView.Kind.ORBIT, d.views().get(0).kind());
         assertEquals("desde la PUERTA", d.views().get(0).name());
@@ -187,7 +187,7 @@ class FSHFPersistenceTest {
             long id = repo.save(null, "Con vistas", p, null);
             assertEquals(p.views, repo.load(id).views);
             p.views.clear();
-            repo.save(id, "Con vistas", p, null); // al guardar de nuevo se reemplazan
+            repo.save(id, "Con vistas", p, null);
             assertTrue(repo.load(id).views.isEmpty());
         }
         d.removeView("Planta");
@@ -213,7 +213,7 @@ class FSHFPersistenceTest {
             FSHFPriceRepository repo = new FSHFPriceRepository(db);
             FSHFPriceList.Key chair = FSHFPriceList.Key.furniture("silla");
             repo.save(chair, 150);
-            repo.save(chair, 99.5); // actualiza, no duplica
+            repo.save(chair, 99.5);
             FSHFPriceList prices = repo.load();
             assertEquals(99.5, prices.get(chair), 1e-9);
             assertTrue(prices.isCustom(chair));

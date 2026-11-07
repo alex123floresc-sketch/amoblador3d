@@ -2,7 +2,6 @@ package pe.edu.unaj.amoblador3d.model;
 
 import java.util.List;
 
-/** Ventana o algún tipo de puerta. Todas las puertas van del piso hacia arriba (alféizar 0). */
 public enum FSHFOpeningType {
     WINDOW("window", "Ventana", 1.2, 1.0, 0.9),
     DOOR("door", "Puerta", 0.9, 2.1, 0),
@@ -42,17 +41,14 @@ public enum FSHFOpeningType {
         return defaultHeight;
     }
 
-    /** Todo lo que no es ventana: se pasa por ahí, va desde el piso y su paso no se tapa con muebles. */
     public boolean isDoor() {
         return this != WINDOW;
     }
 
-    /** Puertas con hoja que gira (en planta se dibuja el arco de giro). */
     public boolean swings() {
         return this == DOOR || this == ENTRY || this == DOUBLE;
     }
 
-    /** Los tipos de puerta, en el orden en que se ofrecen. */
     public static List<FSHFOpeningType> doors() {
         return List.of(DOOR, ENTRY, DOUBLE, SLIDING, GARAGE, PASSAGE);
     }

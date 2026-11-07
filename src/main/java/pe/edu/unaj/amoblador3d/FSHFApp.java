@@ -24,12 +24,10 @@ import pe.edu.unaj.amoblador3d.scene.FSHFModelLibrary;
 import pe.edu.unaj.amoblador3d.ui.FSHFMainWindow;
 import pe.edu.unaj.amoblador3d.util.FSHFAppLog;
 
-/** Arranque: abre la base de datos, carga el catálogo y muestra la ventana principal. */
 public final class FSHFApp extends Application {
     private static final Logger LOG = FSHFAppLog.of(FSHFApp.class);
     private FSHFDatabase db;
 
-    /** Versión del .jar (la pone Maven en el manifiesto); "desarrollo" al correr desde el IDE. */
     public static String version() {
         String v = FSHFApp.class.getPackage().getImplementationVersion();
         return v == null ? "desarrollo" : v;
@@ -87,7 +85,6 @@ public final class FSHFApp extends Application {
         }
     }
 
-    /** Aviso al usuario cuando ocurre un error que el código no esperaba (ya quedó en el registro). */
     private static void showUnexpectedError(Throwable error) {
         Runnable show = () -> {
             String where = FSHFAppLog.file() == null ? "" : "\n\nDetalle guardado en:\n" + FSHFAppLog.file();

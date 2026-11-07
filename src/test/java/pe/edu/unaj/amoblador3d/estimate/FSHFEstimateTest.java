@@ -20,7 +20,6 @@ import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.report.FSHFProjectReport;
 
 class FSHFEstimateTest {
-    /** Habitación de 4 x 3 x 2,5 m, con una ventana de 1,2 x 1 en el norte y una puerta de 0,9 x 2,1 en el sur. */
     private static FSHFProject room() {
         FSHFProject p = new FSHFProject();
         p.room = new FSHFRoomDims(4, 3, 2.5, 0.15);
@@ -44,9 +43,9 @@ class FSHFEstimateTest {
     @Test
     void laPinturaSeCompraPorCuartosDeGalon() {
         FSHFPurchaseSpec paint = FSHFPurchaseSpec.of(FSHFSurfaceMaterial.PINTURA);
-        // 35 m² con 2 manos = 70 m² de pintado = 2 galones exactos (sin redondear de más).
+
         assertEquals(2, paint.quantity(35), 1e-9);
-        // 36 m² -> 2,06 galones -> 2,25.
+
         assertEquals(2.25, paint.quantity(36), 1e-9);
         assertEquals(0, paint.quantity(0), 1e-9);
     }
@@ -54,7 +53,7 @@ class FSHFEstimateTest {
     @Test
     void losPisosLlevanDiezPorCientoDeDesperdicio() {
         assertEquals(13.2, FSHFPurchaseSpec.of(FSHFSurfaceMaterial.PORCELANATO).quantity(12), 1e-9);
-        // 12 m² + 10 % = 13,2 m² / 5,3 = 2,49 -> 3 rollos.
+
         assertEquals(3, FSHFPurchaseSpec.of(FSHFSurfaceMaterial.PAPEL_TAPIZ).quantity(12), 1e-9);
     }
 
@@ -65,7 +64,7 @@ class FSHFEstimateTest {
         p.walls.get(FSHFWallSide.ESTE).color = "#a4553a";
         FSHFEstimate e = FSHFEstimate.of(p, new FSHFCatalog(), new FSHFPriceList());
         List<FSHFEstimate.Line> finishes = e.lines().stream().filter(l -> l.section() == FSHFEstimate.Section.FINISHES).toList();
-        // piso de madera + pintura (norte, sur, oeste) + ladrillo (este) + techo (pintura de otro color)
+
         assertEquals(4, finishes.size());
         FSHFEstimate.Line paint = finishes.stream().filter(l -> l.priceKey().equals(FSHFPriceList.Key.material(FSHFSurfaceMaterial.PINTURA)))
                 .findFirst().orElseThrow();

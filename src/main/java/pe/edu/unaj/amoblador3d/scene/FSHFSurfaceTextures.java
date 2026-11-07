@@ -8,19 +8,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 
-/**
- * Texturas de paredes y piso dibujadas por código (no hay archivos de imagen): ladrillos,
- * tablas de madera, baldosas, vetas de mármol... teñidas con el color elegido.
- *
- * <p>Cada textura se repite sin costuras y cubre {@link #tileSize} metros, así un ladrillo o
- * una baldosa miden lo mismo en una pared de 2 m que en una de 8 m (ver {@code FSHFMeshes.box}).
- */
 final class FSHFSurfaceTextures {
-    /**
-     * Texturas ya dibujadas, las usadas más recientemente al final. Tiene un límite porque cada
-     * una pesa hasta 1 MB y el selector de color puede producir cientos de colores distintos;
-     * las que la escena sigue usando no se pierden (el nodo conserva su material).
-     */
     private static final int CACHE_LIMIT = 32;
     private static final Map<String, PhongMaterial> CACHE = new LinkedHashMap<>(16, 0.75f, true) {
         @Override
@@ -31,7 +19,6 @@ final class FSHFSurfaceTextures {
 
     private FSHFSurfaceTextures() {}
 
-    /** Metros que cubre una repetición de la textura. */
     static double tileSize(FSHFSurfaceMaterial m) {
         return switch (m) {
             case PINTURA, SATINADO -> 1.0;
@@ -61,7 +48,7 @@ final class FSHFSurfaceTextures {
         }
         PhongMaterial phong = new PhongMaterial(Color.WHITE);
         phong.setDiffuseMap(img);
-        // Brillo: las superficies pulidas reflejan las luces; el ladrillo o la alfombra, no.
+
         double[] spec = switch (m) {
             case SATINADO -> new double[] {0.25, 18};
             case MADERA -> new double[] {0.22, 24};
@@ -77,7 +64,6 @@ final class FSHFSurfaceTextures {
         return phong;
     }
 
-    /** Color de la textura en (u, v) ∈ [0, 1), con u a lo largo de la superficie y v hacia abajo. */
     private static Color paint(FSHFSurfaceMaterial m, Color c, double u, double v) {
         return switch (m) {
             case PINTURA -> shade(c, 1 + 0.05 * (fbm(u, v, 16, 3, 1) - 0.5));
@@ -94,15 +80,13 @@ final class FSHFSurfaceTextures {
         };
     }
 
-    // ---------------------------------------------------------------- Patrones
-
     private static Color wallpaper(Color c, double u, double v) {
         int stripes = 8;
         double s = u * stripes, f = s - Math.floor(s);
         boolean light = ((int) Math.floor(s)) % 2 == 0;
         double k = light ? 1.04 : 0.9;
-        if (f < 0.03 || f > 0.97) k = 0.82; // filete entre franjas
-        // Pequeños rombos en las franjas claras.
+        if (f < 0.03 || f > 0.97) k = 0.82;
+
         if (light) {
             double du = Math.abs(f - 0.5) * 2, dv = Math.abs(frac(v * 16) - 0.5) * 2;
             if (du + dv < 0.35) k = 0.95;
@@ -110,10 +94,6 @@ final class FSHFSurfaceTextures {
         return shade(c, k * (1 + 0.04 * (fbm(u, v, 32, 2, 7) - 0.5)));
     }
 
-    /**
-     * Ladrillos o bloques de piedra: {@code rows} hileras de {@code cols} piezas,
-     * cada hilera desplazada {@code stagger}, separadas por juntas de mortero.
-     */
     private static Color masonry(Color c, double u, double v, int rows, int cols, double stagger,
                                  double joint, Color mortar, int seed) {
         double rv = v * rows;
@@ -124,7 +104,7 @@ final class FSHFSurfaceTextures {
         int col = (int) Math.floor(ru);
         double fu = ru - col;
         col = Math.floorMod(col, cols);
-        // Ancho de la junta en cada dirección (las piezas son más anchas que altas).
+
         double ju = joint * cols, jv = joint * rows;
         double edge = Math.min(Math.min(fu, 1 - fu) / ju, Math.min(fv, 1 - fv) / jv);
         double grain = fbm(u, v, 64, 3, seed) - 0.5;
@@ -141,13 +121,12 @@ final class FSHFSurfaceTextures {
         return shade(c, 1 + 0.22 * blotch + 0.06 * (fbm(u, v, 64, 2, 13) - 0.5) + speck);
     }
 
-    /** Tablas de 15 cm a lo largo de u, con uniones escalonadas, vetas y un tono distinto en cada tabla. */
     private static Color wood(Color c, double u, double v) {
         int planks = 8;
         double pv = v * planks;
         int row = (int) Math.floor(pv);
         double fv = pv - row;
-        double pu = u + hash(row, 0, 21); // cada hilera empieza en otro punto
+        double pu = u + hash(row, 0, 21);
         int piece = (int) Math.floor(pu);
         double fu = pu - piece;
         if (fv < 0.025 || fv > 0.975 || fu < 0.004 || fu > 0.996) return shade(c, 0.5);
@@ -158,7 +137,6 @@ final class FSHFSurfaceTextures {
         return shade(c, tone * (1 + 0.1 * rings + 0.12 * fine));
     }
 
-    /** Baldosas cuadradas ({@code n} x {@code n} por textura) con junta. */
     private static Color tiles(Color c, double u, double v, int n, double joint, Color grout, double veining, int seed) {
         double tu = u * n, tv = v * n;
         int iu = (int) Math.floor(tu), iv = (int) Math.floor(tv);
@@ -166,13 +144,12 @@ final class FSHFSurfaceTextures {
         if (fu < j || fu > 1 - j || fv < j || fv > 1 - j) return grout;
         double tone = 0.985 + 0.03 * hash(iu, iv, seed);
         double k = tone * (1 + veining * (fbm(u, v, 8, 4, seed + 1) - 0.5));
-        // Bisel: el borde de la baldosa un poco más oscuro.
+
         double edge = Math.min(Math.min(fu, 1 - fu), Math.min(fv, 1 - fv)) - j;
         if (edge < 0.012) k *= 0.93;
         return shade(c, k);
     }
 
-    /** Placas de 60 cm con vetas finas (las frecuencias enteras hacen que la textura no tenga costuras). */
     private static Color marble(Color c, double u, double v) {
         double tu = u * 2, tv = v * 2;
         double fu = tu - Math.floor(tu), fv = tv - Math.floor(tv);
@@ -192,9 +169,6 @@ final class FSHFSurfaceTextures {
         return shade(c, 1 + 0.18 * fiber + 0.12 * (fbm(u, v, 8, 3, 42) - 0.5));
     }
 
-    // ---------------------------------------------------------------- Ruido periódico
-
-    /** Número pseudoaleatorio fijo en [0, 1] para cada celda (x, y). */
     private static double hash(int x, int y, int seed) {
         int h = x * 374761393 + y * 668265263 + seed * 1442695041;
         h = (h ^ (h >>> 13)) * 1274126177;
@@ -202,7 +176,6 @@ final class FSHFSurfaceTextures {
         return (h & 0x7fffffff) / (double) 0x7fffffff;
     }
 
-    /** Ruido suave que se repite cada {@code period} celdas (así la textura no tiene costuras). */
     private static double noise(double x, double y, int period, int seed) {
         int x0 = (int) Math.floor(x), y0 = (int) Math.floor(y);
         double fx = x - x0, fy = y - y0;
@@ -215,7 +188,6 @@ final class FSHFSurfaceTextures {
         return lerp(top, bottom, fy);
     }
 
-    /** Suma de varias capas de ruido (de grueso a fino), entre 0 y 1. */
     private static double fbm(double u, double v, int frequency, int octaves, int seed) {
         double sum = 0, amp = 1, total = 0;
         for (int o = 0; o < octaves; o++) {

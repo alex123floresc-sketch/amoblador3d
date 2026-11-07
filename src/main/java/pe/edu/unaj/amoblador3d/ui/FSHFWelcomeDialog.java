@@ -28,12 +28,7 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import pe.edu.unaj.amoblador3d.persistence.FSHFProjectRepository;
 
-/**
- * Pantalla de bienvenida: cómo empezar (vacío, plantilla, casa de ejemplo) y los proyectos
- * recientes con su miniatura. Se puede desactivar con "Mostrar al iniciar".
- */
 final class FSHFWelcomeDialog {
-    /** Qué eligió el usuario. {@code projectId} solo en RECENT. */
     record Choice(Kind kind, Long projectId) {}
 
     enum Kind { NEW, TEMPLATE, EXAMPLE, OPEN, RECENT }
@@ -139,7 +134,6 @@ final class FSHFWelcomeDialog {
         return Optional.ofNullable(result[0]);
     }
 
-    /** Tarjeta grande con un ícono, un título y una explicación corta. */
     private static Button card(String icon, String title, String text, Runnable action) {
         Label i = new Label(icon);
         i.getStyleClass().add("welcome-icon");

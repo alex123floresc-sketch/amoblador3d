@@ -23,9 +23,7 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 
-/** Guarda y lee proyectos en las tablas project, surface, opening, light y furniture. */
 public final class FSHFProjectRepository {
-    /** Fila de la lista de proyectos (sin el contenido completo). */
     public record Summary(long id, String name, Instant updatedAt, byte[] thumbnail) {}
 
     private final FSHFDatabase db;
@@ -34,7 +32,6 @@ public final class FSHFProjectRepository {
         this.db = db;
     }
 
-    /** Proyectos guardados, el más reciente primero. */
     public List<Summary> list() throws SQLException {
         List<Summary> result = new ArrayList<>();
         String sql = "SELECT id, name, updated_at, thumbnail FROM project ORDER BY updated_at DESC";
@@ -46,7 +43,6 @@ public final class FSHFProjectRepository {
         return result;
     }
 
-    /** Id del proyecto con ese nombre (sin distinguir mayúsculas), o null. */
     public Long findByName(String name) throws SQLException {
         try (PreparedStatement ps = db.connection().prepareStatement("SELECT id FROM project WHERE name = ?")) {
             ps.setString(1, name);
@@ -56,23 +52,10 @@ public final class FSHFProjectRepository {
         }
     }
 
-    /**
-     * Guarda el proyecto completo en una transacción.
-     *
-     * @param id null para crear un proyecto nuevo
-     * @return el id del proyecto
-     */
     public long save(Long id, String name, FSHFProject p, byte[] thumbnail) throws SQLException {
         return saveHome(id, name, FSHFHome.of(p, "Ambiente 1"), thumbnail);
     }
 
-    /**
-     * Guarda la casa completa en una transacción: el primer ambiente en las tablas de siempre y
-     * los demás en home_space.
-     *
-     * @param id null para crear un proyecto nuevo
-     * @return el id del proyecto
-     */
     public long saveHome(Long id, String name, FSHFHome home, byte[] thumbnail) throws SQLException {
         if (home.spaces.isEmpty()) throw new SQLException("La casa no tiene ambientes.");
         return db.transaction(c -> {
@@ -104,7 +87,6 @@ public final class FSHFProjectRepository {
         });
     }
 
-    /** Lee la casa completa. Un proyecto de una sola habitación es una casa con un ambiente. Null si no existe. */
     public FSHFHome loadHome(long id) throws SQLException, FSHFProjectFormatException {
         FSHFProject first = load(id);
         if (first == null) return null;
@@ -308,7 +290,6 @@ public final class FSHFProjectRepository {
         }
     }
 
-    /** Lee un proyecto completo y lo valida. Devuelve null si no existe. */
     public FSHFProject load(long id) throws SQLException, FSHFProjectFormatException {
         Connection c = db.connection();
         FSHFProject p = new FSHFProject();
@@ -325,7 +306,6 @@ public final class FSHFProjectRepository {
             }
         }
         try {
-            // Los proyectos guardados antes de la v2 no tienen filas aquí: quedan los acabados por defecto.
             sql = "SELECT id, material, color FROM surface WHERE project_id = ?";
             try (PreparedStatement ps = c.prepareStatement(sql)) {
                 ps.setLong(1, id);
@@ -416,7 +396,6 @@ public final class FSHFProjectRepository {
                         p.views.add(new FSHFCameraView(rs.getString(1), FSHFCameraView.Kind.fromId(rs.getString(2)), rs.getDouble(3),
                                 rs.getDouble(4), rs.getDouble(5), rs.getDouble(6), rs.getDouble(7), rs.getDouble(8)));
                     } catch (IllegalArgumentException ignored) {
-                        // tipo de vista desconocido: se descarta
                     }
                 }
             }
@@ -433,7 +412,6 @@ public final class FSHFProjectRepository {
         }
     }
 
-    /** Elimina el proyecto; sus aberturas, luces y muebles se borran en cascada. */
     public void delete(long id) throws SQLException {
         try (PreparedStatement ps = db.connection().prepareStatement("DELETE FROM project WHERE id = ?")) {
             ps.setLong(1, id);

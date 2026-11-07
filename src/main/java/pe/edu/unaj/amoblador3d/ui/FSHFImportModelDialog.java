@@ -18,11 +18,6 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Size;
 import pe.edu.unaj.amoblador3d.gltf.FSHFModelData;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Datos de un modelo importado: nombre, giro para que su frente mire a +Z y medidas reales.
- * Propone las medidas del propio archivo; si el modelo venía en centímetros o pulgadas,
- * aquí se corrigen (con "Mantener proporciones" basta escribir una sola medida).
- */
 final class FSHFImportModelDialog {
     record Result(String name, Size size, double rotation) {}
 
@@ -48,7 +43,6 @@ final class FSHFImportModelDialog {
         error.getStyleClass().add("error");
         error.setWrapText(true);
 
-        // Medidas del archivo para el giro elegido (las proporciones de referencia).
         double[] base = new double[3];
         Runnable fromModel = () -> {
             FSHFModelData.Box b = data.bounds(rotation.getValue());
@@ -64,7 +58,6 @@ final class FSHFImportModelDialog {
         fromModel.run();
         rotation.valueProperty().addListener((obs, o, n) -> fromModel.run());
 
-        // Con proporciones: al cambiar una medida se recalculan las otras dos.
         TextField[] fields = {width, depth, height};
         boolean[] syncing = {false};
         for (int i = 0; i < 3; i++) {
@@ -97,7 +90,6 @@ final class FSHFImportModelDialog {
         box.setPrefWidth(420);
         dialog.getDialogPane().setContent(box);
 
-        // Validar antes de cerrar: si hay un error, el diálogo sigue abierto.
         dialog.getDialogPane().lookupButton(add).addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
             String err = validate(name.getText(), width.getText(), depth.getText(), height.getText());
             if (err != null) {

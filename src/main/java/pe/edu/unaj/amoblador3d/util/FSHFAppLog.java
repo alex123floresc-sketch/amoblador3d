@@ -15,13 +15,6 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-/**
- * Registro de la aplicación (bitácora de errores), sin librerías extra: usa {@code java.util.logging}.
- *
- * <p>Escribe en {@code <carpeta de datos>/logs/amoblador3d-0.log} (5 archivos de 1 MB que rotan).
- * Cuando un usuario reporta un problema, ese archivo dice qué pasó: versión, Java, sistema y la
- * traza completa del error, que antes se perdía porque la aplicación no la guardaba en ningún lado.
- */
 public final class FSHFAppLog {
     private static final String ROOT = "pe.edu.unaj.amoblador3d";
     private static final int FILE_LIMIT = 1024 * 1024;
@@ -31,15 +24,10 @@ public final class FSHFAppLog {
 
     private FSHFAppLog() {}
 
-    /** Logger para una clase de la aplicación: {@code FSHFAppLog.of(MiClase.class).warning(...)}. */
     public static Logger of(Class<?> type) {
         return Logger.getLogger(type.getName());
     }
 
-    /**
-     * Abre el archivo de registro en {@code logsDir}. Si no se puede (carpeta sin permisos, disco
-     * lleno), la aplicación sigue igual: solo se pierde el registro.
-     */
     public static synchronized void init(Path logsDir) {
         if (file != null) return;
         Logger root = Logger.getLogger(ROOT);
@@ -58,7 +46,6 @@ public final class FSHFAppLog {
         }
     }
 
-    /** Cierra el archivo de registro (al salir de la aplicación). */
     public static synchronized void close() {
         if (handler == null) return;
         Logger.getLogger(ROOT).removeHandler(handler);
@@ -67,15 +54,10 @@ public final class FSHFAppLog {
         file = null;
     }
 
-    /** Archivo de registro actual, o {@code null} si no se pudo abrir. */
     public static Path file() {
         return file;
     }
 
-    /**
-     * Registra los errores que nadie atrapó (en cualquier hilo, incluido el de JavaFX) y luego
-     * avisa al usuario con {@code notify}, para que no se pierdan en silencio.
-     */
     public static void catchUncaught(Consumer<Throwable> notify) {
         Logger log = Logger.getLogger(ROOT);
         Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
@@ -83,12 +65,10 @@ public final class FSHFAppLog {
             try {
                 notify.accept(error);
             } catch (RuntimeException ignored) {
-                // si ni siquiera se puede avisar, al menos quedó en el registro
             }
         });
     }
 
-    /** Una línea por mensaje: {@code 2026-11-03 19:10:05 WARNING [Clase] mensaje}, más la traza. */
     static final class LineFormatter extends Formatter {
         private static final DateTimeFormatter TIME =
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());

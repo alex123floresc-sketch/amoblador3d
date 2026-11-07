@@ -23,33 +23,8 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 
-/**
- * Formato de archivo .amob3d (JSON legible, el mismo de la versión anterior):
- * <pre>
- * {
- *   "app": "Amoblador3D", "version": 1,
- *   "room":      { "width": 4, "length": 3.5, "height": 2.5, "wallThickness": 0.15 },
- *   "surfaces":  { "piso": { "material": "madera", "color": "#b07d4f" }, "pared-norte": { ... }, ..., "techo": { ... } },
- *   "baseboard": { "height": 0.08, "color": "#f7f5f0" },
- *   "columns":   [ { "id", "kind": "column"|"wall"|"notch", "corner", "x", "z", "width", "depth", "material", "color" } ],
- *   "openings":  [ { "id", "type": "window"|"door", "wall", "offset", "width", "height", "sill" } ],
- *   "ambient":   0.6,
- *   "lights":    [ { "id", "type": "point"|"spot"|"sun", "color", "intensity", ... } ],
- *   "furniture": [ { "id", "type", "x", "z", "rotation", "width", "depth", "height", "color", "color2", "finish", "locked" } ],
- *   "views":     [ { "name", "mode": "3d"|"plan"|"walk", "x", "y", "z", "yaw", "pitch", "distance" } ],
- *   "designs":   [ { "id", "name", "pieces": [ ... ] } ]   (solo al exportar: ver {@link #write(FSHFProject, List)})
- * }
- * </pre>
- * Se usa para exportar/importar proyectos y para las "fotos" de deshacer/rehacer.
- */
 public final class FSHFProjectJson {
     public static final String APP = "Amoblador3D";
-    /**
-     * Versión 2: con columnas o recortes en L. Los proyectos sin ellos se siguen escribiendo como
-     * versión 1 para que las versiones anteriores de la aplicación puedan abrirlos (lo que no
-     * conocen, como el techo o el zócalo, simplemente lo ignoran). Uno con columnas no se puede
-     * abrir en una versión anterior: las perdería al guardar.
-     */
     public static final int VERSION = 2;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -186,7 +161,6 @@ public final class FSHFProjectJson {
         return JsonParser.parseString(write(p)).getAsJsonObject().getAsJsonArray("furniture");
     }
 
-    /** Texto para el portapapeles con muebles copiados (se puede pegar en otro proyecto). */
     public static String writeClipboard(List<FSHFFurniture> items) {
         JsonObject root = new JsonObject();
         root.addProperty("app", APP);
@@ -195,7 +169,6 @@ public final class FSHFProjectJson {
         return GSON.toJson(root);
     }
 
-    /** Muebles del portapapeles, o null si el texto no son muebles copiados de Amoblador3D. */
     public static List<FSHFFurniture> readClipboard(String text) {
         if (text == null || text.isBlank()) return null;
         try {
@@ -205,7 +178,7 @@ public final class FSHFProjectJson {
             if (!APP.equals(str(root, "app")) || !"furniture".equals(str(root, "clipboard"))) return null;
             FSHFProject p = new FSHFProject();
             for (JsonObject j : list(root, "furniture")) p.furniture.add(readFurniture(j));
-            FSHFProjectValidator.validate(p); // mismos controles que al abrir un archivo
+            FSHFProjectValidator.validate(p);
             return p.furniture;
         } catch (JsonParseException | FSHFProjectFormatException | IllegalArgumentException | IllegalStateException
                  | UnsupportedOperationException e) {
@@ -223,10 +196,6 @@ public final class FSHFProjectJson {
         return f;
     }
 
-    /**
-     * Proyecto para exportar junto con los muebles del Diseñador que usa, así se puede abrir en
-     * otra computadora que no los tenga.
-     */
     public static String write(FSHFProject p, List<pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign> designs) {
         if (designs.isEmpty()) return write(p);
         JsonObject root = JsonParser.parseString(write(p)).getAsJsonObject();
@@ -236,7 +205,6 @@ public final class FSHFProjectJson {
         return GSON.toJson(root);
     }
 
-    /** Muebles del Diseñador incluidos en un archivo exportado (los dañados se descartan). */
     public static List<pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign> readDesigns(String text) {
         List<pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign> result = new ArrayList<>();
         try {
@@ -249,7 +217,6 @@ public final class FSHFProjectJson {
                 try {
                     result.add(pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign.fromJson(d.getAsJsonObject()));
                 } catch (IllegalArgumentException ignored) {
-                    // diseño dañado: sus muebles se verán como cajas rojas
                 }
             }
         } catch (JsonParseException e) {
@@ -258,7 +225,6 @@ public final class FSHFProjectJson {
         return result;
     }
 
-    /** Lee y valida un proyecto. Lanza una excepción con un mensaje claro si no es válido. */
     public static FSHFProject read(String text) throws FSHFProjectFormatException {
         JsonObject root;
         try {
@@ -281,7 +247,6 @@ public final class FSHFProjectJson {
                     num(room, "height", Double.NaN), num(room, "wallThickness", Double.NaN));
             p.ambient = num(root, "ambient", FSHFProject.DEFAULT_AMBIENT);
 
-            // Los proyectos anteriores no tienen "surfaces": se quedan con los acabados por defecto.
             JsonElement surfaces = root.get("surfaces");
             if (surfaces != null && surfaces.isJsonObject()) {
                 for (FSHFSurface s : p.surfaces()) {
@@ -331,19 +296,17 @@ public final class FSHFProjectJson {
                 p.lights.add(l);
             }
             for (JsonObject j : list(root, "furniture")) p.furniture.add(readFurniture(j));
-            // Las vistas son un extra: una dañada se descarta sin impedir abrir el proyecto.
+
             for (JsonObject j : list(root, "views")) {
                 try {
                     p.views.add(new FSHFCameraView(str(j, "name"), FSHFCameraView.Kind.fromId(str(j, "mode")), num(j, "x", 0),
                             num(j, "y", 0), num(j, "z", 0), num(j, "yaw", 0), num(j, "pitch", 0), num(j, "distance", 0)));
                 } catch (IllegalArgumentException ignored) {
-                    // tipo de vista desconocido
                 }
             }
             FSHFProjectValidator.validate(p);
             return p;
         } catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException e) {
-            // tipos desconocidos (IllegalArgumentException) o un valor del tipo equivocado (gson)
             throw new FSHFProjectFormatException("El proyecto tiene datos no válidos: " + e.getMessage());
         }
     }

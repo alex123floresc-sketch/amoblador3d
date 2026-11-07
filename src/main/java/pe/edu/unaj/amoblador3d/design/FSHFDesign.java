@@ -31,20 +31,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.util.FSHFOutcome;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * El proyecto que se está editando y todas sus reglas: dónde caben las aberturas,
- * colisiones de muebles (con paredes, con otros muebles y con el giro de las puertas)
- * y luces que dependen de las ventanas.
- *
- * <p>No depende de JavaFX: la vista 3D se entera de los cambios con {@link #addListener}.
- */
 public final class FSHFDesign {
-    /** Separación mínima de una abertura con esquinas, techo y otras aberturas. */
     public static final double MARGIN = 0.05;
-    /** JavaFX ilumina cada objeto con un máximo de 3 luces (sin contar la ambiental). */
     public static final int MAX_ACTIVE_LIGHTS = 3;
 
-    /** Qué parte cambió, para que la vista 3D reconstruya solo eso. */
     public enum Change { ROOM, SURFACES, LIGHTS, FURNITURE, VIEWS }
 
     private final FSHFCatalog catalog;
@@ -85,7 +75,6 @@ public final class FSHFDesign {
         return List.copyOf(project.views);
     }
 
-    /** Guarda una vista de cámara (si ya hay una con ese nombre, la reemplaza). */
     public void saveView(FSHFCameraView view) {
         String name = view.name() == null ? "" : view.name().trim();
         if (name.length() > FSHFCameraView.MAX_NAME) name = name.substring(0, FSHFCameraView.MAX_NAME);
@@ -131,7 +120,6 @@ public final class FSHFDesign {
         return project.walls.get(side);
     }
 
-    /** Copia independiente del estado actual (para guardar o para deshacer). */
     public FSHFProject snapshot() {
         return project.copy();
     }
@@ -140,7 +128,6 @@ public final class FSHFDesign {
         listeners.add(listener);
     }
 
-    /** Recibe avisos que no son respuesta directa a una acción (p. ej. "el sol se eliminó"). */
     public void setWarningHandler(Consumer<String> handler) {
         onWarning = handler;
     }
@@ -154,7 +141,6 @@ public final class FSHFDesign {
         if (!warnings.isEmpty()) onWarning.accept(String.join("\n", warnings));
     }
 
-    /** Todas las entidades seleccionables (piso, paredes, techo y zócalo no se pueden eliminar). */
     public List<Object> entities() {
         List<Object> all = new ArrayList<>(project.surfaces());
         all.add(project.baseboard);
@@ -165,7 +151,6 @@ public final class FSHFDesign {
         return all;
     }
 
-    /** Busca una entidad por id (para conservar la selección al deshacer). */
     public Object findById(String id) {
         for (Object e : entities()) if (idOf(e).equals(id)) return e;
         return null;
@@ -181,7 +166,6 @@ public final class FSHFDesign {
         throw new IllegalArgumentException("Entidad desconocida: " + entity);
     }
 
-    /** Nombre visible: "Ventana 1 (norte)", "Bombilla 2", "Cama 1"... */
     public String label(Object entity) {
         if (entity instanceof FSHFOpening o) return o.type.label() + " " + suffix(o.id) + " (" + o.wall.id() + ")";
         if (entity instanceof FSHFLight l) return l.type.label() + " " + suffix(l.id);
@@ -198,12 +182,6 @@ public final class FSHFDesign {
         return id.substring(id.lastIndexOf('-') + 1);
     }
 
-    // ---------------------------------------------------------------- Proyecto
-
-    /**
-     * Reemplaza todo el contenido por el del proyecto (que ya debe estar validado,
-     * ver {@code ProjectJson}). Devuelve avisos, por ejemplo ventanas que no cabían.
-     */
     public List<String> load(FSHFProject data) {
         project = data.copy();
         ids.reset();
@@ -215,7 +193,6 @@ public final class FSHFDesign {
         return warnings;
     }
 
-    /** Habitación por defecto: una ventana, una puerta, una bombilla y el sol. */
     public void loadDefault() {
         FSHFProject p = new FSHFProject();
         load(p);
@@ -225,7 +202,6 @@ public final class FSHFDesign {
         addLight(FSHFLightType.SUN);
     }
 
-    /** Cambia las medidas de la habitación y acomoda lo que haya dentro. Devuelve avisos. */
     public List<String> setRoom(FSHFRoomDims dims) {
         project.room = dims.rounded();
         List<String> warnings = fitColumnsToRoom();
@@ -241,7 +217,6 @@ public final class FSHFDesign {
         fire(Change.LIGHTS);
     }
 
-    /** Elimina una abertura, luz o mueble. Devuelve un error (mueble bloqueado) o null. */
     public String remove(Object entity) {
         if (entity instanceof FSHFFurniture f && f.locked) return label(f) + LOCKED;
         if (entity instanceof FSHFOpening o) {
@@ -260,9 +235,6 @@ public final class FSHFDesign {
         return null;
     }
 
-    // ---------------------------------------------------------------- Paredes y piso
-
-    /** Cambia el material y/o el color de una pared, el piso o el techo. Devuelve un error o null. */
     String changeSurface(FSHFSurface s, FSHFSurfaceMaterial material, String color) {
         if (!material.allowedOn(s)) {
             return material.label() + " no se puede usar " + (s.isFloor() ? "en el piso." : s.isCeiling() ? "en el techo." : "en las paredes.");
@@ -273,7 +245,6 @@ public final class FSHFDesign {
         return null;
     }
 
-    /** Copia el acabado de una pared a las otras tres. */
     String applyToAllWalls(FSHFSurface source) {
         for (FSHFSurface w : project.walls.values()) {
             w.material = source.material;
@@ -283,7 +254,6 @@ public final class FSHFDesign {
         return null;
     }
 
-    /** Alto (0 = sin zócalo) y color del zócalo. Devuelve un error o null. */
     String changeBaseboard(double height, String color) {
         String err = checkRange("El alto del zócalo", height, 0, FSHFBaseboard.MAX_HEIGHT);
         if (err != null) return err;
@@ -293,24 +263,19 @@ public final class FSHFDesign {
         return null;
     }
 
-    // ---------------------------------------------------------------- Aberturas
-
     public double wallLength(FSHFWallSide wall) {
         return project.room.wallLength(wall);
     }
 
-    /** Agrega una ventana o puerta en el primer lugar libre. */
     public FSHFOutcome<FSHFOpening> addOpening(FSHFOpeningType type) {
-        // Las puertas empiezan por el sur y las ventanas por el norte.
         return addOpening(type, type.isDoor()
                 ? List.of(FSHFWallSide.SUR, FSHFWallSide.OESTE, FSHFWallSide.ESTE, FSHFWallSide.NORTE)
                 : List.of(FSHFWallSide.NORTE, FSHFWallSide.ESTE, FSHFWallSide.OESTE, FSHFWallSide.SUR));
     }
 
-    /** Agrega una ventana o puerta en el primer lugar libre de esas paredes (en ese orden). */
     public FSHFOutcome<FSHFOpening> addOpening(FSHFOpeningType type, List<FSHFWallSide> order) {
         FSHFOpening o = FSHFOpening.create(ids.next(type.id()), type);
-        // Si la pared es baja, la puerta se achica para caber (deja 5 cm bajo el techo).
+
         o.height = round(Math.min(o.height, project.room.height() - MARGIN));
         for (FSHFWallSide wall : order) {
             o.wall = wall;
@@ -326,13 +291,6 @@ public final class FSHFDesign {
                 + type.label().toLowerCase() + " (" + FSHFUnits.number(o.width) + " m).");
     }
 
-    /**
-     * Revisa que la abertura quepa en su pared y no choque con otras.
-     *
-     * @param self           la abertura que se está editando (se ignora a sí misma), o null
-     * @param checkFurniture si es una puerta, comprobar también que su giro no choque con muebles
-     * @return un mensaje de error o null
-     */
     String validateOpening(FSHFOpening o, FSHFOpening self, boolean checkFurniture) {
         double len = wallLength(o.wall);
         double h = project.room.height();
@@ -356,7 +314,7 @@ public final class FSHFDesign {
             if (covers(c, o)) return name + " quedaría tapada por " + label(c).toLowerCase() + ".";
             if (door && c.footprint().overlaps(doorZone(o))) return name + " no podría abrirse: choca con " + label(c).toLowerCase() + ".";
         }
-        // Corrección: antes se podía poner una puerta encima de un mueble y quedaba bloqueada.
+
         if (door && checkFurniture) {
             FSHFFootprint zone = doorZone(o);
             for (FSHFFurniture f : project.furniture) {
@@ -366,7 +324,6 @@ public final class FSHFDesign {
         return null;
     }
 
-    /** Busca una posición libre en la pared (primero el centro). Devuelve el offset o null. */
     private Double findFreeOffset(FSHFOpening o, FSHFOpening self) {
         double len = wallLength(o.wall);
         List<Double> candidates = new ArrayList<>();
@@ -381,10 +338,6 @@ public final class FSHFDesign {
         return null;
     }
 
-    /**
-     * Aplica los cambios de una abertura si son válidos.
-     * Si cambió de pared, se busca un lugar libre en la nueva pared.
-     */
     String changeOpening(FSHFOpening o, FSHFOpening candidate) {
         if (candidate.wall != o.wall) {
             Double offset = findFreeOffset(candidate, o);
@@ -413,15 +366,11 @@ public final class FSHFDesign {
         warn(warnings);
     }
 
-    /**
-     * Tras cambiar las medidas, intenta que cada abertura siga cabiendo
-     * (achicándola o moviéndola). Si no es posible, la elimina.
-     */
     private List<String> fitOpenings() {
         List<String> warnings = new ArrayList<>();
         double h = project.room.height();
         List<FSHFOpening> all = new ArrayList<>(project.openings);
-        project.openings.clear(); // se van agregando las que sí caben
+        project.openings.clear();
         for (FSHFOpening o : all) {
             double len = wallLength(o.wall);
             FSHFOpening fitted = o.copy();
@@ -434,7 +383,7 @@ public final class FSHFDesign {
                 fitted.sill = round(Math.max(0.05, Math.min(o.sill, h - fitted.height - 0.05)));
             }
             fitted.offset = round(Math.max(0.05, Math.min(o.offset, len - fitted.width - 0.05)));
-            // Los muebles no impiden conservar la puerta: fitFurnitureToRoom avisará si bloquean el paso.
+
             if (validateOpening(fitted, o, false) != null) {
                 warnings.add(label(o) + " ya no cabía y se eliminó.");
             } else {
@@ -448,10 +397,6 @@ public final class FSHFDesign {
         return warnings;
     }
 
-    /**
-     * Zona de giro de una puerta: un cuadrado de lado = ancho de la puerta, pegado a la
-     * pared por el lado interior. Ningún mueble puede invadirla.
-     */
     public FSHFFootprint doorZone(FSHFOpening door) {
         double w = door.width, along = door.offset + w / 2;
         FSHFRoomDims r = project.room;
@@ -467,8 +412,6 @@ public final class FSHFDesign {
         for (FSHFOpening o : project.openings) if (o.id.equals(id)) return o;
         return null;
     }
-
-    // ---------------------------------------------------------------- Luces
 
     public FSHFOutcome<FSHFLight> addLight(FSHFLightType type) {
         FSHFRoomDims r = project.room;
@@ -540,7 +483,6 @@ public final class FSHFDesign {
         return windows.isEmpty() ? null : windows.get(0);
     }
 
-    /** Si la ventana de un sol desaparece, lo pasa a otra ventana (o lo elimina si no hay). */
     private List<String> refreshSunLights() {
         List<String> warnings = new ArrayList<>();
         for (FSHFLight l : List.copyOf(project.lights)) {
@@ -558,7 +500,6 @@ public final class FSHFDesign {
         return warnings;
     }
 
-    /** Tras cambiar las medidas de la habitación, mete las luces dentro. */
     private List<String> fitLightsToRoom() {
         FSHFRoomDims r = project.room;
         for (FSHFLight l : project.lights) {
@@ -592,9 +533,6 @@ public final class FSHFDesign {
         l.deviation = round(l.deviation);
     }
 
-    // ---------------------------------------------------------------- Muebles
-
-    /** Agrega un mueble del catálogo en el lugar libre más cercano al centro. */
     public FSHFOutcome<FSHFFurniture> addFurniture(String type) {
         FSHFCatalogEntry e = catalog.get(type);
         FSHFCatalogEntry.Size s = e.defaults();
@@ -603,7 +541,6 @@ public final class FSHFDesign {
         return placeNew(f, e.name(), null);
     }
 
-    /** Agrega un mueble del catálogo en (x, z) o, si ahí no cabe, en el lugar libre más cercano. */
     public FSHFOutcome<FSHFFurniture> addFurnitureAt(String type, double x, double z) {
         FSHFCatalogEntry e = catalog.get(type);
         if (e.kind() == FSHFCatalogEntry.Kind.MISSING) return FSHFOutcome.fail("No existe \"" + type + "\" en el catálogo.");
@@ -615,10 +552,6 @@ public final class FSHFDesign {
         return placeNew(f, e.name(), f);
     }
 
-    /**
-     * Las escaleras llegan justo al techo (al piso de arriba); los demás muebles más altos que la
-     * habitación se achican hasta su alto, si su medida mínima lo permite.
-     */
     private void fitHeight(FSHFFurniture f, FSHFCatalogEntry e) {
         double h = project.room.height();
         if (FSHFCatalog.isStair(f.type) || f.height > h) {
@@ -626,7 +559,6 @@ public final class FSHFDesign {
         }
     }
 
-    /** Crea una copia del mueble en el lugar libre más cercano al original. */
     public FSHFOutcome<FSHFFurniture> duplicate(FSHFFurniture source) {
         FSHFFurniture f = source.copy();
         f.id = ids.next(source.type);
@@ -637,8 +569,6 @@ public final class FSHFDesign {
     private FSHFOutcome<FSHFFurniture> placeNew(FSHFFurniture f, String name, FSHFFurniture near) {
         double[] spot = findFreeSpot(f, near);
         if (spot == null) {
-            // Corrección: antes nunca se probaba girar el mueble, y en una habitación de 4 x 3.5 m
-            // solo cabía una cama aunque girada cabía otra.
             FSHFFurniture turned = f.copy();
             turned.rotation = (f.rotation + 90) % 360;
             spot = findFreeSpot(turned, near);
@@ -655,12 +585,10 @@ public final class FSHFDesign {
         return FSHFOutcome.ok(f);
     }
 
-    /** Revisa si el mueble puede estar con la posición/medidas de {@code candidate}. Devuelve un error o null. */
     public String checkFurniture(FSHFFurniture self, FSHFFurniture candidate) {
         return check(candidate, self == null ? Set.of() : Collections.singleton(self));
     }
 
-    /** Igual que {@link #checkFurniture}, sin chocar con los muebles de {@code ignore} (los de un grupo que se mueve). */
     private String check(FSHFFurniture candidate, Set<FSHFFurniture> ignore) {
         FSHFRoomDims r = project.room;
         if (candidate.height > r.height() + 1e-9) {
@@ -681,11 +609,6 @@ public final class FSHFDesign {
         return null;
     }
 
-    /**
-     * Mueve el mueble lo más cerca posible de (x, z), usado al arrastrar.
-     * Si choca, intenta deslizarlo solo en X o solo en Z (así "resbala" por las
-     * paredes y otros muebles en lugar de quedarse pegado).
-     */
     public boolean moveFurniture(FSHFFurniture f, double x, double z) {
         if (f.locked) return false;
         FSHFRoomDims r = project.room;
@@ -706,7 +629,6 @@ public final class FSHFDesign {
         return false;
     }
 
-    /** Aplica medidas, giro, posición o color si el resultado es válido. */
     String changeFurniture(FSHFFurniture f, FSHFFurniture candidate, boolean positionEdited) {
         if (f.locked) return label(f) + LOCKED;
         candidate.rotation = ((candidate.rotation % 360) + 360) % 360;
@@ -715,12 +637,10 @@ public final class FSHFDesign {
         candidate.width = round(candidate.width);
         candidate.depth = round(candidate.depth);
         candidate.height = round(candidate.height);
-        // Corrección: antes un mueble que ya chocaba con algo (p. ej. tras achicar la habitación)
-        // no dejaba cambiar su color. Si solo cambia el aspecto, no hay nada que revisar.
+
         boolean sameGeometry = candidate.x == f.x && candidate.z == f.z && candidate.rotation == f.rotation
                 && candidate.width == f.width && candidate.depth == f.depth && candidate.height == f.height;
         if (!sameGeometry) {
-            // Si al girar o agrandar el mueble se sale por una pared, lo empujamos hacia adentro.
             if (!positionEdited) {
                 FSHFRoomDims r = project.room;
                 FSHFFootprint fp = FSHFFootprint.of(candidate).clampToRoom(r.width(), r.length());
@@ -743,10 +663,6 @@ public final class FSHFDesign {
         return null;
     }
 
-    /**
-     * Convierte el mueble en otro del catálogo (p. ej. en el diseño hecho a partir de él), con las
-     * medidas y colores iniciales del nuevo tipo y en el mismo lugar. Devuelve un error o null.
-     */
     public String replaceType(FSHFFurniture f, String type) {
         if (f.locked) return label(f) + LOCKED;
         FSHFCatalogEntry e = catalog.get(type);
@@ -775,17 +691,12 @@ public final class FSHFDesign {
         f.color = c.color;
         f.color2 = null;
         f.finish = null;
-        // El id sigue el nombre del tipo ("cama-2" -> "diseno-xyz-1") para que la etiqueta no confunda.
+
         if (f.id.startsWith(oldPrefix + "-")) f.id = ids.next(type);
         fire(Change.FURNITURE);
         return null;
     }
 
-    /**
-     * Cambia medidas, posición y giro a la vez (asas de la vista 3D). Con {@code keepPosition} el
-     * centro se queda donde se pidió; si no, se empuja hacia adentro si se sale por una pared.
-     * Devuelve un error o null.
-     */
     public String reshape(FSHFFurniture f, FSHFFurniture candidate, boolean keepPosition) {
         return changeFurniture(f, candidate, keepPosition);
     }
@@ -796,7 +707,6 @@ public final class FSHFDesign {
         return changeFurniture(f, candidate, false);
     }
 
-    /** Tras cambiar las medidas de la habitación, mete los muebles dentro. Devuelve avisos. */
     private List<String> fitFurnitureToRoom() {
         FSHFRoomDims r = project.room;
         List<String> warnings = new ArrayList<>();
@@ -810,10 +720,6 @@ public final class FSHFDesign {
         return warnings;
     }
 
-    /**
-     * Prueba posiciones en una cuadrícula de 10 cm, empezando por las más
-     * cercanas a {@code near} (por defecto, el centro de la habitación).
-     */
     private double[] findFreeSpot(FSHFFurniture f, FSHFFurniture near) {
         FSHFRoomDims r = project.room;
         double ox = near != null ? near.x : r.width() / 2;
@@ -833,17 +739,13 @@ public final class FSHFDesign {
         return null;
     }
 
-    // ---------------------------------------------------------------- Bloqueo y grupos de muebles
-
     private static final String LOCKED = " está bloqueado: desbloquéalo para cambiarlo.";
 
-    /** Bloquea o desbloquea muebles (un mueble bloqueado no se mueve, gira, cambia ni elimina). */
     public void setLocked(Collection<FSHFFurniture> group, boolean locked) {
         for (FSHFFurniture f : group) f.locked = locked;
         fire(Change.FURNITURE);
     }
 
-    /** El primer mueble bloqueado del grupo, o null. */
     public FSHFFurniture firstLocked(Collection<FSHFFurniture> group) {
         for (FSHFFurniture f : group) if (f.locked) return f;
         return null;
@@ -864,10 +766,6 @@ public final class FSHFDesign {
         return box;
     }
 
-    /**
-     * Revisa que el grupo pueda quedar como {@code candidates} (misma posición en la lista):
-     * cada uno contra la habitación, las puertas y los muebles de fuera del grupo, y entre ellos.
-     */
     private String checkGroup(List<FSHFFurniture> group, List<FSHFFurniture> candidates) {
         Set<FSHFFurniture> ignore = identitySet(group);
         for (int i = 0; i < candidates.size(); i++) {
@@ -906,7 +804,6 @@ public final class FSHFDesign {
         fire(Change.FURNITURE);
     }
 
-    /** Mueve todos los muebles del grupo a la vez (o ninguno). Devuelve un error o null. */
     public String moveGroup(List<FSHFFurniture> group, double dx, double dz) {
         FSHFFurniture locked = firstLocked(group);
         if (locked != null) return label(locked) + LOCKED;
@@ -916,19 +813,12 @@ public final class FSHFDesign {
         return err;
     }
 
-    /**
-     * Arrastre con el ratón: lleva el grupo para que {@code anchor} (el mueble que se agarró)
-     * quede lo más cerca posible de (x, z). Con {@code magnet}, el grupo se pega a paredes y
-     * a otros muebles cercanos. Si choca, intenta deslizarlo solo en X o solo en Z.
-     *
-     * @return las guías del imán (vacía si no se pegó a nada), o null si no se pudo mover
-     */
     public List<FSHFSnapper.Guide> drag(List<FSHFFurniture> group, FSHFFurniture anchor, double x, double z, boolean magnet) {
         if (firstLocked(group) != null) return null;
         FSHFRoomDims r = project.room;
         FSHFSnapper.Box box = boxOf(group);
         double dx = x - anchor.x, dz = z - anchor.z;
-        // Que el grupo completo quede dentro de la habitación.
+
         dx = FSHFUnits.clamp(dx, -box.minX(), r.width() - box.maxX());
         dz = FSHFUnits.clamp(dz, -box.minZ(), r.length() - box.maxZ());
 
@@ -940,7 +830,7 @@ public final class FSHFDesign {
             for (FSHFFurniture f : project.furniture) if (!members.contains(f)) others.add(FSHFSnapper.Box.of(FSHFFootprint.of(f)));
             for (FSHFColumn c : project.columns) others.add(FSHFSnapper.Box.of(c.footprint()));
             FSHFSnapper.Result snap = FSHFSnapper.snap(box.shift(dx, dz), r.width(), r.length(), others);
-            // Pegado en los dos ejes; si así choca, pegado solo en uno.
+
             if (snap.guideX() != null && snap.guideZ() != null) tries.add(new Try(dx + snap.dx(), dz + snap.dz()));
             if (snap.guideX() != null) tries.add(new Try(dx + snap.dx(), dz));
             if (snap.guideZ() != null) tries.add(new Try(dx, dz + snap.dz()));
@@ -957,7 +847,7 @@ public final class FSHFDesign {
             }
             if (moved) applyGroup(group, candidates);
             if (!magnet) return List.of();
-            // Guías de lo que quedó alineado en la posición final (al centímetro).
+
             FSHFSnapper.Result now = FSHFSnapper.snap(boxOf(group), r.width(), r.length(), others);
             List<FSHFSnapper.Guide> guides = new ArrayList<>();
             if (now.guideX() != null && Math.abs(now.dx()) < 0.006) guides.add(now.guideX());
@@ -967,10 +857,6 @@ public final class FSHFDesign {
         return null;
     }
 
-    /**
-     * Gira el grupo alrededor de su centro, como si fuera un solo mueble. Si al girar se sale
-     * por una pared, se empuja hacia adentro. Devuelve un error o null.
-     */
     public String rotateGroup(List<FSHFFurniture> group, double degrees) {
         if (group.size() == 1) return rotateFurniture(group.get(0), degrees);
         FSHFFurniture locked = firstLocked(group);
@@ -982,7 +868,7 @@ public final class FSHFDesign {
         for (FSHFFurniture f : group) {
             FSHFFurniture k = f.copy();
             double dx = f.x - cx, dz = f.z - cz;
-            // Mismo sentido de giro que la rotación de cada mueble (ver FSHFFootprint).
+
             k.x = cx + dx * c + dz * s;
             k.z = cz - dx * s + dz * c;
             k.rotation = (((f.rotation + degrees) % 360) + 360) % 360;
@@ -1001,15 +887,10 @@ public final class FSHFDesign {
         return err;
     }
 
-    /** Duplica el grupo en el lugar libre más cercano, conservando cómo están ubicados entre sí. */
     public FSHFOutcome<List<FSHFFurniture>> duplicateGroup(List<FSHFFurniture> source) {
         return placeGroup(source, false);
     }
 
-    /**
-     * Agrega muebles copiados (de este u otro proyecto). Si su lugar original está libre se
-     * quedan ahí; si no, se buscan el lugar libre más cercano.
-     */
     public FSHFOutcome<List<FSHFFurniture>> paste(List<FSHFFurniture> items) {
         return placeGroup(items, true);
     }
@@ -1026,7 +907,7 @@ public final class FSHFDesign {
             copies.add(c);
         }
         FSHFRoomDims r = project.room;
-        // Desplazamientos en una cuadrícula de 10 cm, del más cercano al más lejano.
+
         List<double[]> offsets = new ArrayList<>();
         int nx = (int) Math.floor(r.width() * 10 + 1e-9), nz = (int) Math.floor(r.length() * 10 + 1e-9);
         for (int i = -nx; i <= nx; i++) {
@@ -1044,7 +925,7 @@ public final class FSHFDesign {
                 return FSHFOutcome.ok(candidates);
             }
         }
-        // Juntos no caben: se acomoda cada uno por separado (puede girarse).
+
         List<FSHFFurniture> placed = new ArrayList<>();
         List<String> failed = new ArrayList<>();
         for (FSHFFurniture c : copies) {
@@ -1057,19 +938,14 @@ public final class FSHFDesign {
         return FSHFOutcome.ok(placed);
     }
 
-    // ---------------------------------------------------------------- Columnas, muros internos y recortes en L
-
-    /** A esta distancia (m) se considera que una columna toca una pared. */
     private static final double TOUCH = 0.005;
     public static final double MIN_COLUMN = 0.05;
-    /** Un recorte en L debe dejar al menos esto de habitación en cada sentido. */
     public static final double MIN_LEFT = 0.5;
 
-    /** Agrega una columna o un muro interno en el lugar libre más cercano al centro. */
     public FSHFOutcome<FSHFColumn> addColumn(FSHFColumn.Kind kind) {
         if (kind == FSHFColumn.Kind.NOTCH) throw new IllegalArgumentException("Los recortes se agregan con addNotch.");
         FSHFColumn c = new FSHFColumn(ids.next(kind.id()), kind, 0, 0, kind.defaultWidth(), kind.defaultDepth());
-        FSHFSurface wall = project.walls.get(FSHFWallSide.NORTE); // mismo acabado que las paredes
+        FSHFSurface wall = project.walls.get(FSHFWallSide.NORTE);
         c.material = wall.material;
         c.color = wall.color;
         FSHFRoomDims r = project.room;
@@ -1095,10 +971,6 @@ public final class FSHFDesign {
                 + FSHFUnits.number(c.width) + " x " + FSHFUnits.number(c.depth) + " m).");
     }
 
-    /**
-     * Convierte la habitación en una "L" quitándole una esquina de {@code width} (en X) por
-     * {@code depth} (en Z). El recorte se ve como muro y se descuenta del piso.
-     */
     public FSHFOutcome<FSHFColumn> addNotch(FSHFColumn.Corner corner, double width, double depth) {
         for (FSHFColumn other : project.columns) {
             if (other.kind == FSHFColumn.Kind.NOTCH && other.corner == corner) {
@@ -1118,7 +990,6 @@ public final class FSHFDesign {
         return FSHFOutcome.ok(c);
     }
 
-    /** Revisa que la columna pueda quedar así. Devuelve un error o null. */
     public String checkColumn(FSHFColumn c, FSHFColumn self) {
         FSHFRoomDims r = project.room;
         String err = checkRange("El ancho", c.width, MIN_COLUMN, r.width());
@@ -1151,7 +1022,6 @@ public final class FSHFDesign {
         return x > c.minX() - 0.05 && x < c.maxX() + 0.05 && z > c.minZ() - 0.05 && z < c.maxZ() + 0.05;
     }
 
-    /** true si la columna está pegada a la pared de la abertura y tapa (parte de) su ancho. */
     private boolean covers(FSHFColumn c, FSHFOpening o) {
         FSHFRoomDims r = project.room;
         boolean touches = switch (o.wall) {
@@ -1165,7 +1035,6 @@ public final class FSHFDesign {
         return a0 < o.offset + o.width + MARGIN - 1e-9 && a1 > o.offset - MARGIN + 1e-9;
     }
 
-    /** Aplica posición y medidas si el resultado es válido (los recortes se quedan en su esquina). */
     String changeColumn(FSHFColumn c, FSHFColumn candidate) {
         candidate.x = round(candidate.x);
         candidate.z = round(candidate.z);
@@ -1191,10 +1060,6 @@ public final class FSHFDesign {
         return null;
     }
 
-    /**
-     * Tras cambiar las medidas de la habitación: los recortes siguen en su esquina y las columnas
-     * se meten dentro. Lo que ya no cabe se elimina; lo que choca con algo se avisa.
-     */
     private List<String> fitColumnsToRoom() {
         FSHFRoomDims r = project.room;
         List<String> warnings = new ArrayList<>();

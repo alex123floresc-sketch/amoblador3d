@@ -1,7 +1,8 @@
 package pe.edu.unaj.amoblador3d.persistence;
 
-/** El archivo o los datos guardados no tienen la forma esperada. El mensaje es para el usuario. */
 public class FSHFProjectFormatException extends Exception {
+    private static final long serialVersionUID = 1L;
+
     public FSHFProjectFormatException(String message) {
         super(message);
     }

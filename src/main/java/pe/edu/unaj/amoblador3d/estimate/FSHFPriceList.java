@@ -4,13 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 
-/**
- * Precios unitarios en soles (S/). Empieza con precios referenciales de Lima y el usuario
- * puede cambiarlos desde el presupuesto; los cambios se guardan en la base de datos
- * (ver {@code persistence.PriceRepository}) y sirven para todos los proyectos.
- */
 public final class FSHFPriceList {
-    /** Qué se cotiza: un acabado, un mueble del catálogo u otro rubro (el zócalo). */
     public enum Kind {
         MATERIAL("material"), FURNITURE("furniture"), EXTRA("extra");
 
@@ -20,7 +14,6 @@ public final class FSHFPriceList {
             this.id = id;
         }
 
-        /** Texto que se guarda en la base de datos. */
         public String id() {
             return id;
         }
@@ -31,7 +24,6 @@ public final class FSHFPriceList {
         }
     }
 
-    /** @param item id del material, del mueble ("cama") o del rubro ("zocalo") */
     public record Key(Kind kind, String item) {
         public static Key material(FSHFSurfaceMaterial m) {
             return new Key(Kind.MATERIAL, m.id());
@@ -47,7 +39,6 @@ public final class FSHFPriceList {
     private static final Map<Key, Double> DEFAULTS = new HashMap<>();
 
     static {
-        // Acabados: por galón, rollo o m² (ver FSHFPurchaseSpec).
         material(FSHFSurfaceMaterial.PINTURA, 65);
         material(FSHFSurfaceMaterial.SATINADO, 85);
         material(FSHFSurfaceMaterial.PAPEL_TAPIZ, 45);
@@ -59,7 +50,7 @@ public final class FSHFPriceList {
         material(FSHFSurfaceMaterial.MARMOL, 180);
         material(FSHFSurfaceMaterial.PORCELANATO, 60);
         material(FSHFSurfaceMaterial.ALFOMBRA, 40);
-        // Muebles paramétricos, por unidad. Los modelos 3D empiezan en 0: el usuario pone su precio.
+
         furniture("cama", 900);
         furniture("mesa", 450);
         furniture("silla", 120);
@@ -68,7 +59,7 @@ public final class FSHFPriceList {
         furniture("mesa-noche", 180);
         furniture("comoda", 600);
         furniture("sillon", 1500);
-        furniture("rack-tv", 2500); // con televisor
+        furniture("rack-tv", 2500);
         furniture("librero", 350);
         furniture("cocina", 1800);
         furniture("refrigeradora", 2200);
@@ -78,7 +69,7 @@ public final class FSHFPriceList {
         furniture("escalera-l", 5200);
         furniture("escalera-caracol", 4800);
         furniture("baranda", 300);
-        DEFAULTS.put(BASEBOARD, 12.0); // por metro lineal
+        DEFAULTS.put(BASEBOARD, 12.0);
     }
 
     private static void material(FSHFSurfaceMaterial m, double price) {
@@ -89,7 +80,6 @@ public final class FSHFPriceList {
         DEFAULTS.put(Key.furniture(type), price);
     }
 
-    /** Precio que se usa si el usuario no lo cambió. */
     public static double defaultPrice(Key key) {
         return DEFAULTS.getOrDefault(key, 0.0);
     }
@@ -110,7 +100,6 @@ public final class FSHFPriceList {
         return custom.containsKey(key);
     }
 
-    /** Precios cambiados por el usuario. */
     public Map<Key, Double> custom() {
         return Map.copyOf(custom);
     }

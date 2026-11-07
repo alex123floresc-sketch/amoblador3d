@@ -15,16 +15,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import pe.edu.unaj.amoblador3d.model.FSHFHome;
 
-/**
- * Autoguardado: copia del trabajo sin guardar en {@code recuperacion.json}, dentro de la
- * carpeta de datos. Si la aplicación se cierra de golpe (corte de luz, error), al volver a
- * abrirla se ofrece recuperar esa copia.
- *
- * <p>El archivo se escribe primero con otro nombre y luego se renombra: así nunca queda a
- * medio escribir aunque se corte la luz justo en ese momento.
- */
 public final class FSHFRecovery {
-    /** Lo recuperado: la casa, su id en la base (null si nunca se guardó), su nombre y cuándo se copió. */
     public record Snapshot(FSHFHome home, Long projectId, String name, Instant savedAt) {}
 
     private final Path file;
@@ -53,10 +44,6 @@ public final class FSHFRecovery {
         }
     }
 
-    /**
-     * La copia pendiente, o vacío si no hay. Si el archivo está dañado se borra
-     * (no tiene sentido preguntar por algo que no se puede abrir).
-     */
     public Optional<Snapshot> read() {
         if (!Files.exists(file)) return Optional.empty();
         try {
@@ -73,12 +60,10 @@ public final class FSHFRecovery {
         }
     }
 
-    /** Se llama al guardar o al cerrar normalmente: ya no hay nada que recuperar. */
     public void delete() {
         try {
             Files.deleteIfExists(file);
         } catch (IOException ignored) {
-            // si no se puede borrar, la próxima vez se ofrecerá recuperar una copia vieja; no es grave
         }
     }
 }

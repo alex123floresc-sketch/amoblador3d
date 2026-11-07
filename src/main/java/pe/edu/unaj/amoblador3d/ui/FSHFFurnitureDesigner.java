@@ -64,19 +64,9 @@ import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 import pe.edu.unaj.amoblador3d.scene.FSHFFurnitureShapes;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Diseñador de muebles: arma un mueble con piezas (cajas, cilindros, esferas y barras), cada
- * una con su posición, medidas, color y acabado, y lo guarda en el catálogo ("Mis diseños").
- *
- * <p>Las medidas se escriben en centímetros. El frente del mueble es el lado que se ve al abrir
- * el diseñador (+Z). Al colocarlo en la habitación, el mueble se puede agrandar o achicar y
- * cambiar de colores como cualquier otro.
- */
 final class FSHFFurnitureDesigner {
-    /** Resultado al guardar: el diseño y si reemplaza al mueble desde el que se abrió. */
     record Saved(FSHFCustomDesign design, boolean replace) {}
 
-    /** Guarda el diseño en el catálogo; devuelve un error o null. */
     interface SaveHandler {
         String save(Saved saved);
     }
@@ -102,10 +92,8 @@ final class FSHFFurnitureDesigner {
     private final Deque<FSHFCustomDesign> undo = new ArrayDeque<>(), redo = new ArrayDeque<>();
     private FSHFCustomDesign committed;
     private boolean updatingList;
-    /** Pieza cuyo formulario se está mostrando (si sigue siendo la misma, solo se refrescan los valores). */
     private Piece shownPiece;
 
-    // Vista previa
     private final Group content = new Group();
     private final Group grid = new Group();
     private final List<Node> pieceNodes = new ArrayList<>();
@@ -114,11 +102,6 @@ final class FSHFFurnitureDesigner {
     private final Translate pivot = new Translate(), back = new Translate(0, 0, -4);
     private double lastX, lastY, pressX, pressY;
 
-    /**
-     * @param start      diseño inicial (se edita una copia)
-     * @param replaceText si no es null, muestra la casilla "reemplazar" con este texto
-     * @param templates  "nombre" -> diseño para "Empezar desde"
-     */
     private FSHFFurnitureDesigner(Window owner, FSHFCustomDesign start, String replaceText,
                               Map<String, Supplier<FSHFCustomDesign>> templates, SaveHandler onSave) {
         this.onSave = onSave;
@@ -158,17 +141,10 @@ final class FSHFFurnitureDesigner {
         frame();
     }
 
-    /**
-     * Abre el diseñador y espera a que se cierre.
-     *
-     * @param replaceText texto de la casilla "reemplazar el mueble seleccionado" (null = no se muestra)
-     */
     static void open(Window owner, FSHFCustomDesign start, String replaceText, Map<String, Supplier<FSHFCustomDesign>> templates,
                      SaveHandler onSave) {
         new FSHFFurnitureDesigner(owner, start, replaceText, templates, onSave).stage.showAndWait();
     }
-
-    // ---------------------------------------------------------------- Construcción
 
     private Node buildTop() {
         Label nameLabel = new Label("Nombre");
@@ -265,7 +241,7 @@ final class FSHFFurnitureDesigner {
 
     private Node buildPreview() {
         Group world = new Group(grid, content);
-        world.getTransforms().add(new Rotate(180, Rotate.X_AXIS)); // Y hacia arriba, como en la habitación
+        world.getTransforms().add(new Rotate(180, Rotate.X_AXIS));
         AmbientLight ambient = new AmbientLight(Color.gray(0.45));
         PointLight key = new PointLight(Color.gray(0.85));
         key.getTransforms().add(new Translate(-3, -5, -4));
@@ -310,7 +286,6 @@ final class FSHFFurnitureDesigner {
                 yaw.setAngle(yaw.getAngle() + dx * 0.4);
                 pitch.setAngle(FSHFUnits.clamp(pitch.getAngle() - dy * 0.4, -89, 30));
             } else {
-                // Mover el punto de giro en el plano de la pantalla.
                 double k = -back.getZ() / 900;
                 double a = Math.toRadians(yaw.getAngle());
                 pivot.setX(pivot.getX() - (dx * Math.cos(a)) * k);
@@ -379,8 +354,6 @@ final class FSHFFurnitureDesigner {
         return b;
     }
 
-    // ---------------------------------------------------------------- Piezas
-
     private Piece current() {
         return selected >= 0 && selected < design.pieces.size() ? design.pieces.get(selected) : null;
     }
@@ -397,7 +370,6 @@ final class FSHFFurnitureDesigner {
         };
     }
 
-    /** Una pieza nueva encima de lo que ya hay (o en el piso si es la primera). */
     private void addPiece(Shape shape) {
         if (design.pieces.size() >= FSHFCustomDesign.MAX_PIECES) {
             showError("Un mueble puede tener hasta " + FSHFCustomDesign.MAX_PIECES + " piezas.");
@@ -431,7 +403,6 @@ final class FSHFFurnitureDesigner {
         committedChange();
     }
 
-    /** Copia la pieza reflejada respecto del centro del mueble (izquierda <-> derecha). */
     private void mirrorPiece() {
         Piece p = current();
         if (p == null) return;
@@ -439,7 +410,7 @@ final class FSHFFurnitureDesigner {
         double center = (b.minX() + b.maxX()) / 2;
         Piece c = p.copy();
         c.x = round(2 * center - p.x);
-        if (Math.abs(c.x - p.x) < 1e-6) { // está en el centro: se refleja de adelante hacia atrás
+        if (Math.abs(c.x - p.x) < 1e-6) {
             double cz = (b.minZ() + b.maxZ()) / 2;
             c.z = round(2 * cz - p.z);
         }
@@ -469,9 +440,6 @@ final class FSHFFurnitureDesigner {
         return Math.round(v * 1000) / 1000.0;
     }
 
-    // ---------------------------------------------------------------- Cambios, deshacer y vista
-
-    /** Se llama después de cada cambio: registra el paso de deshacer y actualiza todo. */
     private void committedChange() {
         undo.push(committed);
         if (undo.size() > MAX_UNDO) undo.removeLast();
@@ -496,7 +464,7 @@ final class FSHFFurnitureDesigner {
     private void restore(FSHFCustomDesign d) {
         String currentName = design.name;
         design = d.copy();
-        design.name = currentName; // el nombre se escribe aparte y no se deshace
+        design.name = currentName;
         committed = design.copy();
         selected = Math.min(selected, design.pieces.size() - 1);
         dirty = true;
@@ -506,7 +474,7 @@ final class FSHFFurnitureDesigner {
     private void refreshAll(boolean rebuildPanels) {
         hideError();
         syncList();
-        // Rehacer el formulario solo si cambió la pieza: así no se pierde el foco al escribir medidas.
+
         if (rebuildPanels || current() != shownPiece) showPiece();
         else pieceProps.refresh();
         designProps.refresh();
@@ -544,7 +512,7 @@ final class FSHFFurnitureDesigner {
             pieceNodes.add(n);
             content.getChildren().add(n);
         }
-        // Contorno de la pieza elegida.
+
         Piece p = current();
         if (p != null) {
             Piece outline = p.copy();
@@ -570,7 +538,6 @@ final class FSHFFurnitureDesigner {
         return img;
     }
 
-    /** Piso con cuadrícula de 10 cm alrededor del mueble. */
     private void rebuildGrid() {
         grid.getChildren().clear();
         FSHFCustomDesign.Bounds b = design.bounds();
@@ -595,7 +562,7 @@ final class FSHFFurnitureDesigner {
                 grid.getChildren().add(l);
             }
         }
-        // Flecha del frente (+Z): un triángulo hecho con una caja delgada.
+
         Box arrow = new Box(0.06, 0.001, 0.12);
         arrow.setTranslateZ(half - 0.08);
         PhongMaterial blue = new PhongMaterial(Color.web("#4f9cf9"));
@@ -605,11 +572,10 @@ final class FSHFFurnitureDesigner {
         grid.getChildren().add(arrow);
     }
 
-    /** Encuadra todo el mueble. */
     private void frame() {
         FSHFCustomDesign.Bounds b = design.bounds();
         pivot.setX((b.minX() + b.maxX()) / 2);
-        pivot.setY(-(b.minY() + b.maxY()) / 2); // escena de JavaFX: Y hacia abajo
+        pivot.setY(-(b.minY() + b.maxY()) / 2);
         pivot.setZ(-(b.minZ() + b.maxZ()) / 2);
         double size = Math.max(0.3, Math.max(b.width(), Math.max(b.height(), b.depth())));
         back.setZ(-size * 2.6);
@@ -620,8 +586,6 @@ final class FSHFFurnitureDesigner {
         pitch.setAngle(pitchDeg);
         frame();
     }
-
-    // ---------------------------------------------------------------- Teclado, guardar y cerrar
 
     private void onKey(KeyEvent e) {
         boolean typing = stage.getScene().getFocusOwner() instanceof TextInputControl;
@@ -685,8 +649,6 @@ final class FSHFFurnitureDesigner {
         error.setVisible(false);
     }
 
-    // ---------------------------------------------------------------- Formularios
-
     private static List<Option> finishOptions(String autoLabel) {
         List<Option> options = new ArrayList<>();
         if (autoLabel != null) options.add(new Option("auto", autoLabel));
@@ -700,7 +662,6 @@ final class FSHFFurnitureDesigner {
             new Option("#5b7fa6", "Azul"), new Option("#7a9a6e", "Verde"), new Option("#8c2f39", "Vino"),
             new Option("#d9a441", "Mostaza"), new Option("#c0c0c0", "Cromado"), new Option("#b08d57", "Bronce"));
 
-    /** Campos de una pieza (en cm). */
     private final class PieceEditor implements FSHFEditable {
         private final Piece p;
 
@@ -810,7 +771,6 @@ final class FSHFFurnitureDesigner {
         }
     }
 
-    /** Campos del mueble completo: colores, acabado, categoría y medidas totales. */
     private final class DesignEditor implements FSHFEditable {
         @Override
         public Object entity() {
@@ -900,7 +860,6 @@ final class FSHFFurnitureDesigner {
         }
     }
 
-    /** Escala las piezas en un eje para que el mueble mida {@code size} (m) en ese eje. */
     private void scaleTo(String axis, double size) {
         FSHFCustomDesign.Bounds b = design.bounds();
         switch (axis) {
@@ -929,9 +888,6 @@ final class FSHFFurnitureDesigner {
         }
     }
 
-    // ---------------------------------------------------------------- Plantillas
-
-    /** Plantillas sencillas para empezar (además de los muebles del catálogo). */
     static Map<String, Supplier<FSHFCustomDesign>> basicTemplates() {
         Map<String, Supplier<FSHFCustomDesign>> t = new LinkedHashMap<>();
         t.put("Vacío (una caja)", () -> {

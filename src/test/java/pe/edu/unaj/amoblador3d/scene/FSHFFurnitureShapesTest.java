@@ -30,7 +30,7 @@ class FSHFFurnitureShapesTest {
             assertNull(d.validate(), e.id() + ": " + d.validate());
             assertTrue(d.uses(FSHFCustomDesign.Paint.MAIN), e.id() + " debería tener piezas del color principal");
             FSHFCustomDesign.Bounds b = d.bounds();
-            // La copia mide lo mismo que el mueble original.
+
             assertEquals(s.width(), b.width(), 0.03, e.id());
             assertEquals(s.depth(), b.depth(), 0.03, e.id());
             assertEquals(s.height(), b.height(), 0.03, e.id());

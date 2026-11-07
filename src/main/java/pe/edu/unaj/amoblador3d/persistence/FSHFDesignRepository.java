@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign;
 
-/** Muebles hechos en el Diseñador de muebles (tabla custom_design, las piezas en JSON). */
 public final class FSHFDesignRepository {
     private final FSHFDatabase db;
 
@@ -18,7 +17,6 @@ public final class FSHFDesignRepository {
         this.db = db;
     }
 
-    /** Todos los diseños; los dañados se omiten y se avisa en {@code warnings}. */
     public List<FSHFCustomDesign> list(List<String> warnings) throws SQLException {
         List<FSHFCustomDesign> result = new ArrayList<>();
         String sql = "SELECT id, name, data FROM custom_design ORDER BY created_at";
@@ -26,7 +24,7 @@ public final class FSHFDesignRepository {
             while (rs.next()) {
                 try {
                     FSHFCustomDesign d = FSHFCustomDesign.fromJson(JsonParser.parseString(rs.getString(3)).getAsJsonObject());
-                    d.id = rs.getString(1); // la clave de la tabla manda
+                    d.id = rs.getString(1);
                     result.add(d);
                 } catch (RuntimeException e) {
                     warnings.add("El mueble diseñado \"" + rs.getString(2) + "\" está dañado: " + e.getMessage());
@@ -36,7 +34,6 @@ public final class FSHFDesignRepository {
         return result;
     }
 
-    /** Guarda un diseño nuevo o reemplaza uno existente con el mismo id. */
     public void save(FSHFCustomDesign d) throws SQLException {
         String error = d.validate();
         if (error != null) throw new SQLException(error);

@@ -14,10 +14,6 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry;
 import pe.edu.unaj.amoblador3d.design.FSHFDesign;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 
-/**
- * Nodos 3D de los muebles. Al cambiar algo solo se reconstruye lo necesario: si cambió la
- * posición o el giro, se mueve el nodo; si cambiaron medidas, colores, acabado o tipo, se vuelve a crear.
- */
 final class FSHFFurnitureView {
     final Group group = new Group();
     private final FSHFModelLibrary models;
@@ -26,7 +22,6 @@ final class FSHFFurnitureView {
     private final Set<String> warnedUrls = new HashSet<>();
     private Runnable onModelLoaded = () -> {};
 
-    /** Nodo de un mueble con su posición y giro, y la "firma" de su forma actual. */
     private static final class Holder {
         final Group node = new Group();
         final Translate position = new Translate();
@@ -75,7 +70,6 @@ final class FSHFFurnitureView {
         }
     }
 
-    /** Fuerza a reconstruir todos (p. ej. tras recargar el catálogo). */
     void invalidate() {
         for (Holder h : nodes.values()) h.shape = null;
     }
@@ -89,14 +83,13 @@ final class FSHFFurnitureView {
             case CUSTOM -> h.node.getChildren().setAll(FSHFFurnitureShapes.fit(entry.design(), f));
             case MISSING -> h.node.getChildren().setAll(FSHFParametricBuilder.missing(f));
             case MODEL -> {
-                // Mientras el modelo carga, mostramos una caja translúcida con sus medidas.
                 h.node.getChildren().setAll(FSHFParametricBuilder.placeholder(f));
                 String shape = h.shape;
                 double w = f.width, d = f.depth, ht = f.height;
                 String tint = f.color;
                 pe.edu.unaj.amoblador3d.model.FSHFFinish finish = f.finish;
                 models.load(entry.model()).whenComplete((data, error) -> Platform.runLater(() -> {
-                    if (!shape.equals(h.shape)) return; // llegó tarde: el mueble ya cambió
+                    if (!shape.equals(h.shape)) return;
                     if (error != null) {
                         if (warnedUrls.add(entry.model().toString())) {
                             Throwable cause = error.getCause() != null ? error.getCause() : error;

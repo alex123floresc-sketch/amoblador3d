@@ -109,12 +109,6 @@ import pe.edu.unaj.amoblador3d.scene.FSHFSurfacePreview;
 import pe.edu.unaj.amoblador3d.util.FSHFOutcome;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Ventana principal: menú y barra de herramientas arriba, panel de la habitación y el
- * catálogo a la izquierda, la vista 3D al centro y las propiedades de lo seleccionado a la derecha.
- *
- * <p>Cada acción que cambia el proyecto termina en {@link FSHFHistory#commit()} para poder deshacerla.
- */
 public final class FSHFMainWindow {
     public static final String STYLESHEET = FSHFMainWindow.class.getResource("/ui/app.css").toExternalForm();
     private static final String APP_NAME = "Amoblador3D";
@@ -138,25 +132,20 @@ public final class FSHFMainWindow {
 
     private Long projectId;
     private String projectName = UNTITLED;
-    /** La casa: todos los ambientes. El que se decora ({@code active}) vive en {@link #design}. */
     private FSHFHome home;
     private int active;
-    /** Vista "Casa completa": todos los ambientes juntos, para armar la distribución. */
     private final FSHFHomeView homeView;
     private boolean houseMode;
     private FSHFHome.Space houseSelected;
     private final HBox spaceBar = new HBox(6);
     private final TabPane sidebarTabs = new TabPane();
-    /** Botones que acompañan al mueble seleccionado en la vista 3D. */
     private final HBox floatingBar = new HBox(4);
     private final ToggleButton houseToggle = new ToggleButton("🏠  Casa completa");
     private final FSHFHomePanel.Host homeHost = new HomeHost();
-    /** Lo seleccionado: un elemento o varios muebles. {@code selected} es el último elegido. */
     private final List<Object> selection = new ArrayList<>();
     private Object selected;
-    private boolean syncing; // evita que los controles reaccionen mientras los actualizamos nosotros
+    private boolean syncing;
 
-    // Panel izquierdo
     private final TextField roomWidth = new TextField(), roomLength = new TextField();
     private final TextField roomHeight = new TextField(), roomWall = new TextField();
     private final Label roomError = new Label(), roomInfo = new Label();
@@ -169,16 +158,13 @@ public final class FSHFMainWindow {
     private final Button ceilingButton = new Button("Techo"), baseboardButton = new Button("Zócalo");
     private final java.util.Map<FSHFWallSide, Button> wallButtons = new java.util.EnumMap<>(FSHFWallSide.class);
     private FSHFToast toast;
-    /** Pasos de un movimiento con las flechas: se registran juntos al soltar la tecla. */
     private boolean nudging;
 
-    // Barra superior y de estado
     private final Button undoButton = new Button("↶"), redoButton = new Button("↷");
     private final MenuItem undoItem = new MenuItem("Deshacer"), redoItem = new MenuItem("Rehacer");
     private final ToggleGroup viewGroup = new ToggleGroup();
     private final ToggleButton view3d = new ToggleButton("Vista 3D"), viewPlan = new ToggleButton("Planta 2D");
     private final ToggleButton viewWalk = new ToggleButton("Recorrido");
-    /** true mientras se cambia de modo desde el código (para no volver a encuadrar la cámara). */
     private boolean modeSync;
     private final CheckMenuItem nightItem = new CheckMenuItem("Modo noche   (N)");
     private final ToggleButton nightToggle = new ToggleButton("Noche");
@@ -194,7 +180,6 @@ public final class FSHFMainWindow {
     private final Label selectionInfo = new Label();
     private final PauseTransition statusTimer = new PauseTransition(Duration.seconds(6));
 
-    /** Autoguardado cada minuto mientras haya cambios sin guardar (ver {@link FSHFRecovery}). */
     private static final Duration AUTOSAVE_EVERY = Duration.seconds(60);
     private final FSHFRecovery recovery = FSHFRecovery.inDataDir();
     private String lastAutosave;
@@ -257,7 +242,6 @@ public final class FSHFMainWindow {
         root.setRight(properties.node());
         root.setBottom(buildStatusBar());
 
-        // Que la ventana quepa en pantallas pequeñas (p. ej. 1366 x 768).
         Rectangle2D screen = Screen.getPrimary().getVisualBounds();
         double w = Math.min(1400, screen.getWidth() * 0.95), h = Math.min(860, screen.getHeight() * 0.92);
         Scene scene = new Scene(root, w, h);
@@ -288,19 +272,16 @@ public final class FSHFMainWindow {
         updateTitle();
     }
 
-    /** Muestra la ventana y encuadra la habitación cuando ya tiene tamaño. */
     public void show(List<String> startupWarnings) {
         stage.show();
         Platform.runLater(() -> {
             view.frameRoom();
-            // Corrección: antes el foco empezaba en el campo "Ancho" y R, Supr o las flechas no hacían nada.
+
             view.node().requestFocus();
             if (!offerRecovery() && FSHFWelcomeDialog.enabled()) showWelcome();
         });
         if (!startupWarnings.isEmpty()) warn(String.join("\n", startupWarnings));
     }
-
-    // ---------------------------------------------------------------- Construcción
 
     private MenuBar buildMenu() {
         Menu file = new Menu("Archivo", null,
@@ -423,7 +404,7 @@ public final class FSHFMainWindow {
         viewWalk.getStyleClass().add("segment-right");
         viewGroup.selectedToggleProperty().addListener((obs, o, n) -> {
             if (n == null) {
-                o.setSelected(true); // siempre hay una vista elegida
+                o.setSelected(true);
                 return;
             }
             if (modeSync) return;
@@ -432,7 +413,7 @@ public final class FSHFMainWindow {
                     homeView.setPlan(n == viewPlan);
                     return;
                 }
-                showHouse(false); // el recorrido es dentro del ambiente que se decora
+                showHouse(false);
             }
             FSHFSceneView.Mode mode = n == viewPlan ? FSHFSceneView.Mode.PLAN : n == viewWalk ? FSHFSceneView.Mode.WALK : FSHFSceneView.Mode.THREE_D;
             view.setMode(mode);
@@ -484,10 +465,6 @@ public final class FSHFMainWindow {
                 measure, magnet, new Separator(Orientation.VERTICAL), designer, budget, pdf, capture);
     }
 
-    /**
-     * Los botones no toman el foco al hacer clic: así la barra espaciadora no repite la última
-     * acción (antes agregaba otra mesa) y los atajos como R o Supr siguen yendo a la vista 3D.
-     */
     static Button toolButton(String text, String tooltip, Runnable action) {
         Button b = new Button(text);
         b.setTooltip(new Tooltip(tooltip));
@@ -496,7 +473,6 @@ public final class FSHFMainWindow {
         return b;
     }
 
-    /** Panel izquierdo en pestañas: antes era una sola columna larga y los muebles quedaban fuera de la vista. */
     private Node buildSidebar() {
         TabPane tabs = sidebarTabs;
         tabs.getTabs().setAll(
@@ -537,7 +513,6 @@ public final class FSHFMainWindow {
         return box;
     }
 
-    /** Vista 3D con los avisos flotantes y los botones de zoom encima. */
     private Node buildViewport() {
         homeView.node().setVisible(false);
         StackPane viewport = new StackPane(view.node(), homeView.node());
@@ -585,7 +560,6 @@ public final class FSHFMainWindow {
         return withBar;
     }
 
-    /** Cabecera del panel de propiedades de un mueble: su miniatura, categoría y ayuda de las asas. */
     private Node propertiesHeader(Object entity) {
         if (entity instanceof FSHFHome) return FSHFHomePanel.summary(homeHost);
         if (entity instanceof FSHFHome.Space s) return spaceSummary(s);
@@ -611,9 +585,6 @@ public final class FSHFMainWindow {
         return box;
     }
 
-    // ---------------------------------------------------------------- Ambientes y casa completa
-
-    /** La casa con el ambiente que se está decorando al día. */
     private FSHFHome currentHome() {
         home.spaces.get(active).project = design.snapshot();
         return home;
@@ -623,7 +594,6 @@ public final class FSHFMainWindow {
         return home.spaces.size() > 1 ? " - " + home.spaces.get(active).name : "";
     }
 
-    /** Barra de ambientes: una pestaña por ambiente y el botón para agregar. */
     private void refreshSpaces() {
         spaceBar.getChildren().clear();
         ToggleGroup group = new ToggleGroup();
@@ -682,7 +652,6 @@ public final class FSHFMainWindow {
         updateTitle();
     }
 
-    /** Pasa a decorar otro ambiente (lo que se hizo en el actual queda guardado en la casa). */
     private void switchSpace(int index) {
         if (index < 0 || index >= home.spaces.size()) return;
         commitEdits();
@@ -700,7 +669,6 @@ public final class FSHFMainWindow {
         notify("Decorando: " + home.spaces.get(index).name);
     }
 
-    /** Muestra u oculta la vista de la casa completa. */
     private void showHouse(boolean on) {
         if (on == houseMode) {
             houseToggle.setSelected(on);
@@ -730,9 +698,7 @@ public final class FSHFMainWindow {
         refreshSpaces();
     }
 
-    /** Se soltó un ambiente que se arrastró en la vista de la casa. */
     private void spaceMoved() {
-        // Al soltarlo pueden abrirse o cerrarse pasos hacia los vecinos.
         homeView.show(currentHome());
         history.commit();
         properties.refresh();
@@ -752,7 +718,6 @@ public final class FSHFMainWindow {
         else view.frameRoom();
     }
 
-    /** Resumen de un ambiente en la casa: área, muebles y presupuesto. */
     private Node spaceSummary(FSHFHome.Space s) {
         FSHFRoomDims r = s.project.room;
         Label info = new Label(FSHFUnits.number(FSHFUnits.round(r.width() * r.length())) + " m² · " + s.project.furniture.size()
@@ -773,7 +738,6 @@ public final class FSHFMainWindow {
         addSpace(p, "Ambiente");
     }
 
-    /** Agrega un ambiente pegado a la casa y pasa a decorarlo. */
     private void addSpace(FSHFProject p, String name) {
         if (home.spaces.size() >= FSHFHome.MAX_SPACES) {
             notify("Una casa puede tener hasta " + FSHFHome.MAX_SPACES + " ambientes.", FSHFToast.Kind.ERROR);
@@ -793,7 +757,6 @@ public final class FSHFMainWindow {
         }
     }
 
-    /** Copia del ambiente (con sus muebles), pegada a la casa. Devuelve un error o null. */
     private String duplicateSpace(FSHFHome.Space s) {
         if (home.spaces.size() >= FSHFHome.MAX_SPACES) return "Una casa puede tener hasta " + FSHFHome.MAX_SPACES + " ambientes.";
         currentHome();
@@ -842,7 +805,6 @@ public final class FSHFMainWindow {
         notify("Se eliminó «" + s.name + "».");
     }
 
-    /** Acciones del panel de la casa completa. */
     private final class HomeHost implements FSHFHomePanel.Host {
         @Override
         public FSHFHome home() {
@@ -873,7 +835,7 @@ public final class FSHFMainWindow {
         public String resize(FSHFHome.Space s, FSHFRoomDims dims) {
             String err = dims.validate();
             if (err != null) return err;
-            // Se acomoda en una copia: si se encimaría con otro ambiente, no se aplica.
+
             FSHFDesign d = new FSHFDesign(catalog);
             d.load(s.project);
             List<String> warnings = d.setRoom(dims);
@@ -895,7 +857,7 @@ public final class FSHFMainWindow {
             if (other != null) return "Se encimaría con «" + other.name + "».";
             s.x = nx;
             s.z = nz;
-            // Al moverlo pueden abrirse o cerrarse pasos hacia los vecinos: se redibuja la casa.
+
             homeView.show(currentHome());
             homeView.select(s);
             return null;
@@ -905,7 +867,7 @@ public final class FSHFMainWindow {
         public String rotate(FSHFHome.Space s, int degrees) {
             int r = FSHFHome.normalizeRotation(degrees);
             if (r == s.rotation) return null;
-            // Gira sobre su centro: la esquina se corre para que el centro no se mueva.
+
             FSHFRoomDims room = s.project.room;
             double cx = s.x + s.planWidth() / 2, cz = s.z + s.planLength() / 2;
             double nx = FSHFUnits.round(cx - FSHFHome.planWidth(room, r) / 2), nz = FSHFUnits.round(cz - FSHFHome.planLength(room, r) / 2);
@@ -924,7 +886,7 @@ public final class FSHFMainWindow {
             if (level == s.level) return null;
             if (level < 0 || level >= FSHFHome.MAX_LEVELS) return "La casa puede tener hasta " + FSHFHome.MAX_LEVELS + " pisos.";
             if (level > home.levels()) return "Primero agrega ambientes en " + FSHFHomePanel.levelName(home.levels()).toLowerCase() + ".";
-            // Queda encima de donde estaba; si ahí ya hay otro ambiente, en el primer lugar libre de ese piso.
+
             double x = s.x, z = s.z;
             if (home.collision(s, x, z, s.rotation, level, s.project.room) != null) {
                 FSHFHome rest = new FSHFHome();
@@ -975,8 +937,6 @@ public final class FSHFMainWindow {
         }
     }
 
-
-    /** Lo que muestra el panel derecho cuando no hay nada seleccionado. */
     private Node buildEmptyState() {
         Label intro = new Label("Haz clic en una pared, el piso, una ventana, una luz o un mueble para ver y cambiar sus propiedades.");
         intro.setWrapText(true);
@@ -1008,7 +968,6 @@ public final class FSHFMainWindow {
         return new VBox(10, quick, step1, step2, step3, intro, template, walls, floor, tips);
     }
 
-    /** Un paso numerado de la guía para empezar, con su botón. */
     private Node step(String number, String title, String text, String button, Runnable action) {
         Label n = new Label(number);
         n.getStyleClass().add("step-number");
@@ -1027,9 +986,6 @@ public final class FSHFMainWindow {
         return box;
     }
 
-    // ---------------------------------------------------------------- Barra flotante del mueble
-
-    /** Coloca (o esconde) los botones que acompañan al mueble seleccionado. */
     private void placeFloatingBar() {
         FSHFFurniture f = !houseMode && selection.size() == 1 && selection.get(0) instanceof FSHFFurniture x ? x : null;
         javafx.geometry.Point2D p = f == null ? null : view.screenAbove(f);
@@ -1117,7 +1073,6 @@ public final class FSHFMainWindow {
         return new VBox(8, grid, roomError, apply, roomInfo);
     }
 
-    /** Botones del piso y de cada pared, con una muestra de su material actual. */
     private Node buildSurfaceButtons() {
         floorButton.setOnAction(e -> select(design.floor()));
         floorButton.setTooltip(new Tooltip("Material y color del piso"));
@@ -1156,7 +1111,6 @@ public final class FSHFMainWindow {
         return new VBox(8, floorButton, walls, row(ceilingButton, baseboardButton), hint);
     }
 
-    /** Columnas, muros internos y el recorte que convierte la habitación en una L. */
     private Node buildColumnButtons() {
         Label hint = new Label("Bloques del piso al techo: los muebles no los atraviesan y se descuentan del piso "
                 + "en el presupuesto. Se mueven con las flechas o desde el panel.");
@@ -1169,7 +1123,6 @@ public final class FSHFMainWindow {
                 hint);
     }
 
-    /** Muestra del material de una superficie para su botón. */
     private static Node swatch(FSHFSurface s) {
         Rectangle r = new Rectangle(26, 18);
         r.setArcWidth(4);
@@ -1188,7 +1141,7 @@ public final class FSHFMainWindow {
             design.setAmbient(FSHFUnits.round(n.doubleValue()));
             history.markPending();
         });
-        // Se registra un solo paso de deshacer al soltar el control.
+
         ambient.valueChangingProperty().addListener((obs, o, changing) -> {
             if (!changing) history.flush();
         });
@@ -1224,7 +1177,6 @@ public final class FSHFMainWindow {
         return r;
     }
 
-    /** Lo que hace la ventana cuando el usuario usa el catálogo. */
     private FSHFCatalogPanel.Actions catalogActions() {
         return new FSHFCatalogPanel.Actions() {
             @Override public void add(String type) { addFurniture(type); }
@@ -1242,7 +1194,6 @@ public final class FSHFMainWindow {
         };
     }
 
-    /** La vista 3D acepta muebles arrastrados desde el catálogo: se ponen donde se sueltan (o lo más cerca posible). */
     private void installCatalogDrop(Node target) {
         target.setOnDragOver(e -> {
             if (FSHFCatalogPanel.draggedType(e.getDragboard()) != null) e.acceptTransferModes(javafx.scene.input.TransferMode.COPY);
@@ -1281,7 +1232,7 @@ public final class FSHFMainWindow {
             List<Object> chosen = new ArrayList<>(items.getSelectionModel().getSelectedItems());
             chosen.removeIf(java.util.Objects::isNull);
             if (chosen.isEmpty()) return;
-            // Solo los muebles se seleccionan de a varios; si hay otra cosa, queda la última elegida.
+
             if (chosen.size() > 1 && !chosen.stream().allMatch(o -> o instanceof FSHFFurniture)) {
                 Object last = items.getSelectionModel().getSelectedItem();
                 setSelection(last == null ? List.of() : List.of(last));
@@ -1296,7 +1247,6 @@ public final class FSHFMainWindow {
         return new VBox(8, items, hint);
     }
 
-    /** Color del punto de cada tipo de elemento en la lista. */
     private static String dotColor(Object entity) {
         if (entity instanceof FSHFOpening o) return o.type.isDoor() ? "#c08457" : "#9fd3ff";
         if (entity instanceof FSHFLight l) return l.type == FSHFLightType.SUN ? "#ffc845" : "#ffe2b8";
@@ -1313,13 +1263,10 @@ public final class FSHFMainWindow {
         return bar;
     }
 
-    // ---------------------------------------------------------------- Sincronizar con el proyecto
-
-    /** Tras cualquier cambio: actualiza la lista, el panel de la habitación y las propiedades. */
     private void designChanged() {
         syncing = true;
         FSHFRoomDims r = design.room();
-        // Corrección: antes no se actualizaban si el campo tenía el foco, y tras deshacer quedaba el valor viejo.
+
         roomWidth.setText(FSHFUnits.number(r.width()));
         roomLength.setText(FSHFUnits.number(r.length()));
         roomHeight.setText(FSHFUnits.number(r.height()));
@@ -1335,8 +1282,7 @@ public final class FSHFMainWindow {
         list.addAll(design.lights());
         list.addAll(design.furniture());
         list.addAll(design.columns());
-        // Solo se reemplaza la lista si cambió qué hay; si no, se refrescan los nombres
-        // (antes se reconstruía en cada movimiento al arrastrar y el scroll volvía arriba).
+
         if (!sameItems(items.getItems(), list)) items.getItems().setAll(list);
         else items.refresh();
         rebuildViewsMenu();
@@ -1349,7 +1295,6 @@ public final class FSHFMainWindow {
         syncListSelection();
         syncing = false;
 
-        // Si algo seleccionado ya no existe (p. ej. el sol se eliminó con su ventana), se quita.
         List<Object> alive = new ArrayList<>(selection);
         alive.retainAll(design.entities());
         if (alive.size() != selection.size()) setSelection(alive);
@@ -1367,7 +1312,6 @@ public final class FSHFMainWindow {
         setSelection(entity == null ? List.of() : List.of(entity));
     }
 
-    /** Shift/Ctrl + clic: agrega o quita un mueble de la selección. Lo que no es mueble se selecciona solo. */
     private void toggleSelect(Object entity) {
         if (!(entity instanceof FSHFFurniture f)) {
             if (entity != null) select(entity);
@@ -1378,7 +1322,6 @@ public final class FSHFMainWindow {
         setSelection(next);
     }
 
-    /** Agrega muebles a la selección (rectángulo con Shift + arrastrar). */
     private void addToSelection(List<FSHFFurniture> list) {
         List<Object> next = new ArrayList<>(selectedFurniture());
         for (FSHFFurniture f : list) if (!next.contains(f)) next.add(f);
@@ -1438,8 +1381,6 @@ public final class FSHFMainWindow {
         redoItem.setDisable(!history.canRedo());
     }
 
-    // ---------------------------------------------------------------- Mensajes
-
     private void warn(String message) {
         notify(message);
         if (message.contains("\n")) FSHFDialogs.info(stage, "Aviso", "Aviso", message);
@@ -1459,18 +1400,14 @@ public final class FSHFMainWindow {
         return "3D: arrastra para girar · botón derecho para mover · rueda para acercar · arrastra un mueble para moverlo";
     }
 
-    /** Muestra el error de una acción o la registra en el historial. */
     private <T> void handle(FSHFOutcome<T> outcome, Consumer<T> onOk) {
         if (outcome.failed()) {
-            // Aviso flotante en lugar de una ventana que obliga a hacer clic.
             notify(outcome.error(), FSHFToast.Kind.ERROR);
             return;
         }
         history.commit();
         onOk.accept(outcome.value());
     }
-
-    // ---------------------------------------------------------------- Acciones de edición
 
     private void applyRoom() {
         Double w = FSHFUnits.parse(roomWidth.getText()), l = FSHFUnits.parse(roomLength.getText());
@@ -1487,7 +1424,7 @@ public final class FSHFMainWindow {
         roomError.setManaged(err != null);
         roomError.setVisible(err != null);
         if (err != null) return;
-        view.node().requestFocus(); // los campos dejan de estar "en edición" y se actualizan
+        view.node().requestFocus();
         List<String> warnings = design.setRoom(dims);
         history.commit();
         view.frameRoom();
@@ -1499,7 +1436,6 @@ public final class FSHFMainWindow {
         handle(design.addColumn(kind), this::select);
     }
 
-    /** Pregunta la esquina y las medidas del recorte que convierte la habitación en una L. */
     private void addNotch() {
         commitEdits();
         FSHFNotchDialog.show(stage, design.room()).ifPresent(n -> handle(design.addNotch(n.corner(), n.width(), n.depth()), c -> {
@@ -1508,7 +1444,6 @@ public final class FSHFMainWindow {
         }));
     }
 
-    /** Mueve una columna o muro interno con las flechas (mismas reglas que el panel). */
     private void nudgeColumn(FSHFColumn c, KeyCode key, double step) {
         FSHFEditable editor = FSHFEditors.of(design, c, this::duplicate);
         String err = switch (key) {
@@ -1526,7 +1461,6 @@ public final class FSHFMainWindow {
     }
 
     private void addOpening(FSHFOpeningType type) {
-        // En una casa, la puerta principal y el portón van en una pared que da a la calle.
         if ((type == FSHFOpeningType.ENTRY || type == FSHFOpeningType.GARAGE) && home.spaces.size() > 1) {
             List<FSHFWallSide> outside = currentHome().exteriorWalls(home.spaces.get(active));
             if (outside.isEmpty()) {
@@ -1539,7 +1473,6 @@ public final class FSHFMainWindow {
         handle(design.addOpening(type), this::select);
     }
 
-    /** Botón "+ Puerta" con un menú de tipos de puerta. */
     private Node doorMenu() {
         javafx.scene.control.MenuButton b = new javafx.scene.control.MenuButton("+ Puerta");
         b.setTooltip(new Tooltip("Agrega una puerta en el primer lugar libre: normal, principal, doble, corrediza, "
@@ -1563,7 +1496,6 @@ public final class FSHFMainWindow {
         handle(design.addFurniture(type), this::select);
     }
 
-    /** Para el botón "Duplicar" del panel de propiedades. Devuelve un error o null. */
     private String duplicate(FSHFFurniture f) {
         FSHFOutcome<FSHFFurniture> out = design.duplicate(f);
         if (out.failed()) return out.error();
@@ -1572,7 +1504,6 @@ public final class FSHFMainWindow {
         return null;
     }
 
-    /** Para el botón "Duplicar" de varios muebles. Devuelve un error o null. */
     private String duplicateGroup(List<FSHFFurniture> group) {
         FSHFOutcome<List<FSHFFurniture>> out = design.duplicateGroup(group);
         if (out.failed()) return out.error();
@@ -1593,7 +1524,6 @@ public final class FSHFMainWindow {
         else delete(selected);
     }
 
-    /** Elimina un elemento o una lista de muebles (desde el panel de propiedades o con Supr). */
     private void delete(Object entity) {
         if (entity == null || entity instanceof FSHFSurface) return;
         List<?> all = entity instanceof List<?> list ? list : List.of(entity);
@@ -1619,7 +1549,6 @@ public final class FSHFMainWindow {
         else history.commit();
     }
 
-    /** L: bloquea los muebles seleccionados (o los desbloquea si ya lo estaban todos). */
     private void toggleLock() {
         List<FSHFFurniture> group = selectedFurniture();
         if (group.isEmpty()) {
@@ -1633,9 +1562,6 @@ public final class FSHFMainWindow {
                 + (lock ? (group.size() == 1 ? " bloqueado." : " bloqueados.") : (group.size() == 1 ? " desbloqueado." : " desbloqueados.")));
     }
 
-    // ---------------------------------------------------------------- Portapapeles
-
-    /** Si se está escribiendo en un campo, Ctrl+C/X/V/A son del campo. Devuelve true si se encargó el campo. */
     private boolean forwardToTextField(Consumer<TextInputControl> action) {
         if (stage.getScene().getFocusOwner() instanceof TextInputControl t) {
             action.accept(t);
@@ -1704,15 +1630,10 @@ public final class FSHFMainWindow {
         if (history.redo()) notify("Rehecho.");
     }
 
-    /**
-     * Aplica lo que se esté escribiendo en un campo (se aplica al perder el foco).
-     * Corrección: antes, escribir un valor y presionar Ctrl+S guardaba el valor anterior.
-     */
     private void commitEdits() {
         if (stage.getScene().getFocusOwner() instanceof TextInputControl) view.node().requestFocus();
     }
 
-    /** Aplica una "foto" del historial conservando la selección. */
     private void restore(String json) {
         List<String> ids = selection.stream().map(FSHFDesign::idOf).toList();
         FSHFHome h;
@@ -1722,7 +1643,7 @@ public final class FSHFMainWindow {
             FSHFDialogs.error(stage, "No se pudo deshacer", e.getMessage());
             return;
         }
-        // Se sigue en el mismo ambiente si todavía existe.
+
         String activeId = home.spaces.get(active).id;
         home = h;
         active = 0;
@@ -1746,7 +1667,6 @@ public final class FSHFMainWindow {
     }
 
     private void onKey(KeyEvent e) {
-        // Mientras se escribe en un campo, las teclas son del campo.
         if (stage.getScene().getFocusOwner() instanceof TextInputControl) return;
         if (e.isShortcutDown() || e.isAltDown()) return;
         if (e.getCode() == KeyCode.ESCAPE && measure.isSelected()) measure.setSelected(false);
@@ -1767,7 +1687,6 @@ public final class FSHFMainWindow {
         e.consume();
     }
 
-    /** Mueve lo seleccionado con las flechas (arriba = norte). Varios muebles se mueven juntos. */
     private void nudge(KeyCode key, double step) {
         double dx = key == KeyCode.LEFT ? -step : key == KeyCode.RIGHT ? step : 0;
         double dz = key == KeyCode.UP ? -step : key == KeyCode.DOWN ? step : 0;
@@ -1780,9 +1699,6 @@ public final class FSHFMainWindow {
         history.markPending();
     }
 
-    // ---------------------------------------------------------------- Proyectos (base de datos)
-
-    /** Si hay cambios sin guardar, pregunta. Devuelve false si el usuario canceló. */
     private boolean confirmDiscard() {
         commitEdits();
         boolean ok;
@@ -1792,14 +1708,11 @@ public final class FSHFMainWindow {
             ButtonType answer = FSHFDialogs.unsavedChanges(stage, projectName);
             ok = answer == FSHFDialogs.SAVE ? save() : answer == FSHFDialogs.DISCARD;
         }
-        // Lo anterior quedó guardado o el usuario lo descartó: la copia de recuperación ya no sirve.
+
         if (ok) clearRecovery();
         return ok;
     }
 
-    // ---------------------------------------------------------------- Autoguardado
-
-    /** Copia el trabajo sin guardar (si cambió desde la última copia). */
     private void autosave() {
         if (!history.isDirty()) return;
         String json = FSHFHomeJson.write(currentHome());
@@ -1823,10 +1736,6 @@ public final class FSHFMainWindow {
         lastAutosave = null;
     }
 
-    /**
-     * Al abrir: si la última vez se cerró sin guardar, ofrece recuperar la copia automática.
-     * Devuelve true si había una copia (se haya recuperado o no).
-     */
     private boolean offerRecovery() {
         var pending = recovery.read();
         pending.ifPresent(copy -> {
@@ -1846,7 +1755,7 @@ public final class FSHFMainWindow {
                 id = null;
             }
             loadHome(copy.home(), id, copy.name());
-            history.markUnsaved(); // sigue sin guardar hasta que el usuario lo guarde
+            history.markUnsaved();
             notify("Se recuperó el trabajo sin guardar. Guárdalo con Ctrl+S.");
         });
         return pending.isPresent();
@@ -1867,7 +1776,6 @@ public final class FSHFMainWindow {
         notify("Proyecto nuevo.");
     }
 
-    /** Proyecto nuevo a partir de una habitación lista (dormitorio, sala, cocina...). */
     private void newFromTemplate() {
         if (!confirmDiscard()) return;
         FSHFTemplatesDialog.show(stage, pe.edu.unaj.amoblador3d.design.FSHFTemplates.all(catalog))
@@ -1894,7 +1802,6 @@ public final class FSHFMainWindow {
         }
     }
 
-    /** Bienvenida: cómo empezar y los proyectos recientes. */
     private void showWelcome() {
         List<FSHFProjectRepository.Summary> recent;
         try {
@@ -1919,7 +1826,6 @@ public final class FSHFMainWindow {
         });
     }
 
-    /** Casa de ejemplo: sala y dormitorio arriba, cocina y baño abajo, muro con muro. */
     private FSHFHome exampleHome() {
         var templates = pe.edu.unaj.amoblador3d.design.FSHFTemplates.all(catalog);
         java.util.function.Function<String, FSHFProject> room = n -> templates.stream().filter(t -> t.name().equals(n))
@@ -1951,7 +1857,6 @@ public final class FSHFMainWindow {
         if (!warnings.isEmpty()) warn(String.join("\n", warnings));
     }
 
-    /** Devuelve true si se guardó. */
     private boolean save() {
         commitEdits();
         if (projectId == null) return saveAs();
@@ -1992,7 +1897,6 @@ public final class FSHFMainWindow {
         }
     }
 
-    /** Miniatura de la vista actual para la lista de proyectos (si falla, se guarda sin ella). */
     private byte[] thumbnail() {
         try {
             double w = Math.max(view.node().getLayoutBounds().getWidth(), 1);
@@ -2002,8 +1906,6 @@ public final class FSHFMainWindow {
             return null;
         }
     }
-
-    // ---------------------------------------------------------------- Archivos
 
     private void importFile() {
         if (!confirmDiscard()) return;
@@ -2016,8 +1918,8 @@ public final class FSHFMainWindow {
             String text = Files.readString(file.toPath(), StandardCharsets.UTF_8);
             String name = file.getName().replaceFirst("\\.amob3d$", "");
             FSHFHome p = FSHFHomeJson.read(text, name);
-            installDesigns(text); // antes de cargar, para que no se vean como cajas rojas
-            // Un archivo importado es un proyecto nuevo: al guardarlo se pedirá el nombre.
+            installDesigns(text);
+
             loadHome(p, null, name);
             history.markSaved();
         } catch (IOException | FSHFProjectFormatException e) {
@@ -2025,7 +1927,6 @@ public final class FSHFMainWindow {
         }
     }
 
-    /** Muebles del Diseñador que usa el proyecto (se incluyen al exportar). */
     private List<FSHFCustomDesign> usedDesigns() {
         Map<String, FSHFCustomDesign> used = new LinkedHashMap<>();
         for (FSHFHome.Space s : currentHome().spaces) {
@@ -2037,7 +1938,6 @@ public final class FSHFMainWindow {
         return List.copyOf(used.values());
     }
 
-    /** Agrega al catálogo los muebles diseñados que trae un archivo y que no están en esta computadora. */
     private void installDesigns(String text) {
         int added = 0;
         for (FSHFCustomDesign d : FSHFProjectJson.readDesigns(text)) {
@@ -2087,12 +1987,9 @@ public final class FSHFMainWindow {
         }
     }
 
-    // ---------------------------------------------------------------- Vistas de cámara
-
     private static final String WALK_HELP = "Recorrido: W/S o ↑/↓ avanzar · A/D de costado · ←/→ girar · "
             + "arrastra para mirar · rueda: un paso · Shift: correr";
 
-    /** El menú "Vistas" (en Ver y en la barra): guardar, vistas guardadas, desde cada puerta y eliminar. */
     private void rebuildViewsMenu() {
         for (List<MenuItem> target : List.of(viewsMenu.getItems(), viewsButton.getItems())) {
             target.clear();
@@ -2152,7 +2049,6 @@ public final class FSHFMainWindow {
         status.setText(WALK_HELP);
     }
 
-    /** Marca el botón del modo actual sin volver a encuadrar la cámara. */
     private void syncModeToggle() {
         modeSync = true;
         switch (view.mode()) {
@@ -2163,8 +2059,6 @@ public final class FSHFMainWindow {
         modeSync = false;
     }
 
-    // ---------------------------------------------------------------- Presupuesto e informe
-
     private FSHFEstimate estimate() {
         return FSHFEstimate.of(design.snapshot(), catalog, prices);
     }
@@ -2174,7 +2068,6 @@ public final class FSHFMainWindow {
         FSHFEstimateDialog.show(stage, projectName + spaceSuffix(), this::estimate, prices, priceRepository, this::exportPdf);
     }
 
-    /** Informe PDF con la planta, la vista 3D, los muebles y el presupuesto. */
     private void exportPdf() {
         commitEdits();
         FileChooser chooser = new FileChooser();
@@ -2196,8 +2089,6 @@ public final class FSHFMainWindow {
         notify("Informe guardado: " + file.getName());
         if (FSHFDialogs.confirm(stage, "Informe guardado", file.getAbsolutePath(), "Abrir")) host.showDocument(file.toURI().toString());
     }
-
-    // ---------------------------------------------------------------- Catálogo
 
     private void importModel() {
         FileChooser chooser = new FileChooser();
@@ -2240,7 +2131,6 @@ public final class FSHFMainWindow {
         try {
             userModels.discard(imported);
         } catch (IOException ignored) {
-            // Queda una carpeta sin usar; no impide seguir trabajando.
         }
     }
 
@@ -2271,7 +2161,6 @@ public final class FSHFMainWindow {
         if (!warnings.isEmpty()) warn(String.join("\n", warnings));
     }
 
-    /** Muebles hechos en el Diseñador. Los problemas se agregan a {@code warnings}. */
     public static List<FSHFCustomDesign> loadDesigns(FSHFDesignRepository designs, List<String> warnings) {
         try {
             return designs.list(warnings);
@@ -2281,13 +2170,10 @@ public final class FSHFMainWindow {
         }
     }
 
-    // ---------------------------------------------------------------- Diseñador de muebles
-
-    /** "Empezar desde": plantillas simples, los muebles paramétricos y tus diseños. */
     private Map<String, Supplier<FSHFCustomDesign>> designerTemplates() {
         Map<String, Supplier<FSHFCustomDesign>> t = new LinkedHashMap<>(FSHFFurnitureDesigner.basicTemplates());
         for (FSHFCatalogEntry e : catalog.list(FSHFCatalogEntry.Kind.PARAMETRIC)) {
-            if (FSHFCatalog.isStair(e.id())) continue; // sus piezas inclinadas no caben en el Diseñador
+            if (FSHFCatalog.isStair(e.id())) continue;
             t.put("Copia de: " + e.name(), () -> {
                 FSHFCatalogEntry.Size s = e.defaults();
                 FSHFFurniture f = new FSHFFurniture("x", e.id(), 0, 0, 0, s.width(), s.depth(), s.height(), e.defaultColor());
@@ -2338,7 +2224,6 @@ public final class FSHFMainWindow {
         reloadCatalog();
     }
 
-    /** Guarda el diseño y actualiza el catálogo y los muebles que lo usan. Devuelve un error o null. */
     private String saveDesign(FSHFCustomDesign d, boolean isNew) {
         try {
             designs.save(d);
@@ -2350,10 +2235,6 @@ public final class FSHFMainWindow {
         return null;
     }
 
-    /**
-     * "Diseñar a partir de este mueble": abre el diseñador con una copia editable (pieza por pieza)
-     * y, si se pide, reemplaza al mueble por el nuevo diseño.
-     */
     private String designFrom(FSHFFurniture f) {
         commitEdits();
         FSHFCatalogEntry e = catalog.get(f.type);
@@ -2386,7 +2267,6 @@ public final class FSHFMainWindow {
         return null;
     }
 
-    /** Modelos incluidos + importados. Los problemas se agregan a {@code warnings}. */
     public static List<FSHFCatalogEntry> loadModels(FSHFUserModels userModels, List<String> warnings) {
         List<FSHFCatalogEntry> all = new ArrayList<>(FSHFBuiltinCatalog.load(warnings));
         try {

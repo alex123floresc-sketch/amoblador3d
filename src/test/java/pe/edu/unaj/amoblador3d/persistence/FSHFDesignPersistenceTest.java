@@ -16,7 +16,6 @@ import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 import pe.edu.unaj.amoblador3d.model.FSHFProject;
 
-/** Colores secundarios, acabados y muebles del Diseñador: SQLite y archivos .amob3d. */
 class FSHFDesignPersistenceTest {
     @TempDir
     Path dir;
@@ -51,7 +50,7 @@ class FSHFDesignPersistenceTest {
         FSHFProject back = FSHFProjectJson.read(FSHFProjectJson.write(p));
         assertEquals("#8c2f39", back.furniture.get(0).color2);
         assertEquals(FSHFFinish.BRILLANTE, back.furniture.get(0).finish);
-        // Un color dañado se descarta (vuelve a automático) en lugar de impedir abrir el archivo.
+
         String damaged = FSHFProjectJson.write(p).replace("#8c2f39", "rojo");
         assertNull(FSHFProjectJson.read(damaged).furniture.get(0).color2);
     }
@@ -93,7 +92,7 @@ class FSHFDesignPersistenceTest {
         List<FSHFCustomDesign> back = FSHFProjectJson.readDesigns(text);
         assertEquals(1, back.size());
         assertEquals("Mesa x", back.get(0).name);
-        // El proyecto se sigue leyendo normalmente (las versiones anteriores ignoran "designs").
+
         FSHFProjectJson.read(text);
         assertTrue(FSHFProjectJson.readDesigns(FSHFProjectJson.write(p)).isEmpty());
     }

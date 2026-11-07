@@ -34,16 +34,7 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry;
 import pe.edu.unaj.amoblador3d.scene.FSHFThumbnails;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Pestaña "Muebles" del panel izquierdo: buscador, categorías y tarjetas con la miniatura de cada
- * mueble. Clic en una tarjeta para agregar el mueble, arrastrarla para ponerlo donde se suelte.
- *
- * <p>Antes vivía dentro de {@link FSHFMainWindow}; separado, la ventana solo recibe lo que el usuario
- * pidió a través de {@link Actions}.
- */
 final class FSHFCatalogPanel {
-
-    /** Lo que el catálogo le pide a la ventana principal. */
     interface Actions {
         void add(String type);
 
@@ -59,14 +50,11 @@ final class FSHFCatalogPanel {
 
         void removeUserModel(FSHFCatalogEntry e);
 
-        /** Empezó a arrastrarse un mueble: avisar en la barra de estado. */
         void dragStarted(FSHFCatalogEntry e);
 
-        /** Devolver el teclado a la vista 3D (Esc en el buscador). */
         void focusView();
     }
 
-    /** Prefijo de lo que se arrastra desde el catálogo hasta la vista 3D. */
     private static final String DRAG_PREFIX = "amoblador3d:mueble:";
 
     private final FSHFCatalog catalog;
@@ -76,7 +64,6 @@ final class FSHFCatalogPanel {
     private final VBox groups = new VBox(14);
     private final FlowPane chips = new FlowPane();
     private final Node node;
-    /** Categoría elegida (null = todas). */
     private String category;
 
     FSHFCatalogPanel(FSHFCatalog catalog, FSHFThumbnails thumbnails, Actions actions) {
@@ -90,7 +77,6 @@ final class FSHFCatalogPanel {
         return node;
     }
 
-    /** Id del mueble que se está arrastrando desde el catálogo, o null si es otra cosa. */
     static String draggedType(Dragboard board) {
         String s = board.getString();
         return s != null && s.startsWith(DRAG_PREFIX) ? s.substring(DRAG_PREFIX.length()) : null;
@@ -123,10 +109,9 @@ final class FSHFCatalogPanel {
         return new VBox(10, designButton, search, chips, groups, importButton, hint);
     }
 
-    /** Vuelve a dibujar las categorías y las tarjetas (al buscar o al cambiar el catálogo). */
     void rebuild() {
         String query = search.getText();
-        // Chips: "Todos" y cada categoría que tiene algo, con cuántos muebles hay.
+
         chips.getChildren().clear();
         ToggleGroup group = new ToggleGroup();
         List<String> available = new ArrayList<>();
@@ -154,7 +139,7 @@ final class FSHFCatalogPanel {
             if (category != null && !c.equals(category)) continue;
             List<FSHFCatalogEntry> entries = catalog.search(c, query);
             if (entries.isEmpty()) continue;
-            // Dos columnas que ocupan todo el ancho (con o sin barra de desplazamiento).
+
             GridPane cards = new GridPane();
             cards.setHgap(8);
             cards.setVgap(8);
@@ -182,7 +167,6 @@ final class FSHFCatalogPanel {
         }
     }
 
-    /** Tarjeta de un mueble: miniatura 3D, nombre y medidas. Clic para agregar, arrastrar para ubicar. */
     private Button card(FSHFCatalogEntry e) {
         FSHFCatalogEntry.Size s = e.defaults();
         boolean model = e.kind() == FSHFCatalogEntry.Kind.MODEL, custom = e.kind() == FSHFCatalogEntry.Kind.CUSTOM;
@@ -217,7 +201,7 @@ final class FSHFCatalogPanel {
                 + (model ? "\nModelo 3D: trae sus propios colores; se puede teñir."
                         : custom ? "\nDiseñado por ti. Clic derecho para editarlo." : "\nMedidas, colores y acabado editables.")));
         card.setOnAction(ev -> actions.add(e.id()));
-        // Se agranda un poco al pasar el ratón.
+
         ScaleTransition grow = new ScaleTransition(Duration.millis(120), card);
         card.setOnMouseEntered(ev -> {
             grow.stop();

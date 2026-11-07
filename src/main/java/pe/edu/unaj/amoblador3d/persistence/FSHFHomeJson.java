@@ -14,16 +14,6 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign;
 import pe.edu.unaj.amoblador3d.model.FSHFHome;
 import pe.edu.unaj.amoblador3d.model.FSHFProject;
 
-/**
- * Una casa con varios ambientes en el formato .amob3d. El primer ambiente va en la raíz, con el
- * formato de siempre (así una versión anterior puede abrir al menos ese ambiente), y los demás en
- * {@code "spaces"}:
- * <pre>
- * { ...proyecto del primer ambiente...,
- *   "space":  { "id", "name", "x", "z", "rotation", "level" },
- *   "spaces": [ { "id", "name", "x", "z", "rotation", "level", "project": { ...proyecto... } } ] }
- * </pre>
- */
 public final class FSHFHomeJson {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -33,7 +23,6 @@ public final class FSHFHomeJson {
         return write(h, List.of());
     }
 
-    /** @param designs muebles del Diseñador que se incluyen (al exportar) */
     public static String write(FSHFHome h, List<FSHFCustomDesign> designs) {
         if (h.spaces.isEmpty()) throw new IllegalArgumentException("La casa no tiene ambientes.");
         FSHFHome.Space first = h.spaces.get(0);
@@ -62,10 +51,6 @@ public final class FSHFHomeJson {
         return j;
     }
 
-    /**
-     * Lee una casa. Un archivo de una sola habitación (de versiones anteriores) es una casa con un
-     * solo ambiente llamado {@code defaultName}.
-     */
     public static FSHFHome read(String text, String defaultName) throws FSHFProjectFormatException {
         FSHFProject first = FSHFProjectJson.read(text);
         JsonObject root;
@@ -112,7 +97,6 @@ public final class FSHFHomeJson {
         return e != null && e.isJsonPrimitive() && e.getAsJsonPrimitive().isNumber() ? e.getAsDouble() : Double.NaN;
     }
 
-    /** Ids repetidos, nombres vacíos, giros, pisos o posiciones no válidas se corrigen (no impiden abrir la casa). */
     static void fix(FSHFHome h) {
         Set<String> ids = new HashSet<>();
         Set<String> names = new HashSet<>();
@@ -137,7 +121,7 @@ public final class FSHFHomeJson {
                 s.x = Double.NaN;
             }
         }
-        // Los que no tienen una posición válida van a un lugar libre.
+
         for (FSHFHome.Space s : h.spaces) {
             if (Double.isNaN(s.x)) {
                 FSHFHome rest = new FSHFHome();

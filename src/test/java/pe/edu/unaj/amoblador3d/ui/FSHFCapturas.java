@@ -36,24 +36,12 @@ import pe.edu.unaj.amoblador3d.persistence.FSHFPriceRepository;
 import pe.edu.unaj.amoblador3d.persistence.FSHFProjectRepository;
 import pe.edu.unaj.amoblador3d.scene.FSHFModelLibrary;
 
-/**
- * Herramienta para la documentación (no es una prueba): abre la aplicación con una carpeta de datos
- * temporal, recorre sus pantallas con los mismos menús que usa una persona y guarda una captura PNG
- * de cada una.
- *
- * <pre>
- * java -Damoblador.home=C:\temp\capturas -cp (clases + dependencias) pe.edu.unaj.amoblador3d.ui.Capturas$Main documentacion\capturas
- * </pre>
- *
- * Nunca usa la carpeta de datos real: si no se indica {@code amoblador.home}, se detiene.
- */
 public final class FSHFCapturas extends Application {
     private static Path out;
     private final Deque<Runnable> steps = new ArrayDeque<>();
     private Stage stage;
     private FSHFMainWindow window;
 
-    /** Punto de entrada aparte (como {@code Launcher}): así arranca con JavaFX en el classpath. */
     public static final class Main {
         public static void main(String[] args) throws Exception {
             if (System.getProperty("amoblador.home") == null) {
@@ -81,7 +69,6 @@ public final class FSHFCapturas extends Application {
         stage.setHeight(900);
         stage.show();
 
-        // 1. Bienvenida → Casa de ejemplo (abre la vista "Casa completa").
         later(() -> menu("Pantalla de bienvenida"));
         later(() -> {
             Window w = dialog();
@@ -91,7 +78,7 @@ public final class FSHFCapturas extends Application {
         later(() -> shoot(stage, "02_casa_completa_3d"));
         later(() -> menu("Planta 2D"));
         later(() -> shoot(stage, "03_casa_completa_planta"));
-        // 2. Un ambiente: la sala, con un mueble seleccionado.
+
         later(() -> menu("Casa completa"));
         later(() -> menu("Vista 3D"));
         later(this::selectFirstFurniture);
@@ -108,7 +95,7 @@ public final class FSHFCapturas extends Application {
         later(() -> shoot(stage, "08_luz_modo_noche"));
         later(() -> check("Modo noche", false));
         later(() -> tab(0));
-        // 3. Ventanas.
+
         later(() -> menu("Metrado y presupuesto"));
         later(() -> closeAfterShot("09_presupuesto"));
         later(() -> menu("Diseñador de muebles"));
@@ -122,21 +109,17 @@ public final class FSHFCapturas extends Application {
         next();
     }
 
-    // ------------------------------------------------------------ pasos
-
     private void later(Runnable step) {
         steps.add(step);
     }
 
-    /** Cada paso espera 1,5 s: lo suficiente para que la vista 3D termine de dibujarse. */
     private void next() {
         Runnable step = steps.poll();
         if (step == null) return;
         PauseTransition wait = new PauseTransition(Duration.millis(1500));
         wait.setOnFinished(e -> {
-            // El paso siguiente se programa ANTES: si este abre una ventana modal, sigue funcionando.
             next();
-            // Fuera de la animación: JavaFX no deja abrir ventanas modales desde ella.
+
             Platform.runLater(() -> {
                 try {
                     step.run();
@@ -160,7 +143,6 @@ public final class FSHFCapturas extends Application {
         throw new IllegalArgumentException("No hay un menú «" + startsWith + "»");
     }
 
-    /** Las casillas del menú no cambian con fire(): se marcan directamente. */
     private void check(String startsWith, boolean on) {
         MenuBar bar = (MenuBar) stage.getScene().getRoot().lookup(".menu-bar");
         for (Menu m : bar.getMenus()) {
@@ -200,7 +182,6 @@ public final class FSHFCapturas extends Application {
         }
     }
 
-    /** La ventana abierta encima de la principal (diálogo). */
     private Window dialog() {
         return Window.getWindows().stream().filter(w -> w != stage && w.isShowing()).reduce((a, b) -> b)
                 .orElseThrow(() -> new IllegalStateException("No se abrió ninguna ventana"));

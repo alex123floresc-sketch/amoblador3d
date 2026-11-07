@@ -1,11 +1,6 @@
 package pe.edu.unaj.amoblador3d.model;
 
-/**
- * Zócalo: la franja al pie de las paredes (y de las columnas), cortada en las puertas.
- * Con alto 0 no hay zócalo.
- */
 public final class FSHFBaseboard {
-    /** Id fijo para seleccionarlo como cualquier otro elemento. */
     public static final String ID = "zocalo";
     public static final double DEFAULT_HEIGHT = 0.08, MAX_HEIGHT = 0.2;
     public static final String DEFAULT_COLOR = "#f7f5f0";

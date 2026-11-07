@@ -23,13 +23,11 @@ import pe.edu.unaj.amoblador3d.model.FSHFOpening;
 import pe.edu.unaj.amoblador3d.model.FSHFProject;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 
-/** "Nuevo desde plantilla": lista de habitaciones listas con una vista previa en planta. */
 final class FSHFTemplatesDialog {
     private static final double PREVIEW_W = 340, PREVIEW_H = 280;
 
     private FSHFTemplatesDialog() {}
 
-    /** Devuelve la plantilla elegida (con su proyecto ya creado) o vacío si se canceló. */
     static Optional<Choice> show(Window owner, List<FSHFTemplates.Template> templates) {
         record Preview(FSHFTemplates.Template template, FSHFProject project) {}
         ListView<Preview> list = new ListView<>();
@@ -76,7 +74,6 @@ final class FSHFTemplatesDialog {
 
     record Choice(String name, FSHFProject project) {}
 
-    /** Planta simplificada: muros, puertas, ventanas y muebles (con su color). */
     private static void draw(GraphicsContext g, FSHFProject p) {
         FSHFRoomDims r = p.room;
         double margin = 18, t = r.wallThickness();
@@ -85,9 +82,9 @@ final class FSHFTemplatesDialog {
         double oz = (PREVIEW_H - (r.length() + 2 * t) * scale) / 2 + t * scale;
         g.setFill(Color.web("#1d2125"));
         g.fillRect(0, 0, PREVIEW_W, PREVIEW_H);
-        g.setFill(Color.web("#b9b2a6")); // muros
+        g.setFill(Color.web("#b9b2a6"));
         g.fillRect(ox - t * scale, oz - t * scale, (r.width() + 2 * t) * scale, (r.length() + 2 * t) * scale);
-        g.setFill(Color.web(p.floor.color)); // piso
+        g.setFill(Color.web(p.floor.color));
         g.fillRect(ox, oz, r.width() * scale, r.length() * scale);
 
         for (FSHFOpening o : p.openings) {
@@ -103,7 +100,7 @@ final class FSHFTemplatesDialog {
             g.fillRect(x, z, w, h);
         }
 
-        for (FSHFColumn c : p.columns) { // columnas y recortes: del color de los muros
+        for (FSHFColumn c : p.columns) {
             g.setFill(Color.web("#b9b2a6"));
             g.fillRect(ox + c.minX() * scale, oz + c.minZ() * scale, c.width * scale, c.depth * scale);
         }

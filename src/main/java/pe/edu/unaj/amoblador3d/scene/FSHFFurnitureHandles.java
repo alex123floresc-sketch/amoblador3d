@@ -10,22 +10,12 @@ import pe.edu.unaj.amoblador3d.design.FSHFDesign;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Asas del mueble seleccionado en la vista 3D y en la planta: se arrastran para cambiar el
- * ancho (asas de los costados), la profundidad (adelante y atrás), el alto (asa de arriba, solo
- * en 3D) y el giro (asa redonda delante del mueble; se pega cada 15°, Shift para girar libre).
- *
- * <p>Al estirar un lado, el lado opuesto se queda quieto, como al estirar una caja real.
- */
 final class FSHFFurnitureHandles {
     enum Kind { RIGHT, LEFT, FRONT, BACK, TOP, ROTATE }
 
-    /** Un asa: qué hace y dónde está (en el mundo). */
     record Handle(Kind kind, Point3D at) {}
 
-    /** Distancia (en píxeles) a la que el ratón "agarra" un asa. */
     static final double GRAB = 11;
-    /** Distancia del asa de giro al frente del mueble (m). */
     private static final double ROTATE_GAP = 0.5;
 
     private Kind kind;
@@ -33,7 +23,6 @@ final class FSHFFurnitureHandles {
     private double pressX, pressY;
     private boolean changed;
 
-    /** Punto local del mueble (x a lo ancho, y hacia arriba, z hacia su frente) en el mundo. */
     static Point3D world(FSHFFurniture f, double lx, double ly, double lz) {
         double a = Math.toRadians(f.rotation), c = Math.cos(a), s = Math.sin(a);
         return new Point3D(f.x + lx * c + lz * s, ly, f.z - lx * s + lz * c);
@@ -51,7 +40,6 @@ final class FSHFFurnitureHandles {
         return list;
     }
 
-    /** Asa bajo el ratón, o null. */
     static Kind hit(FSHFViewCamera cam, FSHFFurniture f, double sx, double sy, boolean plan) {
         Kind best = null;
         double bestD = GRAB;
@@ -92,7 +80,6 @@ final class FSHFFurnitureHandles {
         changed = false;
     }
 
-    /** Termina el arrastre. Devuelve true si el mueble cambió (para registrarlo en deshacer). */
     boolean end() {
         boolean c = changed;
         kind = null;
@@ -100,12 +87,6 @@ final class FSHFFurnitureHandles {
         return c;
     }
 
-    /**
-     * Aplica el arrastre con el ratón en (sx, sy). Si el resultado no es válido (choca o se sale),
-     * el mueble se queda como en el último paso válido.
-     *
-     * @return el texto para la barra de estado ("Ancho: 1,40 m"), o null si no se pudo aplicar
-     */
     String drag(FSHFDesign design, FSHFViewCamera cam, double sx, double sy, boolean free) {
         FSHFCatalogEntry e = design.catalog().get(item.type);
         FSHFFurniture c = start.copy();
@@ -113,7 +94,6 @@ final class FSHFFurnitureHandles {
         String text;
         boolean keepPosition = true;
         if (kind == Kind.TOP) {
-            // Cuántos metros sube el ratón: se proyecta su movimiento sobre la vertical de la pantalla.
             Point2D top = cam.project(world(start, 0, start.height, 0)), up = cam.project(world(start, 0, start.height + 1, 0));
             if (top == null || up == null) return null;
             double vx = up.getX() - top.getX(), vy = up.getY() - top.getY(), len2 = vx * vx + vy * vy;
@@ -125,7 +105,7 @@ final class FSHFFurnitureHandles {
             Point3D p = cam.floorPoint(sx, sy);
             if (p == null) return null;
             double dx = p.getX() - start.x, dz = p.getZ() - start.z;
-            double lx = dx * cos - dz * sin, lz = dx * sin + dz * cos; // punto en coordenadas del mueble
+            double lx = dx * cos - dz * sin, lz = dx * sin + dz * cos;
             double hw = start.width / 2, hd = start.depth / 2;
             switch (kind) {
                 case RIGHT, LEFT -> {
@@ -144,7 +124,7 @@ final class FSHFFurnitureHandles {
                     c.z = FSHFUnits.round(start.z + cz * cos);
                     text = "Profundidad: " + FSHFUnits.meters(c.depth);
                 }
-                default -> { // ROTATE: el frente del mueble apunta hacia el ratón
+                default -> {
                     double deg = Math.toDegrees(Math.atan2(dx, dz));
                     double snap = free ? 1 : 15;
                     c.rotation = ((Math.round(deg / snap) * snap) % 360 + 360) % 360;

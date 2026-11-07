@@ -60,9 +60,9 @@ Para entregar la aplicación a alguien que **no tiene Java**: doble clic en
 `packaging\crear-instalador.cmd` (o en PowerShell: `.\packaging\crear-instalador.ps1`).
 Crea en `target\instalador\` una versión que trae su propio Java:
 
-- **Sin nada más instalado:** la carpeta `Amoblador3D\` (se abre con `Amoblador3D.exe`) y un
+- **Sin WiX Toolset:** la carpeta `Amoblador3D\` (se abre con `Amoblador3D.exe`) y un
   `Amoblador3D-2.0.0-windows.zip` para compartir. Se descomprime y se usa, sin instalar.
-- **Con [WiX Toolset](https://wixtoolset.org) instalado:** además un instalador
+- **Con [WiX Toolset](https://wixtoolset.org) instalado:** un instalador
   `Amoblador3D-2.0.0.exe` que crea accesos directos en el menú Inicio y el escritorio.
 
 Con `-SinPruebas` es más rápido (no corre las pruebas antes). Pesa unos 60 MB comprimido.
@@ -93,6 +93,7 @@ hereda de `Application`.
 | Base de datos (proyectos guardados) | `%APPDATA%\Amoblador3D\amoblador3d.db` |
 | Modelos 3D importados | `%APPDATA%\Amoblador3D\modelos\` |
 | Copia automática del trabajo sin guardar | `%APPDATA%\Amoblador3D\recuperacion.json` |
+| Registro de errores | `%APPDATA%\Amoblador3D\logs\` |
 
 **Autoguardado:** mientras hay cambios sin guardar, la aplicación hace una copia cada minuto. Si se
 cierra de golpe (corte de luz, error), al volver a abrirla pregunta si quieres recuperar el trabajo.
@@ -146,8 +147,8 @@ versión):
 Te pedirá la contraseña del usuario `postgres` que elegiste al instalar PostgreSQL.
 
 **Con pgAdmin**: conéctate al servidor, crea la base `amoblador3d` (clic derecho en
-*Databases → Create → Database*), abre en ella el *Query Tool*, carga el archivo y **borra o
-comenta** las líneas que empiezan con `\` (`\set`, `\gexec`, `\connect`) y la consulta
+*Databases → Create → Database*), abre en ella el *Query Tool*, carga el archivo y **borra**
+las líneas que empiezan con `\` (`\set`, `\gexec`, `\connect`) y la consulta
 `SELECT 'CREATE DATABASE ...'`, porque son comandos de psql que pgAdmin no entiende. Luego pulsa
 *Execute* (F5).
 
@@ -155,10 +156,14 @@ Consultas para probar:
 
 ```sql
 SET search_path TO amoblador3d;
-SELECT * FROM project_summary;     -- proyectos con área y cantidad de muebles, luces, puertas...
-SELECT * FROM project_occupancy;   -- % del piso ocupado por muebles
-SELECT * FROM project_finishes;    -- material y color de cada pared y del piso
+SELECT * FROM project_summary;
+SELECT * FROM project_occupancy;
+SELECT * FROM project_finishes;
 ```
+
+`project_summary` muestra cada proyecto con su área y la cantidad de muebles, luces y aberturas;
+`project_occupancy`, el porcentaje del piso ocupado por muebles, y `project_finishes`, el material y
+el color de cada pared y del piso.
 
 La base de PostgreSQL es para consultas, informes y para documentar el modelo de datos: la
 aplicación sigue guardando sus proyectos en SQLite.

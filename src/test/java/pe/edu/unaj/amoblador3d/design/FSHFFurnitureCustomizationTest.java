@@ -14,7 +14,6 @@ import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 
-/** Colores, acabado y tamaño de los muebles, y muebles del Diseñador en la habitación. */
 class FSHFFurnitureCustomizationTest {
     private FSHFCatalog catalog;
     private FSHFDesign design;
@@ -70,7 +69,7 @@ class FSHFFurnitureCustomizationTest {
     @Test
     void sePuedeCambiarElColorDeUnMuebleQueYaChoca() {
         FSHFFurniture bed = design.addFurniture("cama").value();
-        // Al achicar mucho la habitación la cama queda chocando (se avisa, pero no se borra).
+
         design.setRoom(new FSHFRoomDims(1.5, 2.0, 2.5, 0.15));
         assertNotNull(design.checkFurniture(bed, bed));
         assertNull(editor(bed).set("color", "#ffffff"), "antes este cambio se rechazaba con «Choca con…»");

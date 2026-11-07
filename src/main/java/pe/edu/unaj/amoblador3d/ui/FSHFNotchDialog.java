@@ -16,7 +16,6 @@ import pe.edu.unaj.amoblador3d.model.FSHFColumn;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/** "Habitación en L": qué esquina se quita y de qué tamaño. */
 final class FSHFNotchDialog {
     record Notch(FSHFColumn.Corner corner, double width, double depth) {}
 
@@ -60,7 +59,7 @@ final class FSHFNotchDialog {
         ButtonType ok = new ButtonType("Aplicar", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(ok, ButtonType.CANCEL);
         dialog.getDialogPane().setContent(new VBox(10, grid, hint, error));
-        // No se cierra si las medidas no son números válidos.
+
         dialog.getDialogPane().lookupButton(ok).addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
             Double w = FSHFUnits.parse(width.getText()), d = FSHFUnits.parse(depth.getText());
             String err = w == null || d == null ? "Escribe las medidas como números (por ejemplo 1,2)."

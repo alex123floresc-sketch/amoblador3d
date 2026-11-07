@@ -9,10 +9,6 @@ import java.util.zip.DeflaterOutputStream;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
 
-/**
- * Convierte una imagen de JavaFX a PNG. Lo hacemos a mano (el formato es simple) para no
- * depender del módulo javafx.swing solo por {@code ImageIO}.
- */
 final class FSHFPng {
     private FSHFPng() {}
 
@@ -21,7 +17,7 @@ final class FSHFPng {
         PixelReader reader = image.getPixelReader();
         ByteArrayOutputStream compressed = new ByteArrayOutputStream();
         try (DeflaterOutputStream z = new DeflaterOutputStream(compressed)) {
-            byte[] row = new byte[1 + w * 3]; // cada fila empieza con el tipo de filtro (0 = ninguno)
+            byte[] row = new byte[1 + w * 3];
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
                     int argb = reader.getArgb(x, y);
@@ -39,7 +35,7 @@ final class FSHFPng {
         DataOutputStream hd = new DataOutputStream(header);
         hd.writeInt(w);
         hd.writeInt(h);
-        hd.write(new byte[] {8, 2, 0, 0, 0}); // 8 bits por canal, RGB
+        hd.write(new byte[] {8, 2, 0, 0, 0});
         chunk(data, "IHDR", header.toByteArray());
         chunk(data, "IDAT", compressed.toByteArray());
         chunk(data, "IEND", new byte[0]);

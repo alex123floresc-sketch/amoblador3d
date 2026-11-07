@@ -11,16 +11,10 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Range;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Size;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Source;
 
-/**
- * Registro central del catálogo: los muebles paramétricos (construidos con cajas,
- * ver {@code scene.ParametricBuilder}), los hechos en el Diseñador de muebles ({@link FSHFCustomDesign})
- * y los modelos 3D (.glb/.gltf) incluidos e importados.
- */
 public final class FSHFCatalog {
     public static final String BEDROOM = "Dormitorio", LIVING = "Sala", DINING = "Comedor", KITCHEN = "Cocina",
             BATHROOM = "Baño", OFFICE = "Oficina", STAIRS = "Escaleras", DECORATION = "Decoración", MY_DESIGNS = "Mis diseños",
             IMPORTED = "Importados";
-    /** Grupos del catálogo, en el orden en que se muestran. */
     public static final List<String> CATEGORIES =
             List.of(MY_DESIGNS, BEDROOM, LIVING, DINING, KITCHEN, BATHROOM, OFFICE, STAIRS, DECORATION, IMPORTED);
 
@@ -47,16 +41,10 @@ public final class FSHFCatalog {
         parametric("baranda", "Baranda", STAIRS, new Size(1.5, 0.06, 0.9), "#4a4f55", "Pasamanos", r(0.3, 8), r(0.04, 0.2), r(0.6, 1.2));
     }
 
-    /** Las escaleras se agregan con el alto de la habitación (llegan al piso de arriba). */
     public static boolean isStair(String type) {
         return type != null && type.startsWith("escalera");
     }
 
-    /**
-     * Color secundario "automático" de un mueble paramétrico (el que se ve mientras el usuario no
-     * elige otro): algunos tienen uno fijo (la frazada azul, la encimera de piedra...) y el resto
-     * usa el principal un poco más oscuro. Debe coincidir con {@code scene.ParametricBuilder}.
-     */
     public static String autoAccent(String type, String main) {
         return switch (type) {
             case "cama" -> "#5b7fa6";
@@ -87,7 +75,6 @@ public final class FSHFCatalog {
                 accent, null));
     }
 
-    /** Devuelve la entrada del catálogo; si ya no existe, una caja roja de reemplazo. */
     public FSHFCatalogEntry get(String id) {
         FSHFCatalogEntry e = entries.get(id);
         return e != null ? e : FSHFCatalogEntry.missing(id);
@@ -103,11 +90,6 @@ public final class FSHFCatalog {
         return result;
     }
 
-    /**
-     * Muebles de una categoría cuyo nombre contiene el texto buscado (sin distinguir
-     * mayúsculas ni tildes: "comoda" encuentra "Cómoda"). Los paramétricos van primero, luego los
-     * diseños propios y al final los modelos 3D.
-     */
     public List<FSHFCatalogEntry> search(String category, String text) {
         String q = fold(text == null ? "" : text.trim());
         List<FSHFCatalogEntry> result = new ArrayList<>();
@@ -123,16 +105,13 @@ public final class FSHFCatalog {
         return Normalizer.normalize(s, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
     }
 
-    /** Reemplaza los modelos 3D por los indicados (incluidos + importados). */
     public void setModels(List<FSHFCatalogEntry> models) {
         entries.values().removeIf(e -> e.kind() == Kind.MODEL);
         for (FSHFCatalogEntry m : models) {
-            // Un modelo no puede ocultar a un mueble paramétrico con el mismo id.
             if (!entries.containsKey(m.id())) entries.put(m.id(), m);
         }
     }
 
-    /** Reemplaza los muebles hechos en el Diseñador por los indicados. */
     public void setCustom(List<FSHFCustomDesign> designs) {
         entries.values().removeIf(e -> e.kind() == Kind.CUSTOM);
         for (FSHFCustomDesign d : designs) {

@@ -1,12 +1,5 @@
 package pe.edu.unaj.amoblador3d.model;
 
-/**
- * Acabado de una pared, del piso o del techo: material y color.
- * <ul>
- *   <li>id: "piso", "techo" o "pared-norte", "pared-sur"... (fijo, sirve para seleccionarla).</li>
- *   <li>color: "#rrggbb"; tiñe la textura del material.</li>
- * </ul>
- */
 public final class FSHFSurface {
     public static final String FLOOR_ID = "piso", CEILING_ID = "techo";
     public static final FSHFSurfaceMaterial DEFAULT_FLOOR = FSHFSurfaceMaterial.MADERA;
@@ -28,7 +21,6 @@ public final class FSHFSurface {
         return new FSHFSurface(FLOOR_ID, DEFAULT_FLOOR, DEFAULT_FLOOR.defaultColor());
     }
 
-    /** Cielo raso: se ve en el recorrido (desde las otras vistas taparía la habitación). */
     public static FSHFSurface ceiling() {
         return new FSHFSurface(CEILING_ID, DEFAULT_CEILING, CEILING_COLOR);
     }
@@ -49,7 +41,6 @@ public final class FSHFSurface {
         return CEILING_ID.equals(id);
     }
 
-    /** La pared a la que pertenece, o null si es el piso o el techo. */
     public FSHFWallSide wallSide() {
         return id.startsWith("pared-") ? FSHFWallSide.fromId(id.substring("pared-".length())) : null;
     }

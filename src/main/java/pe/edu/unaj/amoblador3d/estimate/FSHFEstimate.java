@@ -14,15 +14,7 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Presupuesto del proyecto: cuánto comprar de cada acabado y cuánto cuesta, más los muebles.
- *
- * <p>Las paredes con el mismo material y color se suman en una sola línea (se compra la misma
- * pintura para todas). El piso va aparte aunque use el mismo material que una pared: un piso de
- * madera y un revestimiento de madera son productos distintos.
- */
 public record FSHFEstimate(FSHFQuantities quantities, List<Line> lines) {
-
     public enum Section {
         FINISHES("Acabados"), EXTRAS("Complementos"), FURNITURE("Muebles");
 
@@ -37,13 +29,6 @@ public record FSHFEstimate(FSHFQuantities quantities, List<Line> lines) {
         }
     }
 
-    /**
-     * Una línea del presupuesto.
-     *
-     * @param concept  qué se compra ("Pintura mate · Blanco hueso")
-     * @param detail   de dónde sale la cantidad ("Paredes norte, sur: 18,40 m², 2 manos...")
-     * @param priceKey precio que se puede editar para esta línea
-     */
     public record Line(Section section, String concept, String detail, double quantity, String unit,
                        double unitPrice, FSHFPriceList.Key priceKey) {
         public double subtotal() {
@@ -69,7 +54,6 @@ public record FSHFEstimate(FSHFQuantities quantities, List<Line> lines) {
         FSHFQuantities q = FSHFQuantities.of(p);
         List<Line> lines = new ArrayList<>();
 
-        // Paredes, techo y caras de columnas con el mismo acabado se compran juntos.
         Map<SurfaceGroup, List<String>> walls = new LinkedHashMap<>(), others = new LinkedHashMap<>();
         Map<SurfaceGroup, Double> areas = new LinkedHashMap<>();
         SurfaceGroup floor = new SurfaceGroup(true, p.floor.material, p.floor.color);
@@ -119,7 +103,6 @@ public record FSHFEstimate(FSHFQuantities quantities, List<Line> lines) {
         return new FSHFEstimate(q, List.copyOf(lines));
     }
 
-    /** "Pared norte", "Paredes norte, sur, techo, columna 1", "Techo"... */
     private static String place(List<String> walls, List<String> others) {
         String text = walls.isEmpty() ? "" : (walls.size() == 1 ? "Pared " : "Paredes ") + String.join(", ", walls);
         if (!others.isEmpty()) {

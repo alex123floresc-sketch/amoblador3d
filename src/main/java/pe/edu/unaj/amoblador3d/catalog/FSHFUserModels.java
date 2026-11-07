@@ -22,12 +22,7 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Source;
 import pe.edu.unaj.amoblador3d.persistence.FSHFCatalogRepository;
 import pe.edu.unaj.amoblador3d.persistence.FSHFCatalogRepository.ModelRow;
 
-/**
- * Modelos 3D importados por el usuario: los archivos se copian a la carpeta de modelos
- * ({@code %APPDATA%\Amoblador3D\modelos\<carpeta>\}) y sus datos se guardan en SQLite.
- */
 public final class FSHFUserModels {
-    /** Modelo ya copiado a la carpeta, pendiente de confirmar sus medidas. */
     public record Imported(String id, String name, String folder, String file, Path path) {}
 
     private final FSHFCatalogRepository repo;
@@ -42,7 +37,6 @@ public final class FSHFUserModels {
         return root;
     }
 
-    /** Entradas del catálogo de los modelos importados; avisa de los archivos que faltan. */
     public List<FSHFCatalogEntry> load(List<String> warnings) throws SQLException {
         List<FSHFCatalogEntry> result = new ArrayList<>();
         for (ModelRow m : repo.list()) {
@@ -61,7 +55,6 @@ public final class FSHFUserModels {
         return result;
     }
 
-    /** Copia un .glb (o un .gltf con sus archivos .bin y texturas) a la carpeta de modelos. */
     public Imported copyIntoLibrary(Path src) throws IOException {
         String fileName = src.getFileName().toString();
         String name = fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
@@ -78,7 +71,6 @@ public final class FSHFUserModels {
         return new Imported("user-" + folder, name, folder, folder + "/" + fileName, dest.resolve(fileName));
     }
 
-    /** Si el usuario cancela la importación, se borra la copia. */
     public void discard(Imported imported) throws IOException {
         deleteFolder(root.resolve(imported.folder()));
     }
@@ -87,7 +79,6 @@ public final class FSHFUserModels {
         repo.insert(new ModelRow(imported.id(), name, imported.file(), size.width(), size.depth(), size.height(), rotation));
     }
 
-    /** Quita un modelo importado del catálogo y borra sus archivos. */
     public void remove(String id) throws SQLException, IOException {
         for (ModelRow m : repo.list()) {
             if (!m.id().equals(id)) continue;
@@ -97,7 +88,6 @@ public final class FSHFUserModels {
         }
     }
 
-    /** Copia un .gltf junto con sus archivos externos (.bin, texturas). */
     private static void copyGltfWithResources(Path src, Path dest) throws IOException {
         JsonObject json = JsonParser.parseString(Files.readString(src)).getAsJsonObject();
         List<String> uris = new ArrayList<>();
@@ -113,7 +103,7 @@ public final class FSHFUserModels {
         for (String uri : uris) {
             String rel = URLDecoder.decode(uri, StandardCharsets.UTF_8);
             Path target = dest.resolve(rel).normalize();
-            // Seguridad: el .gltf no puede escribir fuera de su carpeta con "../"
+
             if (!target.startsWith(dest)) throw new IOException("Ruta no permitida dentro del .gltf: " + uri);
             Files.createDirectories(target.getParent());
             Files.copy(srcDir.resolve(rel), target, StandardCopyOption.REPLACE_EXISTING);
@@ -127,7 +117,6 @@ public final class FSHFUserModels {
         }
     }
 
-    /** "Sofá Moderno" -> "sofa-moderno" */
     static String slugify(String text) {
         String s = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");

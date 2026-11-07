@@ -17,7 +17,6 @@ import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.util.FSHFOutcome;
 
-/** Tipos de puerta y escaleras. */
 class FSHFDoorsAndStairsTest {
     private FSHFDesign design;
 
@@ -45,7 +44,7 @@ class FSHFDoorsAndStairsTest {
     void laPuertaPrincipalVaEnLaParedPedida() {
         FSHFOpening o = design.addOpening(FSHFOpeningType.ENTRY, List.of(FSHFWallSide.OESTE)).value();
         assertEquals(FSHFWallSide.OESTE, o.wall);
-        // Un portón de 2,6 m no cabe en una pared de 2 m: avisa en vez de ponerlo en otra.
+
         design.load(projectOf(new FSHFRoomDims(4, 2, 2.5, 0.15)));
         FSHFOutcome<FSHFOpening> out = design.addOpening(FSHFOpeningType.GARAGE, List.of(FSHFWallSide.ESTE));
         assertNotNull(out.error());
@@ -69,7 +68,7 @@ class FSHFDoorsAndStairsTest {
         assertEquals(FSHFOpeningType.DOUBLE.defaultWidth(), door.width, 1e-9);
         assertNull(e.set("type", "passage"));
         assertEquals(FSHFOpeningType.PASSAGE, door.type);
-        // Una ventana no ofrece tipos de puerta.
+
         FSHFOpening window = design.addOpening(FSHFOpeningType.WINDOW).value();
         assertTrue(FSHFEditors.of(design, window, f -> null).fields().stream().noneMatch(f -> f.key().equals("type")));
     }
@@ -82,7 +81,7 @@ class FSHFDoorsAndStairsTest {
             assertNotNull(f, type);
             assertEquals(2.7, f.height, 1e-9, type);
         }
-        // La baranda no es escalera: conserva su alto.
+
         assertEquals(0.9, design.addFurniture("baranda").value().height, 1e-9);
         assertTrue(FSHFCatalog.isStair("escalera-l"));
     }

@@ -21,15 +21,8 @@ import java.util.Map;
 import pe.edu.unaj.amoblador3d.gltf.FSHFModelData.Material;
 import pe.edu.unaj.amoblador3d.gltf.FSHFModelData.Primitive;
 
-/**
- * Lector de modelos glTF 2.0 (.glb binario y .gltf con archivos .bin y texturas).
- *
- * <p>Soporta lo que usan los muebles: mallas de triángulos con posiciones, normales,
- * coordenadas de textura, color base y textura de color. No soporta animaciones,
- * accesores "sparse" ni modelos comprimidos con Draco/Meshopt.
- */
 public final class FSHFGltfLoader {
-    private static final int GLB_MAGIC = 0x46546C67; // "glTF"
+    private static final int GLB_MAGIC = 0x46546C67;
     private static final int CHUNK_JSON = 0x4E4F534A;
     private static final int CHUNK_BIN = 0x004E4942;
 
@@ -43,7 +36,6 @@ public final class FSHFGltfLoader {
         return parse(bytes, url);
     }
 
-    /** @param base ubicación del archivo, para resolver rutas relativas (.bin, texturas) */
     public static FSHFModelData parse(byte[] bytes, URL base) throws IOException {
         ByteBuffer b = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
         try {
@@ -68,12 +60,10 @@ public final class FSHFGltfLoader {
             }
             return new Reader(JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject(), null, base).read();
         } catch (RuntimeException e) {
-            // JSON mal formado, índices fuera de rango, tipos equivocados...
             throw new IOException("El archivo no es un modelo glTF válido (" + e.getMessage() + ").", e);
         }
     }
 
-    /** Lee el JSON de un glTF ya separado de su parte binaria. */
     private static final class Reader {
         private final JsonObject json;
         private final byte[] glbBin;
@@ -113,7 +103,7 @@ public final class FSHFGltfLoader {
                 for (JsonElement n : array(scenes.get(scene).getAsJsonObject(), "nodes")) roots.add(n.getAsInt());
                 return roots;
             }
-            // Sin escenas: las raíces son los nodos que no son hijos de otro.
+
             boolean[] child = new boolean[nodes.size()];
             for (JsonElement n : nodes) for (JsonElement c : array(n.getAsJsonObject(), "children")) child[c.getAsInt()] = true;
             for (int i = 0; i < nodes.size(); i++) if (!child[i]) roots.add(i);
@@ -133,7 +123,7 @@ public final class FSHFGltfLoader {
 
         private void addPrimitive(JsonObject p, double[] m) throws IOException {
             int mode = p.has("mode") ? p.get("mode").getAsInt() : 4;
-            if (mode != 4) return; // solo triángulos (se ignoran líneas y puntos)
+            if (mode != 4) return;
             JsonObject attributes = p.getAsJsonObject("attributes");
             if (!attributes.has("POSITION")) return;
 
@@ -153,7 +143,6 @@ public final class FSHFGltfLoader {
             if (normals != null && normals.length != positions.length) normals = null;
             if (uvs != null && uvs.length / 2 != vertices) uvs = null;
 
-            // Aplicar la transformación del nodo a posiciones y normales.
             double[] n = normalMatrix(m);
             for (int i = 0; i < positions.length; i += 3) {
                 double x = positions[i], y = positions[i + 1], z = positions[i + 2];
@@ -173,7 +162,7 @@ public final class FSHFGltfLoader {
                     }
                 }
             }
-            // Una escala negativa (espejo) invierte el orden de los vértices: lo corregimos.
+
             if (n[9] < 0) {
                 for (int i = 0; i < indices.length; i += 3) {
                     int t = indices[i + 1];
@@ -209,7 +198,6 @@ public final class FSHFGltfLoader {
             return result;
         }
 
-        /** Bytes de la imagen de una textura, o null si JavaFX no puede mostrarla (p. ej. WebP/KTX2). */
         private byte[] textureImage(int textureIndex) throws IOException {
             JsonObject texture = array(json, "textures").get(textureIndex).getAsJsonObject();
             if (!texture.has("source")) return null;
@@ -268,7 +256,7 @@ public final class FSHFGltfLoader {
             int n = componentsOf(acc.get("type").getAsString());
             if (n != components) throw new IOException("Tipo de dato inesperado en el modelo.");
             float[] out = new float[count * n];
-            if (!acc.has("bufferView")) return out; // sin datos = ceros
+            if (!acc.has("bufferView")) return out;
             int type = acc.get("componentType").getAsInt();
             boolean normalized = acc.has("normalized") && acc.get("normalized").getAsBoolean();
             View v = view(acc, n, sizeOf(type), count);
@@ -354,8 +342,6 @@ public final class FSHFGltfLoader {
         return e != null && e.isJsonArray() ? e.getAsJsonArray() : new JsonArray();
     }
 
-    // ---------------------------------------------------------------- Matrices 4x4 (por columnas, como glTF)
-
     static double[] identity() {
         return new double[] {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
     }
@@ -372,7 +358,6 @@ public final class FSHFGltfLoader {
         return r;
     }
 
-    /** Matriz del nodo: "matrix" o traslación + rotación (cuaternión) + escala. */
     static double[] localMatrix(JsonObject node) {
         JsonArray matrix = array(node, "matrix");
         if (matrix.size() == 16) {
@@ -400,10 +385,6 @@ public final class FSHFGltfLoader {
         return v;
     }
 
-    /**
-     * Matriz para transformar normales (inversa transpuesta de la parte 3x3), por filas,
-     * con el signo del determinante en la posición 9 (negativo = la malla está espejada).
-     */
     static double[] normalMatrix(double[] m) {
         double a00 = m[0], a01 = m[4], a02 = m[8];
         double a10 = m[1], a11 = m[5], a12 = m[9];

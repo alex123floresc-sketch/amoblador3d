@@ -49,17 +49,6 @@ import pe.edu.unaj.amoblador3d.scene.FSHFModelLibrary;
 import pe.edu.unaj.amoblador3d.scene.FSHFSceneView;
 import pe.edu.unaj.amoblador3d.util.FSHFAppLog;
 
-/**
- * Herramienta para el plan de pruebas (no es una prueba de Maven): abre la aplicación real con una
- * carpeta de datos temporal y ejecuta las pruebas manuales de sistema del documento 06 que dependen de
- * la interfaz (PM-01, 02, 05, 06, 08, 09, 11 y 14). Imprime «PASA» o «FALLA» por cada una.
- *
- * <pre>
- * java -Damoblador.home=C:\temp\comprobacion -cp (clases + dependencias) pe.edu.unaj.amoblador3d.ui.ComprobacionSistema$Main
- * </pre>
- *
- * Nunca usa la carpeta de datos real: si no se indica {@code amoblador.home}, se detiene.
- */
 public final class FSHFComprobacionSistema extends Application {
     private final Deque<Runnable> steps = new ArrayDeque<>();
     private final Map<String, String> results = new LinkedHashMap<>();
@@ -82,7 +71,7 @@ public final class FSHFComprobacionSistema extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         this.stage = stage;
-        FSHFAppLog.init(FSHFAppPaths.logsDir()); // igual que App al arrancar
+        FSHFAppLog.init(FSHFAppPaths.logsDir());
         db = new FSHFDatabase(FSHFAppPaths.database());
         userModels = new FSHFUserModels(new FSHFCatalogRepository(db), FSHFAppPaths.modelsDir());
         List<String> warnings = new ArrayList<>();
@@ -112,7 +101,7 @@ public final class FSHFComprobacionSistema extends Application {
             return home.spaces.size() == 4 && names.contains("sala") && names.contains("dormitorio")
                     && names.contains("cocina") && names.contains("baño");
         }));
-        later(() -> menu("Casa completa")); // vuelve a un solo ambiente
+        later(() -> menu("Casa completa"));
         later(() -> menu("Recorrido"));
         later(() -> check("PM-05", "En el recorrido no se atraviesan las paredes", () -> {
             FSHFDesign design = (FSHFDesign) get("design");
@@ -121,7 +110,7 @@ public final class FSHFComprobacionSistema extends Application {
             walkable.setAccessible(true);
             FSHFRoomDims r = design.room();
             Point3D eye = new Point3D(r.width() / 2, 1.6, r.length() / 2);
-            // 200 pasos de 10 cm hacia la pared izquierda: debe detenerse antes de ella.
+
             for (int i = 0; i < 200; i++) eye = (Point3D) walkable.invoke(view, eye, eye.add(-0.1, 0, 0));
             return eye.getX() > 0.1;
         }));
@@ -202,8 +191,6 @@ public final class FSHFComprobacionSistema extends Application {
     private interface Check {
         boolean run() throws Exception;
     }
-
-    // ------------------------------------------------------------ pasos (como en FSHFCapturas)
 
     private void later(Runnable step) {
         steps.add(step);

@@ -1,19 +1,13 @@
-# Maven
 target/
 
-# IDE
 .idea/workspace.xml
 *.iml
 .vscode/
 
-# Versión Electron anterior
 node_modules/
 dist/
 release/
 
-# Archivos temporales de Word/Office
 ~$*
 
-# Documentación: en GitHub solo van los Word (documentacion/doc 2).
-# Los Markdown de los que se generan se quedan en la computadora del equipo.
 documentacion/*.md

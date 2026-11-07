@@ -1,15 +1,5 @@
 package pe.edu.unaj.amoblador3d.model;
 
-/**
- * Bloque macizo del piso al techo dentro de la habitación: una columna, un muro interno o el
- * recorte de una esquina (que convierte la habitación en una "L"). Es un rectángulo alineado
- * a los ejes; los muebles no lo atraviesan y no puede tapar ventanas ni puertas.
- * <ul>
- *   <li>x, z: centro en planta; width: medida en X; depth: medida en Z.</li>
- *   <li>corner: solo en los recortes, la esquina que ocupan (el recorte siempre toca dos paredes).</li>
- *   <li>material y color: su acabado (los de pared).</li>
- * </ul>
- */
 public final class FSHFColumn {
     public enum Kind {
         COLUMN("column", "Columna", 0.3, 0.3),
@@ -27,7 +17,6 @@ public final class FSHFColumn {
             this.defaultDepth = depth;
         }
 
-        /** Texto que se guarda en los archivos y en la base de datos. */
         public String id() {
             return id;
         }
@@ -50,7 +39,6 @@ public final class FSHFColumn {
         }
     }
 
-    /** Esquinas de la habitación (para los recortes en L). */
     public enum Corner {
         NOROESTE("noroeste", "Noroeste", false, false),
         NORESTE("noreste", "Noreste", true, false),
@@ -59,7 +47,6 @@ public final class FSHFColumn {
 
         private final String id;
         private final String label;
-        /** true si la esquina está en el lado este (x = ancho) / sur (z = largo). */
         public final boolean east, south;
 
         Corner(String id, String label, boolean east, boolean south) {
@@ -127,7 +114,6 @@ public final class FSHFColumn {
         return z + depth / 2;
     }
 
-    /** Lleva un recorte a su esquina (el centro depende de la esquina y las medidas). */
     public void placeInCorner(FSHFRoomDims r) {
         x = corner.east ? r.width() - width / 2 : width / 2;
         z = corner.south ? r.length() - depth / 2 : depth / 2;

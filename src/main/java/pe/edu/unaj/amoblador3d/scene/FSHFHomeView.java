@@ -38,24 +38,8 @@ import pe.edu.unaj.amoblador3d.model.FSHFProject;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Vista de la casa completa: todos los ambientes juntos, en 3D o en planta, cada uno con sus
- * paredes, muebles y luces (las luces de un ambiente solo iluminan ese ambiente).
- *
- * <p>Se trabaja en un piso a la vez: en 3D se ven ese piso y los de abajo (los de arriba se
- * ocultan para ver dentro) y en planta solo ese piso. Donde la puerta de un ambiente da contra el
- * muro de otro, ese muro se abre (un vano) para que se pueda pasar.
- *
- * <ul>
- *   <li>Clic en un ambiente: lo elige. Doble clic: lo abre para decorarlo.</li>
- *   <li>Arrastrar el ambiente elegido (en planta, cualquiera): lo mueve en el plano de la casa.
- *       Se pega muro con muro a los demás y nunca se encima con otro.</li>
- *   <li>3D: botón izquierdo gira, derecho mueve, rueda acerca. Planta: arrastrar el vacío mueve.</li>
- * </ul>
- */
 public final class FSHFHomeView {
     private static final String SPACE = "amoblador.space";
-    /** A esta distancia (m) un muro "se pega" al de otro ambiente. */
     private static final double SNAP = 0.35;
     private static final double CLICK_TOLERANCE = 5;
     private static final LinearGradient BACKGROUND = new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
@@ -75,7 +59,6 @@ public final class FSHFHomeView {
     private FSHFHome home = new FSHFHome();
     private final List<SpaceNode> nodes = new ArrayList<>();
     private FSHFHome.Space selected;
-    /** Piso en el que se trabaja. */
     private int level;
 
     private Consumer<FSHFHome.Space> onSelect = s -> {};
@@ -83,14 +66,12 @@ public final class FSHFHomeView {
     private Runnable onMoved = () -> {};
     private Consumer<String> onStatus = s -> {};
 
-    // Ratón
     private double pressX, pressY, lastX, lastY;
     private FSHFHome.Space dragging;
     private double dragDx, dragDz;
     private boolean moved;
     private List<double[]> guides = List.of();
 
-    /** Los nodos 3D de un ambiente: su ubicación en la casa es {@code position} y luego {@code turn}. */
     private record SpaceNode(FSHFHome.Space space, Group group, Translate position, Rotate turn, FSHFRoomView room) {}
 
     public FSHFHomeView(FSHFCatalog catalog, FSHFModelLibrary models) {
@@ -98,11 +79,11 @@ public final class FSHFHomeView {
         this.models = models;
         ground.setMaterial(FSHFMaterials.PLINTH);
         ground.setMouseTransparent(true);
-        // La base de la casa no recibe las luces de los ambientes: tiene su propia luz.
+
         javafx.scene.AmbientLight groundLight = new javafx.scene.AmbientLight(Color.gray(0.85));
         groundLight.getScope().add(ground);
         Group world = new Group(ground, groundLight, spacesGroup);
-        world.getTransforms().add(new Rotate(180, Rotate.X_AXIS)); // Y hacia arriba, como en cada ambiente
+        world.getTransforms().add(new Rotate(180, Rotate.X_AXIS));
         subScene = new SubScene(new Group(world, cam.camera), 100, 100, true, SceneAntialiasing.BALANCED);
         subScene.setFill(Color.TRANSPARENT);
         subScene.setCamera(cam.camera);
@@ -125,17 +106,14 @@ public final class FSHFHomeView {
         onSelect = c;
     }
 
-    /** Doble clic sobre un ambiente: abrirlo para decorarlo. */
     public void setOnOpen(Consumer<FSHFHome.Space> c) {
         onOpen = c;
     }
 
-    /** Al soltar un ambiente que se movió (para registrarlo en deshacer). */
     public void setOnMoved(Runnable r) {
         onMoved = r;
     }
 
-    /** Textos para la barra de estado mientras se arrastra. */
     public void setOnStatus(Consumer<String> c) {
         onStatus = c;
     }
@@ -161,7 +139,6 @@ public final class FSHFHomeView {
         return level;
     }
 
-    /** Pasa a trabajar en otro piso. */
     public void setLevel(int l) {
         level = Math.max(0, l);
         if (selected != null && selected.level != level) selected = null;
@@ -169,7 +146,6 @@ public final class FSHFHomeView {
         render();
     }
 
-    /** Vuelve a construir todos los ambientes. */
     public void show(FSHFHome h) {
         home = h;
         spacesGroup.getChildren().clear();
@@ -177,7 +153,7 @@ public final class FSHFHomeView {
         if (selected != null && !h.spaces.contains(selected)) selected = null;
         for (FSHFHome.Space s : h.spaces) {
             FSHFDesign d = new FSHFDesign(catalog);
-            // Los vanos hacia los ambientes vecinos solo se dibujan: no se guardan en el ambiente.
+
             FSHFProject p = s.project.copy();
             p.openings.addAll(h.passagesInto(s));
             d.load(p);
@@ -193,13 +169,13 @@ public final class FSHFHomeView {
             Group g = new Group(room.group, furniture.group, lights.group);
             g.getTransforms().addAll(position, turn);
             g.getProperties().put(SPACE, s);
-            // Las luces de cada ambiente solo lo iluminan a él (JavaFX ilumina con pocas luces a la vez).
+
             for (Node n : lights.group.getChildren()) {
                 if (n instanceof LightBase light) light.getScope().add(g);
-                // Los símbolos de bombillas y focos (en el aire) estorban al ver la casa; la mancha del sol se queda.
+
                 else if (n.getBoundsInParent().getMinY() > 0.05) n.setVisible(false);
             }
-            // La base de cada habitación se reemplaza por una sola base para toda la casa.
+
             hidePlinth(room.group);
             spacesGroup.getChildren().add(g);
             SpaceNode node = new SpaceNode(s, g, position, turn, room);
@@ -212,21 +188,16 @@ public final class FSHFHomeView {
         render();
     }
 
-    /**
-     * Lleva el ambiente a su lugar en la casa: lo gira sobre su esquina y lo traslada para que la
-     * planta girada empiece en (x, z), a la altura de su piso.
-     */
     private void place(SpaceNode n) {
         FSHFHome.Space s = n.space();
         double[] m = s.matrix();
         n.position().setX(m[2]);
         n.position().setY(home.elevation(s.level));
         n.position().setZ(m[5]);
-        // Rotate en Y gira de X hacia -Z; el giro de la casa es horario visto desde arriba.
+
         n.turn().setAngle(-s.rotation);
     }
 
-    /** Muestra los pisos hasta el actual; solo los ambientes del piso actual se pueden elegir. */
     private void updateLevels() {
         boolean plan = cam.mode == FSHFViewCamera.Mode.PLAN;
         for (SpaceNode n : nodes) {
@@ -242,14 +213,12 @@ public final class FSHFHomeView {
         }
     }
 
-    /** Actualiza la posición de un ambiente sin reconstruirlo. */
     public void moved(FSHFHome.Space s) {
         for (SpaceNode n : nodes) if (n.space() == s) place(n);
         updateGround();
         render();
     }
 
-    /** Encuadra la casa completa (hasta el piso actual). */
     public void frame() {
         double[] b = bounds();
         double y0 = home.elevation(level), h = y0 + home.levelHeight(level);
@@ -262,7 +231,6 @@ public final class FSHFHomeView {
         render();
     }
 
-    /** {minX, minZ, maxX, maxZ} de toda la casa, con los muros. */
     private double[] bounds() {
         if (home.spaces.isEmpty()) return new double[] {0, 0, 4, 4};
         double[] b = {Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE};
@@ -297,7 +265,6 @@ public final class FSHFHomeView {
         render();
     }
 
-    /** Imagen de la vista, {@code scale} veces el tamaño de la pantalla (para la miniatura del proyecto). */
     public WritableImage snapshot(double scale) {
         SnapshotParameters params = new SnapshotParameters();
         params.setFill(Color.web("#2b3036"));
@@ -305,14 +272,10 @@ public final class FSHFHomeView {
         return root.snapshot(params, null);
     }
 
-    // ---------------------------------------------------------------- Dibujo
-
     private void render() {
         boolean plan = cam.mode == FSHFViewCamera.Mode.PLAN;
         Point3D eye = cam.eye();
         for (SpaceNode n : nodes) {
-            // Cada habitación oculta las paredes que tapan su interior, vista desde la cámara. Los
-            // pisos de abajo se ven completos (sus paredes sostienen el piso actual).
             FSHFHome.Space s = n.space();
             double[] local = s.toLocal(eye.getX(), eye.getZ());
             Point3D localEye = new Point3D(local[0], eye.getY() - home.elevation(s.level), local[1]);
@@ -355,7 +318,6 @@ public final class FSHFHomeView {
         }
     }
 
-    /** Cartel con el nombre y (si {@code info} no es null) el área del ambiente. */
     private static void label(GraphicsContext g, Point2D at, String name, String info, boolean active) {
         double w = Math.max(name.length() * 8.2, info == null ? 0 : info.length() * 6.2) + 20, h = info == null ? 22 : 38;
         double x = at.getX() - w / 2, y = at.getY() - h / 2;
@@ -377,9 +339,6 @@ public final class FSHFHomeView {
         g.fillText(info, at.getX(), y + 27);
     }
 
-    // ---------------------------------------------------------------- Ratón
-
-    /** Punto bajo el ratón sobre el piso actual (a la altura de ese piso). */
     private Point3D floorPoint(double x, double y) {
         return cam.planePoint(x, y, home.elevation(level));
     }
@@ -401,7 +360,7 @@ public final class FSHFHomeView {
             moved = false;
             if (e.getButton() != MouseButton.PRIMARY) return;
             FSHFHome.Space s = pick(e.getPickResult());
-            // En 3D solo se arrastra el ambiente ya elegido (así arrastrar sobre la casa la gira).
+
             if (s != null && (isPlan() || s == selected)) {
                 Point3D p = floorPoint(e.getX(), e.getY());
                 if (p == null) return;
@@ -459,10 +418,6 @@ public final class FSHFHomeView {
         });
     }
 
-    /**
-     * Lleva el ambiente lo más cerca posible de (x, z): con imán, sus muros se pegan a los de los
-     * demás (y se alinean sus bordes). Si así se encimaría con otro, prueba moverlo solo en X o en Z.
-     */
     private void drag(FSHFHome.Space s, double x, double z, boolean magnet) {
         double t = s.project.room.wallThickness(), w = s.planWidth() + 2 * t, l = s.planLength() + 2 * t;
         List<double[]> lines = new ArrayList<>();
@@ -473,7 +428,7 @@ public final class FSHFHomeView {
             for (FSHFHome.Space o : home.spaces) {
                 if (o == s || o.level != s.level) continue;
                 double[] b = o.outer();
-                // Bordes en X: pegado por fuera (muro con muro) o alineado.
+
                 for (double[] pair : new double[][] {{minX, b[2]}, {minX + w, b[0]}, {minX, b[0]}, {minX + w, b[2]}}) {
                     double d = pair[1] - pair[0];
                     if (Math.abs(d) < bestX) {

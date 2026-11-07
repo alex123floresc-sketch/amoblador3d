@@ -43,29 +43,16 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Vista 3D: une la habitación, las luces, los muebles y la capa de cotas, y atiende el ratón.
- * <ul>
- *   <li>Clic sobre un elemento: lo selecciona (clic en el vacío: deselecciona).</li>
- *   <li>Arrastrar un mueble: lo mueve sobre el piso (la cámara se queda quieta).</li>
- *   <li>3D: botón izquierdo gira, derecho mueve, rueda acerca. Planta: izquierdo o derecho mueven.</li>
- * </ul>
- * Convención: 1 unidad = 1 metro.
- */
 public final class FSHFSceneView {
     private static final String ENTITY = "amoblador.entity";
-    private static final double CLICK_TOLERANCE = 5; // píxeles: si el ratón se movió más, fue un arrastre
-    /** Fondo: degradado vertical, más claro arriba, para dar sensación de profundidad. */
+    private static final double CLICK_TOLERANCE = 5;
     private static final LinearGradient BACKGROUND = new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
             new Stop(0, Color.web("#46505c")), new Stop(0.55, Color.web("#2b3036")), new Stop(1, Color.web("#1d2125")));
 
-    /** Vista 3D (órbita), planta y recorrido en primera persona. */
     public enum Mode { THREE_D, PLAN, WALK }
 
-    /** Fondo de noche: casi negro, con un poco de azul arriba. */
     private static final LinearGradient NIGHT = new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
             new Stop(0, Color.web("#141b2b")), new Stop(1, Color.web("#07090d")));
-    /** Recorrido: velocidad al caminar (m/s), giro con las flechas (rad/s) y "radio" de la persona (m). */
     private static final double WALK_SPEED = 1.4, TURN_SPEED = 1.8, BODY = 0.2;
 
     private final FSHFDesign design;
@@ -77,24 +64,20 @@ public final class FSHFSceneView {
     private final FSHFFurnitureView furniture;
     private final FSHFOverlay overlay = new FSHFOverlay();
 
-    /** Lo seleccionado: un elemento cualquiera o varios muebles. */
     private List<Object> selection = List.of();
     private boolean magnet = true;
     private List<FSHFSnapper.Guide> guides = List.of();
     private boolean showDimensions = true;
     private boolean night;
-    /** Teclas de movimiento apretadas en el recorrido. */
     private final Set<KeyCode> walkKeys = EnumSet.noneOf(KeyCode.class);
     private boolean running;
     private long lastFrame;
     private boolean dirty = true;
 
-    // Herramienta de medir: A y B son los extremos (B = null mientras se elige el segundo punto).
     private boolean measuring;
     private Point3D measureA, measureB, measureHover;
     private Consumer<String> onMeasure = text -> {};
 
-    /** (entidad, agregar): agregar = true con Shift o Ctrl (selección múltiple). */
     private BiConsumer<Object, Boolean> onSelect = (e, add) -> {};
     private Consumer<List<FSHFFurniture>> onBandSelect = list -> {};
     private Consumer<String> onNotice = text -> {};
@@ -102,17 +85,16 @@ public final class FSHFSceneView {
     private Runnable onDragEnd = () -> {};
     private Runnable onRendered = () -> {};
 
-    // Estado del ratón
     private double pressX, pressY, lastX, lastY;
     private Object pressEntity;
     private FSHFFurniture dragItem;
     private List<FSHFFurniture> dragGroup = List.of();
     private double dragDx, dragDz;
     private boolean dragMoved;
-    // Selección con rectángulo (Shift + arrastrar)
+
     private boolean bandArmed, banding;
     private double bandX, bandY;
-    // Asas para estirar y girar el mueble seleccionado, y el mueble bajo el ratón
+
     private final FSHFFurnitureHandles handles = new FSHFFurnitureHandles();
     private FSHFFurnitureHandles.Kind hoverHandle;
     private FSHFFurniture hover;
@@ -122,12 +104,11 @@ public final class FSHFSceneView {
         furniture = new FSHFFurnitureView(models, onWarning);
         furniture.setOnModelLoaded(this::redraw);
 
-        // El mundo se gira 180° en X: así dentro de él Y apunta hacia arriba, como en el proyecto.
         Group world = new Group(room.group, furniture.group, lights.group);
         world.getTransforms().add(new Rotate(180, Rotate.X_AXIS));
         Group sceneRoot = new Group(world, cam.camera);
         subScene = new SubScene(sceneRoot, 100, 100, true, SceneAntialiasing.BALANCED);
-        // El degradado va detrás de la escena 3D (que es transparente).
+
         subScene.setFill(Color.TRANSPARENT);
         subScene.setCamera(cam.camera);
 
@@ -139,7 +120,6 @@ public final class FSHFSceneView {
         root.setMinSize(0, 0);
         root.setFocusTraversable(true);
 
-        // Ajustar el tamaño al del contenedor.
         root.widthProperty().addListener((obs, o, n) -> resize());
         root.heightProperty().addListener((obs, o, n) -> resize());
 
@@ -166,7 +146,6 @@ public final class FSHFSceneView {
         }.start();
     }
 
-    /** Marca un nodo como parte de una entidad (abertura, luz o mueble) para poder seleccionarla con el ratón. */
     static void tag(Node node, Object entity) {
         node.getProperties().put(ENTITY, entity);
     }
@@ -179,17 +158,14 @@ public final class FSHFSceneView {
         onSelect = c;
     }
 
-    /** Muebles dentro del rectángulo dibujado con Shift + arrastrar. */
     public void setOnBandSelect(Consumer<List<FSHFFurniture>> c) {
         onBandSelect = c;
     }
 
-    /** Avisos breves para la barra de estado (p. ej. "está bloqueado"). */
     public void setOnNotice(Consumer<String> c) {
         onNotice = c;
     }
 
-    /** Imán: al arrastrar, los muebles se pegan a paredes y a otros muebles. */
     public void setMagnet(boolean on) {
         magnet = on;
     }
@@ -202,7 +178,6 @@ public final class FSHFSceneView {
         onDragEnd = r;
     }
 
-    /** Recibe el texto de la medición ("Distancia: 2,35 m") cada vez que cambia. */
     public void setOnMeasure(Consumer<String> c) {
         onMeasure = c;
     }
@@ -211,10 +186,6 @@ public final class FSHFSceneView {
         return measuring;
     }
 
-    /**
-     * Activa o desactiva la herramienta de medir: cada par de clics sobre el piso mide la
-     * distancia entre ellos. Los puntos se pegan a las paredes y a las esquinas de los muebles.
-     */
     public void setMeasuring(boolean on) {
         measuring = on;
         clearMeasure();
@@ -231,7 +202,6 @@ public final class FSHFSceneView {
         redraw();
     }
 
-    /** El mueble al que se le muestran las asas: uno solo seleccionado, sin bloquear, fuera del recorrido. */
     private FSHFFurniture handleTarget() {
         if (selection.size() != 1 || !(selection.get(0) instanceof FSHFFurniture f) || f.locked) return null;
         if (measuring || cam.mode == FSHFViewCamera.Mode.WALK || dragItem != null) return null;
@@ -267,7 +237,6 @@ public final class FSHFSceneView {
         return night;
     }
 
-    /** Modo noche: sin sol, poca luz ambiental y fondo oscuro (solo se ve; no cambia el proyecto). */
     public void setNight(boolean on) {
         night = on;
         lights.setNight(on);
@@ -285,7 +254,6 @@ public final class FSHFSceneView {
         redraw();
     }
 
-    /** Encuadra la habitación completa (incluye el grosor de los muros). */
     public void frameRoom() {
         if (cam.mode == FSHFViewCamera.Mode.WALK) {
             startWalk();
@@ -297,21 +265,18 @@ public final class FSHFSceneView {
         redraw();
     }
 
-    /** Vuelve a construir los muebles (tras recargar el catálogo). */
     public void refreshFurniture() {
         furniture.invalidate();
         furniture.sync(design);
         redraw();
     }
 
-    /** Punto {x, z} del piso bajo el píxel (x, y) de la vista, o null si no se ve el piso ahí. */
     public double[] floorAt(double x, double y) {
         if (cam.mode == FSHFViewCamera.Mode.WALK && y < root.getHeight() / 2) return null;
         Point3D p = cam.floorPoint(x, y);
         return p == null ? null : new double[] {p.getX(), p.getZ()};
     }
 
-    /** Acerca (factor < 1) o aleja (factor > 1) la cámara, como la rueda del ratón. */
     public void zoom(double factor) {
         cam.zoom(factor);
         redraw();
@@ -349,15 +314,10 @@ public final class FSHFSceneView {
         onRendered.run();
     }
 
-    /** Se llama después de cada redibujo (p. ej. para acompañar al mueble con su barra de botones). */
     public void setOnRendered(Runnable r) {
         onRendered = r;
     }
 
-    /**
-     * Píxel de la vista donde se ve el centro de la parte de arriba del mueble, o null si no se ve
-     * (detrás de la cámara, en el recorrido o mientras se arrastra).
-     */
     public javafx.geometry.Point2D screenAbove(FSHFFurniture f) {
         if (cam.mode == FSHFViewCamera.Mode.WALK || dragItem != null || handles.active()) return null;
         javafx.geometry.Point2D p = cam.project(new Point3D(f.x, f.height, f.z));
@@ -365,10 +325,6 @@ public final class FSHFSceneView {
         return p;
     }
 
-    /**
-     * Imagen de la vista actual (escena 3D + cotas), {@code scale} veces más grande
-     * que la pantalla. Sin el contorno de selección.
-     */
     public WritableImage snapshot(double scale) {
         List<Object> previous = selection;
         boolean wasMeasuring = measuring;
@@ -378,9 +334,6 @@ public final class FSHFSceneView {
         double w = root.getWidth(), h = root.getHeight();
         int width = (int) Math.round(w * scale), height = (int) Math.round(h * scale);
         try {
-            // La escena 3D se dibuja directamente al tamaño final. (Antes se escalaba la imagen
-            // de la pantalla y JavaFX agrandaba también la distancia a las luces: las paredes
-            // salían más oscuras que en pantalla.)
             subScene.setWidth(width);
             subScene.setHeight(height);
             cam.setViewport(width, height);
@@ -389,7 +342,6 @@ public final class FSHFSceneView {
             WritableImage scene3d = subScene.snapshot(params, null);
             cam.setViewport(w, h);
 
-            // Fondo + escena 3D + cotas (dibujadas con la cámara del tamaño de la pantalla, escaladas).
             Canvas canvas = new Canvas(width, height);
             GraphicsContext g = canvas.getGraphicsContext2D();
             g.setFill(night ? NIGHT : BACKGROUND);
@@ -410,7 +362,6 @@ public final class FSHFSceneView {
         }
     }
 
-    /** Imagen de la planta completa con cotas (para el informe), sin cambiar lo que ve el usuario. */
     public WritableImage planImage(double scale) {
         FSHFViewCamera.State state = cam.state();
         boolean dims = showDimensions;
@@ -426,9 +377,8 @@ public final class FSHFSceneView {
         }
     }
 
-    /** Imagen 3D: la vista actual si se está en 3D; si no, la vista 3D encuadrada. */
     public WritableImage viewImage(double scale) {
-        if (cam.mode != FSHFViewCamera.Mode.PLAN) return snapshot(scale); // vista 3D o recorrido: lo que se ve
+        if (cam.mode != FSHFViewCamera.Mode.PLAN) return snapshot(scale);
         FSHFViewCamera.State state = cam.state();
         cam.mode = FSHFViewCamera.Mode.THREE_D;
         frameRoom();
@@ -440,14 +390,10 @@ public final class FSHFSceneView {
         }
     }
 
-    // ---------------------------------------------------------------- Recorrido
-
-    /** Altura de los ojos: 1,60 m, o menos si el techo es bajo. */
     private double eyeHeight() {
         return Math.min(1.6, design.room().height() - 0.25);
     }
 
-    /** Empieza el recorrido en la primera puerta (o en el centro si no hay puertas). */
     private void startWalk() {
         for (FSHFOpening o : design.openings()) {
             if (o.type.isDoor()) {
@@ -461,25 +407,20 @@ public final class FSHFSceneView {
         redraw();
     }
 
-    /** Recorrido parado en una puerta, mirando hacia dentro de la habitación. */
     public void walkFromDoor(FSHFOpening door) {
         cam.mode = FSHFViewCamera.Mode.WALK;
         FSHFWallFrame wall = FSHFWallFrame.of(door.wall, design.room());
         Point3D n = wall.interiorNormal();
-        Point3D at = wall.point(door.offset + door.width / 2, 0, -0.6); // 60 cm dentro de la habitación
+        Point3D at = wall.point(door.offset + door.width / 2, 0, -0.6);
         cam.walkTo(at.getX(), eyeHeight(), at.getZ(), Math.atan2(-n.getX(), -n.getZ()));
         redraw();
     }
 
-    /**
-     * Hasta dónde se puede caminar de {@code from} hacia {@code to} sin atravesar paredes ni
-     * muebles. Si choca, intenta deslizarse solo en X o solo en Z (como al arrastrar muebles).
-     */
     private Point3D walkable(Point3D from, Point3D to) {
         for (Point3D p : new Point3D[] {to, new Point3D(to.getX(), to.getY(), from.getZ()), new Point3D(from.getX(), to.getY(), to.getZ())}) {
             if (free(p.getX(), p.getZ())) return p;
         }
-        return free(from.getX(), from.getZ()) ? from : to; // si ya estaba "dentro" de algo, que pueda salir
+        return free(from.getX(), from.getZ()) ? from : to;
     }
 
     private boolean free(double x, double z) {
@@ -498,7 +439,6 @@ public final class FSHFSceneView {
         };
     }
 
-    /** W/S o ↑/↓ avanzan, A/D se mueven de costado, ←/→ giran; con Shift se corre. */
     private void installWalkKeys() {
         root.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
             if (cam.mode != FSHFViewCamera.Mode.WALK || !isWalkKey(e.getCode()) || e.isShortcutDown() || e.isAltDown()) return;
@@ -533,9 +473,6 @@ public final class FSHFSceneView {
         return walkKeys.contains(a) || walkKeys.contains(b);
     }
 
-    // ---------------------------------------------------------------- Vistas guardadas
-
-    /** La vista actual con un nombre, para guardarla en el proyecto. */
     public FSHFCameraView currentView(String name) {
         double[] v = cam.values();
         FSHFCameraView.Kind kind = switch (cam.mode) {
@@ -546,7 +483,6 @@ public final class FSHFSceneView {
         return new FSHFCameraView(name, kind, v[0], v[1], v[2], v[3], v[4], v[5]);
     }
 
-    /** Lleva la cámara a una vista guardada (también cambia de modo si hace falta). */
     public void showView(FSHFCameraView v) {
         FSHFViewCamera.Mode m = switch (v.kind()) {
             case PLAN -> FSHFViewCamera.Mode.PLAN;
@@ -558,11 +494,8 @@ public final class FSHFSceneView {
         redraw();
     }
 
-    // ---------------------------------------------------------------- Medir
-
     private static final double SNAP_WALL = 0.06, SNAP_CORNER = 0.1;
 
-    /** Punto del piso bajo el ratón, pegado a una esquina de mueble o a una pared si está cerca. */
     private Point3D measurePoint(double sx, double sy) {
         Point3D p = cam.floorPoint(sx, sy);
         if (p == null) return null;
@@ -612,18 +545,16 @@ public final class FSHFSceneView {
                 + " · Z: " + FSHFUnits.meters(Math.abs(b.getZ() - a.getZ())) + ")";
     }
 
-    // ---------------------------------------------------------------- Ratón
-
     private void installMouse() {
         subScene.setOnMousePressed(e -> {
-            root.requestFocus(); // quita el foco de los campos de texto (y confirma lo escrito)
+            root.requestFocus();
             pressX = lastX = e.getX();
             pressY = lastY = e.getY();
             pressEntity = pick(e.getPickResult());
             dragItem = null;
             dragMoved = false;
             bandArmed = banding = false;
-            if (measuring) return; // al medir, el ratón no selecciona ni arrastra muebles
+            if (measuring) return;
             if (e.getButton() != MouseButton.PRIMARY) return;
             FSHFFurniture target = handleTarget();
             if (target != null) {
@@ -635,18 +566,15 @@ public final class FSHFSceneView {
                 }
             }
             if (e.isShiftDown() || e.isShortcutDown()) {
-                // Clic: agrega o quita de la selección. Arrastrar: rectángulo de selección.
                 bandArmed = true;
                 bandX = e.getX();
                 bandY = e.getY();
                 return;
             }
             if (pressEntity instanceof FSHFFurniture f) {
-                // Diferencia entre el punto del piso clicado y el centro del mueble, para que
-                // no "salte" al centro del cursor al empezar a arrastrar.
                 Point3D p = cam.floorPoint(e.getX(), e.getY());
                 if (p == null) return;
-                // Si el mueble es parte de una selección múltiple, se arrastra todo el grupo.
+
                 List<FSHFFurniture> group = selectedFurniture();
                 if (group.size() < 2 || !group.contains(f)) {
                     group = List.of(f);
@@ -738,7 +666,6 @@ public final class FSHFSceneView {
         subScene.setOnScroll(e -> {
             if (e.getDeltaY() == 0) return;
             if (cam.mode == FSHFViewCamera.Mode.WALK) {
-                // En el recorrido la rueda avanza o retrocede 30 cm.
                 Point3D step = cam.walkForward().multiply(e.getDeltaY() > 0 ? 0.3 : -0.3);
                 cam.setWalkEye(walkable(cam.walkEye(), cam.walkEye().add(step)));
                 redraw();
@@ -755,7 +682,6 @@ public final class FSHFSceneView {
             }
         });
 
-        // Cambiar el cursor al pasar sobre algo seleccionable.
         subScene.addEventHandler(MouseEvent.MOUSE_MOVED, e -> {
             if (measuring) {
                 if (measureA != null && measureB == null) {
@@ -782,14 +708,13 @@ public final class FSHFSceneView {
                 subScene.setCursor(FSHFFurnitureHandles.cursor(k));
                 return;
             }
-            // Las paredes y el piso también se seleccionan, pero la mano solo aparece sobre objetos.
+
             boolean object = entity != null && !(entity instanceof FSHFSurface);
             boolean movable = entity instanceof FSHFFurniture f && !f.locked;
             subScene.setCursor(movable ? Cursor.OPEN_HAND : object ? Cursor.HAND : Cursor.DEFAULT);
         });
     }
 
-    /** Muebles cuyo centro (a media altura) se ve dentro del rectángulo de selección. */
     private List<FSHFFurniture> furnitureInBand() {
         double x0 = Math.min(pressX, bandX), x1 = Math.max(pressX, bandX);
         double y0 = Math.min(pressY, bandY), y1 = Math.max(pressY, bandY);
@@ -801,7 +726,6 @@ public final class FSHFSceneView {
         return inside;
     }
 
-    /** Sube por los padres del nodo clicado hasta encontrar a qué entidad pertenece. */
     private static Object pick(PickResult result) {
         for (Node n = result == null ? null : result.getIntersectedNode(); n != null; n = n.getParent()) {
             Object entity = n.getProperties().get(ENTITY);

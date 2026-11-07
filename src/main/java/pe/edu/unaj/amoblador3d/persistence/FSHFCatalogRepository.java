@@ -8,12 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Modelos 3D importados por el usuario (tabla catalog_model). */
 public final class FSHFCatalogRepository {
-    /**
-     * @param file     ruta del archivo relativa a la carpeta de modelos ({@link FSHFAppPaths#modelsDir()})
-     * @param rotation grados para que el frente del modelo mire a +Z
-     */
     public record ModelRow(String id, String name, String file, double width, double depth, double height, double rotation) {}
 
     private final FSHFDatabase db;

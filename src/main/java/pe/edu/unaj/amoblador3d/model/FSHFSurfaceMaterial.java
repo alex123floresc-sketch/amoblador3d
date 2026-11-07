@@ -3,10 +3,6 @@ package pe.edu.unaj.amoblador3d.model;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Acabados de paredes, piso y techo. Cada uno tiene un color sugerido (el que toma la superficie
- * al elegirlo) y dice dónde se puede usar: una alfombra en la pared no tiene sentido.
- */
 public enum FSHFSurfaceMaterial {
     PINTURA("pintura", "Pintura mate", "#f2efe9", true, false, true),
     SATINADO("satinado", "Pintura satinada", "#e9eef2", true, false, true),
@@ -36,7 +32,6 @@ public enum FSHFSurfaceMaterial {
         this.ceiling = ceiling;
     }
 
-    /** Texto que se guarda en los archivos y en la base de datos. */
     public String id() {
         return id;
     }
@@ -49,12 +44,10 @@ public enum FSHFSurfaceMaterial {
         return defaultColor;
     }
 
-    /** Si se puede usar en esa superficie (piso, pared o techo). */
     public boolean allowedOn(FSHFSurface s) {
         return s.isFloor() ? floor : s.isCeiling() ? ceiling : wall;
     }
 
-    /** Materiales para paredes (también columnas y muros internos). */
     public boolean allowedOnWalls() {
         return wall;
     }

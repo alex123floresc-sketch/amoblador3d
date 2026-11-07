@@ -8,10 +8,6 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
-/**
- * Aviso que aparece unos segundos sobre la vista 3D y se desvanece solo.
- * Para lo que el usuario debe saber pero no tiene que confirmar ("no hay espacio para la cama").
- */
 final class FSHFToast {
     enum Kind { INFO, ERROR }
 

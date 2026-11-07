@@ -63,7 +63,6 @@ class FSHFDesignTest {
 
     @Test
     void siDerechoNoCabeSePruebaGirado() {
-        // Habitación de 1 m de ancho: la mesa (1.2 x 0.8 m) solo entra girada 90°.
         design.setRoom(new FSHFRoomDims(1, 3, 2.5, 0.15));
         FSHFOutcome<FSHFFurniture> table = design.addFurniture("mesa");
         assertFalse(table.failed(), table.error());
@@ -82,7 +81,7 @@ class FSHFDesignTest {
     @Test
     void arrastrarContraLaParedDeslizaElMueble() {
         FSHFFurniture f = design.addFurniture("mesa").value();
-        // Pedir una posición fuera de la habitación lo deja pegado a la pared, no fuera.
+
         design.moveFurniture(f, -5, f.z);
         assertEquals(f.width / 2, f.x, 1e-9);
     }
@@ -119,7 +118,7 @@ class FSHFDesignTest {
     void lasAberturasNoSeSuperponen() {
         FSHFOpening window = design.windows().get(0);
         FSHFOpening second = design.addOpening(FSHFOpeningType.WINDOW).value();
-        // Mover la segunda encima de la primera debe fallar.
+
         if (second.wall == window.wall) {
             assertNotNull(editor(second).set("offset", window.offset));
         } else {

@@ -7,7 +7,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 
-/** Materiales compartidos (un PhongMaterial por color, así no se crean miles iguales). */
 final class FSHFMaterials {
     private static final Map<String, PhongMaterial> CACHE = new HashMap<>();
 
@@ -42,7 +41,6 @@ final class FSHFMaterials {
         return m;
     }
 
-    /** Vidrio translúcido con un reflejo marcado. */
     private static PhongMaterial glass() {
         PhongMaterial m = new PhongMaterial(Color.rgb(191, 227, 255, 0.3));
         m.setSpecularColor(Color.gray(1));
@@ -50,22 +48,19 @@ final class FSHFMaterials {
         return m;
     }
 
-    /** Color un poco más oscuro (para cajones, puertas del closet...). */
     static PhongMaterial darker(String color, double factor) {
         return of(darkerHex(color, factor));
     }
 
-    /** "#rrggbb" del color multiplicado por {@code factor} (menor que 1 = más oscuro). */
     static String darkerHex(String color, double factor) {
         Color c = Color.web(color);
         return hex(Color.color(clamp(c.getRed() * factor), clamp(c.getGreen() * factor), clamp(c.getBlue() * factor)));
     }
 
-    /** Color con el brillo del acabado (mate, satinado, brillante o metálico). */
     static PhongMaterial finished(String color, FSHFFinish finish) {
         return CACHE.computeIfAbsent(finish.id() + ":" + color, k -> {
             PhongMaterial m = new PhongMaterial(Color.web(color));
-            // El reflejo toma un poco del color en los metales, y es blanco en el resto.
+
             Color spec = finish == FSHFFinish.METALICO
                     ? Color.web(color).interpolate(Color.WHITE, 0.55)
                     : Color.gray(finish.specular());
@@ -84,10 +79,6 @@ final class FSHFMaterials {
         return Math.min(1, Math.max(0, v));
     }
 
-    /**
-     * Material que "brilla" con su propio color sin importar las luces
-     * (para los símbolos de bombillas, focos y sol).
-     */
     static PhongMaterial glow(String color) {
         return CACHE.computeIfAbsent("glow:" + color, c -> {
             WritableImage img = new WritableImage(1, 1);

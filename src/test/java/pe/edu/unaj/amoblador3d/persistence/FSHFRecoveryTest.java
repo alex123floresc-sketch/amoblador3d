@@ -35,7 +35,7 @@ class FSHFRecoveryTest {
         assertEquals(7L, s.projectId());
         assertEquals("Mi cuarto", s.name());
         assertEquals(FSHFHomeJson.write(p), FSHFHomeJson.write(s.home()));
-        // Se puede escribir encima varias veces (reemplaza la copia anterior).
+
         r.write(p, null, "Sin título");
         assertNull(r.read().orElseThrow().projectId());
         r.delete();

@@ -13,7 +13,6 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalog;
 import pe.edu.unaj.amoblador3d.design.FSHFDesign;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 
-/** Asas de la vista 3D: estirar un lado deja quieto el opuesto, el giro se pega cada 15°. */
 class FSHFFurnitureHandlesTest {
     private FSHFDesign design;
     private FSHFViewCamera cam;
@@ -60,7 +59,7 @@ class FSHFFurnitureHandlesTest {
     void elGiroSePegaCada15Grados() {
         FSHFFurnitureHandles h = new FSHFFurnitureHandles();
         h.begin(FSHFFurnitureHandles.Kind.ROTATE, table, 0, 0);
-        // Ratón a la derecha y un poco adelante del centro: unos 70° -> se pega a 75°.
+
         double a = Math.toRadians(70);
         Point2D to = screen(table.x + Math.sin(a), table.z + Math.cos(a));
         assertNotNull(h.drag(design, cam, to.getX(), to.getY(), false));
@@ -73,7 +72,7 @@ class FSHFFurnitureHandlesTest {
         double before = table.width;
         FSHFFurnitureHandles h = new FSHFFurnitureHandles();
         h.begin(FSHFFurnitureHandles.Kind.RIGHT, table, 0, 0);
-        // Hasta la pared este y más allá: el lado no puede salirse de la habitación.
+
         Point2D to = screen(5.5, table.z);
         h.drag(design, cam, to.getX(), to.getY(), false);
         assertTrue(table.x + table.width / 2 <= design.room().width() + 1e-9);

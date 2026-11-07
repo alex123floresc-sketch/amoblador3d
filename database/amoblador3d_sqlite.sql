@@ -1,17 +1,3 @@
--- =============================================================================
--- Amoblador3D: base de datos SQLite (esquema v9)
---
--- Es el mismo esquema que la aplicación crea sola al arrancar
--- (src/main/java/pe/edu/unaj/amoblador3d/persistence/Database.java), más un
--- proyecto de ejemplo. Sirve para revisar o preparar la base sin abrir la app:
---
---   sqlite3 amoblador3d.db < database/amoblador3d_sqlite.sql
---
--- o en DB Browser for SQLite: Archivo > Importar > Base de datos desde archivo SQL.
--- Para que la aplicación la use, copia el .db resultante a
--- %APPDATA%\Amoblador3D\amoblador3d.db (con la aplicación cerrada).
--- =============================================================================
-
 PRAGMA foreign_keys = ON;
 
 BEGIN;
@@ -33,7 +19,7 @@ CREATE TABLE opening (
     project_id  INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position    INTEGER NOT NULL,
     id          TEXT    NOT NULL,
-    -- v9: puerta principal, doble, corrediza, portón de cochera y vano sin puerta
+
     type        TEXT    NOT NULL CHECK (type IN ('window', 'door', 'entry', 'double', 'sliding', 'garage', 'passage')),
     wall        TEXT    NOT NULL CHECK (wall IN ('norte', 'sur', 'este', 'oeste')),
     wall_offset REAL    NOT NULL,
@@ -69,7 +55,7 @@ CREATE TABLE furniture (
     depth      REAL    NOT NULL,
     height     REAL    NOT NULL,
     color      TEXT,
-    locked     INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1)),  -- v4: bloqueado
+    locked     INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1)),
     PRIMARY KEY (project_id, id)
 );
 
@@ -84,7 +70,6 @@ CREATE TABLE catalog_model (
     created_at TEXT NOT NULL
 );
 
--- v2: material y color de las paredes y el piso.
 CREATE TABLE surface (
     project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     id         TEXT    NOT NULL,
@@ -93,8 +78,6 @@ CREATE TABLE surface (
     PRIMARY KEY (project_id, id)
 );
 
--- v3: precios que el usuario cambió en el presupuesto. Solo se guardan los que difieren de
--- los referenciales (los referenciales están en el código: estimate/PriceList.java).
 CREATE TABLE price (
     kind  TEXT NOT NULL CHECK (kind IN ('material', 'furniture', 'extra')),
     item  TEXT NOT NULL,
@@ -102,10 +85,6 @@ CREATE TABLE price (
     PRIMARY KEY (kind, item)
 );
 
--- v5: vistas de cámara guardadas en cada proyecto. Según mode, los números son:
---   3d   -> x, y, z = punto que se mira; yaw, pitch = giro e inclinación (radianes); distance
---   plan -> x, z = centro de la planta; distance = metros visibles de alto
---   walk -> x, y, z = posición de los ojos; yaw, pitch = hacia dónde se mira
 CREATE TABLE camera_view (
     project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position   INTEGER NOT NULL,
@@ -116,8 +95,6 @@ CREATE TABLE camera_view (
     PRIMARY KEY (project_id, position)
 );
 
--- v6: zócalo configurable (alto 0 = sin zócalo) y columnas, muros internos y recortes en L.
--- El techo es una fila más de surface (id 'techo').
 ALTER TABLE project ADD COLUMN baseboard_height REAL NOT NULL DEFAULT 0.08;
 ALTER TABLE project ADD COLUMN baseboard_color TEXT NOT NULL DEFAULT '#f7f5f0';
 
@@ -136,7 +113,6 @@ CREATE TABLE room_column (
     PRIMARY KEY (project_id, id)
 );
 
--- v7: color secundario y acabado de los muebles, y muebles hechos en el Diseñador (JSON).
 ALTER TABLE furniture ADD COLUMN color2 TEXT;
 ALTER TABLE furniture ADD COLUMN finish TEXT;
 
@@ -148,9 +124,6 @@ CREATE TABLE custom_design (
     updated_at TEXT NOT NULL
 );
 
--- v8: casas con varios ambientes. El primer ambiente sigue en las tablas de arriba (data NULL);
--- los demás guardan su contenido como JSON (el mismo formato de los archivos .amob3d).
--- v9: rotation = giro horario visto desde arriba (0, 90, 180, 270); level = piso (0 es el primero).
 CREATE TABLE home_space (
     project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position   INTEGER NOT NULL,
@@ -164,12 +137,8 @@ CREATE TABLE home_space (
     PRIMARY KEY (project_id, position)
 );
 
--- La aplicación lee este número para saber que las tablas ya están creadas.
 PRAGMA user_version = 9;
 
--- -----------------------------------------------------------------------------
--- Proyecto de ejemplo: dormitorio de 4 x 3.5 m
--- -----------------------------------------------------------------------------
 INSERT INTO project (id, name, width, length, height, wall_thickness, ambient, created_at, updated_at)
 VALUES (1, 'Dormitorio de ejemplo', 4.0, 3.5, 2.5, 0.15, 0.6, '2026-10-25T12:00:00Z', '2026-10-25T12:00:00Z');
 
@@ -201,7 +170,6 @@ INSERT INTO home_space (project_id, position, id, name, x, z, data, rotation, le
 INSERT INTO camera_view (project_id, position, name, mode, x, y, z, yaw, pitch, distance) VALUES
     (1, 0, 'Desde la puerta', 'walk', 2.0, 1.6, 2.9, 0.0, 0.0, 0.0);
 
--- Precio cambiado por el usuario: la pintura mate a S/ 70 el galón.
 INSERT INTO price (kind, item, price) VALUES ('material', 'pintura', 70.0);
 
 COMMIT;

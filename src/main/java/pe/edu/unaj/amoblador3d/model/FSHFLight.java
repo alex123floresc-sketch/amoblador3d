@@ -1,19 +1,10 @@
 package pe.edu.unaj.amoblador3d.model;
 
-/**
- * Luz agregada por el usuario. Según el tipo se usan unos campos u otros:
- * <ul>
- *   <li>POINT: x, y, z.</li>
- *   <li>SPOT: x, y, z, targetX, targetZ (punto del piso al que apunta), angle (apertura en grados), penumbra (0..1).</li>
- *   <li>SUN: windowId (ventana por la que entra), elevation (altura del sol) y deviation (desvío lateral), en grados.</li>
- * </ul>
- */
 public final class FSHFLight {
     public String id;
     public FSHFLightType type;
     public String color;
     public double intensity;
-    /** Se conserva por compatibilidad con los archivos de la versión anterior (JavaFX no dibuja sombras). */
     public boolean castShadow = true;
 
     public double x, y, z;

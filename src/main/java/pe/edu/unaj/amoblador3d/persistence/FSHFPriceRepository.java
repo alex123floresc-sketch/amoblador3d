@@ -6,10 +6,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import pe.edu.unaj.amoblador3d.estimate.FSHFPriceList;
 
-/**
- * Precios cambiados por el usuario (tabla price). Solo se guardan los que difieren de los
- * referenciales, así una actualización de la aplicación puede corregir los demás.
- */
 public final class FSHFPriceRepository {
     private final FSHFDatabase db;
 
@@ -17,7 +13,6 @@ public final class FSHFPriceRepository {
         this.db = db;
     }
 
-    /** Lista de precios: los referenciales con los cambios del usuario encima. */
     public FSHFPriceList load() throws SQLException {
         FSHFPriceList prices = new FSHFPriceList();
         String sql = "SELECT kind, item, price FROM price";
@@ -26,7 +21,6 @@ public final class FSHFPriceRepository {
                 try {
                     prices.set(new FSHFPriceList.Key(FSHFPriceList.Kind.fromId(rs.getString(1)), rs.getString(2)), rs.getDouble(3));
                 } catch (IllegalArgumentException ignored) {
-                    // fila dañada o de un tipo que esta versión no conoce: se usa el precio referencial
                 }
             }
         }
@@ -44,7 +38,6 @@ public final class FSHFPriceRepository {
         }
     }
 
-    /** Vuelve a los precios referenciales. */
     public void resetAll() throws SQLException {
         try (Statement st = db.connection().createStatement()) {
             st.executeUpdate("DELETE FROM price");

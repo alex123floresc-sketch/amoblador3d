@@ -25,17 +25,12 @@ import pe.edu.unaj.amoblador3d.persistence.FSHFProjectRepository;
 import pe.edu.unaj.amoblador3d.persistence.FSHFProjectRepository.Summary;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/** Lista de proyectos guardados en la base de datos: abrir, renombrar o eliminar. */
 final class FSHFProjectsDialog {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
             .withLocale(FSHFUnits.LOCALE).withZone(ZoneId.systemDefault());
 
     private FSHFProjectsDialog() {}
 
-    /**
-     * @param currentId el proyecto abierto (no se puede eliminar desde aquí), o null
-     * @return el id del proyecto a abrir
-     */
     static Optional<Long> show(Window owner, FSHFProjectRepository repo, Long currentId) {
         Dialog<Long> dialog = new Dialog<>();
         FSHFDialogs.prepare(dialog, owner, "Abrir proyecto", "Proyectos guardados");
@@ -119,7 +114,6 @@ final class FSHFProjectsDialog {
         return dialog.showAndWait();
     }
 
-    /** Fila con la miniatura, el nombre y la fecha de modificación. */
     private static final class SummaryCell extends ListCell<Summary> {
         @Override
         protected void updateItem(Summary s, boolean empty) {

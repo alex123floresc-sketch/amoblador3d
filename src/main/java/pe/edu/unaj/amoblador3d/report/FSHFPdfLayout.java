@@ -14,13 +14,6 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
-/**
- * Maquetación simple de un PDF A4 vertical: va escribiendo de arriba hacia abajo y pasa a
- * una página nueva cuando no queda espacio. Las tablas repiten su encabezado en cada página.
- *
- * <p>Usa la fuente Helvetica que traen todos los lectores de PDF; solo admite los caracteres de
- * Windows-1252 (incluye tildes, ñ, ² y ×), los demás se reemplazan por "?".
- */
 final class FSHFPdfLayout implements AutoCloseable {
     static final float MARGIN = 42;
     private static final PDRectangle SIZE = PDRectangle.A4;
@@ -50,16 +43,13 @@ final class FSHFPdfLayout implements AutoCloseable {
         y = SIZE.getHeight() - MARGIN;
     }
 
-    /** Pasa a otra página si no quedan {@code height} puntos libres. */
     void ensure(float height) throws IOException {
-        if (y - height < MARGIN + 16) newPage(); // 16: espacio para el número de página
+        if (y - height < MARGIN + 16) newPage();
     }
 
     void space(float points) {
         y -= points;
     }
-
-    // ---------------------------------------------------------------- Texto
 
     void title(String text, String subtitle) throws IOException {
         write(bold, 20, ACCENT, MARGIN, y - 20, text);
@@ -108,7 +98,6 @@ final class FSHFPdfLayout implements AutoCloseable {
         cs.endText();
     }
 
-    /** Reemplaza los caracteres que la fuente no puede dibujar (si no, PDFBox lanza un error). */
     String clean(PDType1Font font, String text) {
         StringBuilder sb = new StringBuilder(text.length());
         text.codePoints().forEach(cp -> {
@@ -129,7 +118,6 @@ final class FSHFPdfLayout implements AutoCloseable {
         return font.getStringWidth(clean(font, text)) / 1000 * size;
     }
 
-    /** Parte el texto en líneas que caben en {@code width} (respeta los saltos de línea). */
     List<String> wrap(String text, PDType1Font font, float size, float width) throws IOException {
         List<String> lines = new ArrayList<>();
         for (String paragraph : text.split("\n", -1)) {
@@ -150,12 +138,8 @@ final class FSHFPdfLayout implements AutoCloseable {
         return lines;
     }
 
-    // ---------------------------------------------------------------- Tablas
-
-    /** Alineación de cada columna. */
     enum Align { LEFT, RIGHT }
 
-    /** Fila de una tabla. {@code strong}: en negrita y con fondo (subtotales, total). */
     record Row(String[] cells, boolean strong) {
         static Row of(String... cells) {
             return new Row(cells, false);
@@ -166,11 +150,6 @@ final class FSHFPdfLayout implements AutoCloseable {
         }
     }
 
-    /**
-     * Dibuja una tabla. Las celdas largas se parten en varias líneas.
-     *
-     * @param widths fracción del ancho de la página para cada columna (suman 1)
-     */
     void table(String[] header, float[] widths, Align[] align, List<Row> rows) throws IOException {
         float size = 9, pad = 4, leading = size + 2.5f;
         float[] w = new float[widths.length];
@@ -220,12 +199,6 @@ final class FSHFPdfLayout implements AutoCloseable {
         cs.stroke();
     }
 
-    // ---------------------------------------------------------------- Imágenes
-
-    /**
-     * Título con una imagen PNG debajo (escalada para caber en el ancho y en {@code maxHeight},
-     * centrada). Si no caben juntos en la página, pasan los dos a la siguiente.
-     */
     void imageSection(String title, byte[] png, String name, float maxHeight) throws IOException {
         PDImageXObject img = PDImageXObject.createFromByteArray(doc, png, name);
         float scale = Math.min(WIDTH / img.getWidth(), maxHeight / img.getHeight());
@@ -236,7 +209,6 @@ final class FSHFPdfLayout implements AutoCloseable {
         y -= h + 8;
     }
 
-    /** Número de página al pie de todas las páginas. */
     void footer(String left) throws IOException {
         cs.close();
         cs = null;

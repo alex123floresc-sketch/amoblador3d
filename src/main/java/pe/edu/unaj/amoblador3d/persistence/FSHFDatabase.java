@@ -9,12 +9,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-/**
- * Conexión a la base de datos SQLite y creación/actualización de las tablas.
- *
- * <p>La versión del esquema se guarda en {@code PRAGMA user_version}: para cambiar las
- * tablas en el futuro, se agrega un paso en {@link #migrate()} y se sube {@link #SCHEMA_VERSION}.
- */
 public final class FSHFDatabase implements AutoCloseable {
     static final int SCHEMA_VERSION = 9;
 
@@ -87,7 +81,6 @@ public final class FSHFDatabase implements AutoCloseable {
         )""",
     };
 
-    /** v2: material y color de las paredes y el piso. */
     private static final String[] SCHEMA_V2 = {
         """
         CREATE TABLE surface (
@@ -99,7 +92,6 @@ public final class FSHFDatabase implements AutoCloseable {
         )""",
     };
 
-    /** v3: precios que el usuario cambió en el presupuesto (los demás son los referenciales). */
     private static final String[] SCHEMA_V3 = {
         """
         CREATE TABLE price (
@@ -110,12 +102,10 @@ public final class FSHFDatabase implements AutoCloseable {
         )""",
     };
 
-    /** v4: muebles bloqueados (no se mueven hasta desbloquearlos). */
     private static final String[] SCHEMA_V4 = {
         "ALTER TABLE furniture ADD COLUMN locked INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0, 1))",
     };
 
-    /** v5: vistas de cámara guardadas en cada proyecto. */
     private static final String[] SCHEMA_V5 = {
         """
         CREATE TABLE camera_view (
@@ -129,7 +119,6 @@ public final class FSHFDatabase implements AutoCloseable {
         )""",
     };
 
-    /** v6: zócalo configurable y columnas, muros internos y recortes en L. (El techo va en surface). */
     private static final String[] SCHEMA_V6 = {
         "ALTER TABLE project ADD COLUMN baseboard_height REAL NOT NULL DEFAULT 0.08",
         "ALTER TABLE project ADD COLUMN baseboard_color TEXT NOT NULL DEFAULT '#f7f5f0'",
@@ -150,7 +139,6 @@ public final class FSHFDatabase implements AutoCloseable {
         )""",
     };
 
-    /** v7: color secundario y acabado de los muebles, y muebles hechos en el Diseñador. */
     private static final String[] SCHEMA_V7 = {
         "ALTER TABLE furniture ADD COLUMN color2 TEXT",
         "ALTER TABLE furniture ADD COLUMN finish TEXT",
@@ -164,10 +152,6 @@ public final class FSHFDatabase implements AutoCloseable {
         )""",
     };
 
-    /**
-     * v8: casas con varios ambientes. El primer ambiente sigue en las tablas de siempre (data NULL);
-     * los demás guardan su contenido como JSON (el mismo formato de los archivos .amob3d).
-     */
     private static final String[] SCHEMA_V8 = {
         """
         CREATE TABLE home_space (
@@ -182,10 +166,6 @@ public final class FSHFDatabase implements AutoCloseable {
         )""",
     };
 
-    /**
-     * v9: ambientes girados y en varios pisos, y más tipos de puerta (principal, doble, corrediza,
-     * portón y vano). SQLite no deja cambiar un CHECK: la tabla opening se vuelve a crear.
-     */
     private static final String[] SCHEMA_V9 = {
         "ALTER TABLE home_space ADD COLUMN rotation INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE home_space ADD COLUMN level INTEGER NOT NULL DEFAULT 0",
@@ -207,7 +187,6 @@ public final class FSHFDatabase implements AutoCloseable {
         "ALTER TABLE opening_v9 RENAME TO opening",
     };
 
-    /** Pasos de migración: el paso i lleva la base de la versión i a la i + 1. */
     private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7,
         SCHEMA_V8, SCHEMA_V9};
 
@@ -221,7 +200,7 @@ public final class FSHFDatabase implements AutoCloseable {
         }
         connection = DriverManager.getConnection("jdbc:sqlite:" + file.toAbsolutePath());
         try (Statement st = connection.createStatement()) {
-            st.execute("PRAGMA foreign_keys = ON"); // SQLite no revisa las claves foráneas si no se activa
+            st.execute("PRAGMA foreign_keys = ON");
         }
         migrate();
     }
@@ -235,10 +214,6 @@ public final class FSHFDatabase implements AutoCloseable {
         T run(Connection c) throws SQLException;
     }
 
-    /**
-     * Ejecuta todo o nada: si algo falla a la mitad, se deshacen los cambios.
-     * (Antes, un error al guardar podía dejar el archivo del proyecto a medio escribir).
-     */
     public <T> T transaction(SqlWork<T> work) throws SQLException {
         connection.setAutoCommit(false);
         try {

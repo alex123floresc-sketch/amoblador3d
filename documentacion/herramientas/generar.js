@@ -1,6 +1,3 @@
-// Convierte documentacion/*.md en documentos Word con formato APA 7 (carpeta "doc 2"):
-// carátula institucional UNAJ, encabezado con logo, índice general, índice de tablas e índice de figuras.
-// Uso: node generar.js <carpeta documentacion> <carpeta salida>
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
@@ -21,13 +18,11 @@ fs.mkdirSync(WORK, { recursive: true });
 
 const FONT = 'Times New Roman';
 const MONO = 'Consolas';
-const CONTENT_W = 11906 - 2 * 1440; // A4 menos márgenes de 2,54 cm (DXA)
-const INDENT = 720; // 1,27 cm
-// Paleta institucional (azul marino y dorado del logo de la UNAJ).
-const NAVY = '1B2A4A', GOLD = 'E8A33D', TINT = 'EEF2F8', LINE = 'B4C0D3', GRAY = '595959';
+const CONTENT_W = 11906 - 2 * 1440;
+const INDENT = 720;
 
-// ------------------------------------------------------------------ texto
-// Emojis y símbolos que Times New Roman no tiene: se quitan (los nombres de botones quedan igual).
+const BLACK = '000000', LINE = '999999', GRAY = '404040', CODE_BG = 'F2F2F2';
+
 const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{2300}-\u{23FF}\u{2900}-\u{297F}\u{25A0}-\u{25FF}\u{2700}-\u{27BF}]/gu;
 function clean(t) {
   return t
@@ -36,6 +31,7 @@ function clean(t) {
     .replace(EMOJI, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\s*\n\s*/g, ' ')
     .replace(/ {2,}/g, ' ');
 }
 
@@ -52,7 +48,7 @@ function runs(tokens, style = {}) {
         const inner = runs(t.tokens, style);
         if (/^https?:/.test(t.href)) {
           out.push(new ExternalHyperlink({ link: t.href, children: runs(t.tokens, { ...style, link: true }) }));
-        } else out.push(...inner); // enlaces entre documentos: solo el texto
+        } else out.push(...inner);
         break;
       }
       case 'text':
@@ -69,21 +65,18 @@ function runs(tokens, style = {}) {
 
 function text(raw, s) {
   const value = s.code ? raw.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') : clean(raw);
-  const pending = /completar/i.test(value) || (s.code && /^\[[^\]]*\]$/.test(value.trim()) && /\s/.test(value));
   return new TextRun({
     text: value,
     bold: s.bold, italics: s.italics, strike: s.strike,
-    font: s.code && !pending ? MONO : (s.font || FONT),
-    size: s.size || (s.code && !pending ? (s.inTable ? 18 : 20) : undefined),
-    highlight: pending ? 'yellow' : undefined,
-    color: s.link ? '1F4E79' : s.color,
+    font: s.code ? MONO : (s.font || FONT),
+    size: s.size || (s.code ? (s.inTable ? 18 : 20) : undefined),
+    color: s.color,
     underline: s.link ? {} : undefined,
   });
 }
 
 const plain = (tokens) => (tokens || []).map((t) => (t.tokens ? plain(t.tokens) : t.text || '')).join('');
 
-// ------------------------------------------------------------------ diagramas
 let diagramCount = 0;
 function mermaidPng(code) {
   const id = `d${++diagramCount}`;
@@ -96,14 +89,13 @@ function mermaidPng(code) {
   return { data, w: data.readUInt32BE(16), h: data.readUInt32BE(20) };
 }
 
-// ------------------------------------------------------------------ bloques
 function makeConverter(opts) {
   let tables = 0, figures = 0, lastHeading = '', inReferences = false;
   const body = [];
-  // Títulos escritos en el Markdown como <!-- Tabla: ... --> o <!-- Figura: ... --> antes del bloque.
+
   const pending = {};
   const take = (kind) => { const t = pending[kind]; delete pending[kind]; return t; };
-  const index = { Tabla: [], Figura: [] }; // alimenta los índices de tablas y de figuras
+  const index = { Tabla: [], Figura: [] };
   const lineSpacing = opts.double ? 480 : 360;
 
   const para = (children, extra = {}) =>
@@ -113,12 +105,11 @@ function makeConverter(opts) {
     const id = (kind === 'Tabla' ? 'tabla_' : 'figura_') + n;
     index[kind].push({ n, title, id });
     body.push(new Paragraph({ keepNext: true, spacing: { before: 240, after: 0, line: lineSpacing },
-      children: [new Bookmark({ id, children: [new TextRun({ text: `${kind} ${n}`, bold: true, font: FONT, color: NAVY })] })] }));
+      children: [new Bookmark({ id, children: [new TextRun({ text: `${kind} ${n}`, bold: true, font: FONT })] })] }));
     body.push(new Paragraph({ keepNext: true, spacing: { after: 120, line: lineSpacing },
       children: [new TextRun({ text: title, italics: true, font: FONT })] }));
   }
 
-  // captioned = false: tabla de la página de control (sin número ni entrada en el índice de tablas).
   function table(t, captioned = true, target = body) {
     if (captioned) {
       tables++;
@@ -128,11 +119,11 @@ function makeConverter(opts) {
     const lens = t.header.map((h, i) => Math.max(plain(h.tokens).length,
       ...t.rows.map((r) => Math.min(plain(r[i] && r[i].tokens).length, 70)), 4));
     const total = lens.reduce((a, b) => a + b, 0);
-    // Mínimo por columna: que quepa su palabra más larga (fechas, códigos) sin partirse.
+
     const longest = t.header.map((h, i) => Math.max(...[h, ...t.rows.map((r) => r[i])]
       .map((c) => Math.max(0, ...clean(plain(c && c.tokens)).split(/\s+/).map((wd) => wd.length)))));
     const mins = longest.map((l) => Math.max(700, Math.min(2400, l * 100 + 200)));
-    // Primero el mínimo de cada columna; lo que sobra se reparte según cuánto texto tiene.
+
     const minSum = mins.reduce((a, b) => a + b, 0);
     let widths;
     if (minSum >= CONTENT_W) widths = mins.map((m) => Math.floor(m * CONTENT_W / minSum));
@@ -143,20 +134,16 @@ function makeConverter(opts) {
     }
     widths[cols - 1] += CONTENT_W - widths.reduce((a, b) => a + b, 0);
 
-    // Encabezado en azul marino con texto blanco, filas alternadas y solo líneas horizontales (APA).
-    const strong = { style: BorderStyle.SINGLE, size: 12, color: NAVY };
+    const strong = { style: BorderStyle.SINGLE, size: 8, color: BLACK };
     const thin = { style: BorderStyle.SINGLE, size: 4, color: LINE };
     const none = { style: BorderStyle.NONE, size: 0, color: 'auto' };
     const cell = (tokens, i, header, ri, last) => new TableCell({
       width: { size: widths[i], type: WidthType.DXA },
       verticalAlign: VerticalAlign.CENTER,
       margins: { top: 60, bottom: 60, left: 100, right: 100 },
-      shading: header ? { type: ShadingType.CLEAR, fill: NAVY, color: 'auto' }
-        : ri % 2 === 1 ? { type: ShadingType.CLEAR, fill: TINT, color: 'auto' } : undefined,
-      borders: { top: header ? strong : none, bottom: header || last ? strong : thin,
-        left: header ? strong : none, right: header ? strong : none }, // el encabezado es una sola franja azul
+      borders: { top: header ? strong : none, bottom: header || last ? strong : thin, left: none, right: none },
       children: [new Paragraph({ spacing: { line: 240, before: 0, after: 0 },
-        children: runs(tokens, { size: 20, inTable: true, bold: header || undefined, color: header ? 'FFFFFF' : undefined }) })],
+        children: runs(tokens, { size: 20, inTable: true, bold: header || undefined }) })],
     });
     target.push(new Table({
       width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: widths,
@@ -170,13 +157,12 @@ function makeConverter(opts) {
     target.push(new Paragraph({ spacing: { after: 240 }, children: [] }));
   }
 
-  // Captura de pantalla: Figura N, título en cursiva, imagen y nota (APA 7).
   function picture(img) {
     figures++;
     caption('Figura', figures, take('Figura') || clean(img.text || lastHeading));
     const data = fs.readFileSync(path.join(SRC, decodeURI(img.href)));
     const w = data.readUInt32BE(16), h = data.readUInt32BE(20);
-    const maxW = opts.double ? 470 : 600; // con interlineado doble caben dos capturas por página
+    const maxW = opts.double ? 470 : 600;
     const k = Math.min(1, maxW / w, 700 / h);
     body.push(new Paragraph({ alignment: AlignmentType.CENTER, keepNext: true, spacing: { after: 120 }, border: { top: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 4 }, bottom: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 4 }, left: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 4 }, right: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 4 } },
       children: [new ImageRun({ type: 'png', data, transformation: { width: Math.round(w * k), height: Math.round(h * k) } })] }));
@@ -189,8 +175,8 @@ function makeConverter(opts) {
     if (t.lang === 'mermaid') {
       figures++;
       const img = mermaidPng(t.text);
-      let w = img.w / 2, h = img.h / 2; // se dibujó a escala 2
-      // Un diagrama muy ancho se vería diminuto en vertical: va solo en una página horizontal.
+      let w = img.w / 2, h = img.h / 2;
+
       const wide = w > 640 && w / h > 1.3;
       const start = body.length;
       caption('Figura', figures, take('Figura') || lastHeading || opts.title);
@@ -206,8 +192,7 @@ function makeConverter(opts) {
     }
     const lines = t.text.split('\n');
     lines.forEach((l, i) => body.push(new Paragraph({
-      shading: { type: ShadingType.CLEAR, fill: 'F5F7FA', color: 'auto' },
-      border: { left: { style: BorderStyle.SINGLE, size: 24, color: GOLD, space: 8 } },
+      shading: { type: ShadingType.CLEAR, fill: CODE_BG, color: 'auto' },
       spacing: { line: 240, before: i === 0 ? 120 : 0, after: i === lines.length - 1 ? 200 : 0 },
       indent: { left: 360, right: 240 },
       children: [new TextRun({ text: l || ' ', font: MONO, size: 18 })],
@@ -221,7 +206,7 @@ function makeConverter(opts) {
       for (const tk of item.tokens) {
         if (tk.type === 'list') nested.push(tk);
         else if (tk.type === 'text' || tk.type === 'paragraph') inlineTokens.push(...(tk.tokens || [{ type: 'text', text: tk.text }]));
-        else if (tk.type === 'checkbox') { /* se dibuja abajo */ }
+        else if (tk.type === 'checkbox') { }
       }
       const children = runs(inlineTokens);
       if (item.task) children.unshift(new TextRun({ text: (item.checked ? '☑' : '☐') + ' ', font: 'Segoe UI Symbol' }));
@@ -240,7 +225,7 @@ function makeConverter(opts) {
     const title = clean(plain(t.tokens)).trim();
     inReferences = /^Referencias$/i.test(title);
     lastHeading = title.replace(/^[\d.]+\s+/, '').replace(/^CU-\d+\s+/, '');
-    if (t.depth === 1) return; // va en la carátula
+    if (t.depth === 1) return;
     const level = { 2: HeadingLevel.HEADING_1, 3: HeadingLevel.HEADING_2, 4: HeadingLevel.HEADING_3 }[t.depth] || HeadingLevel.HEADING_3;
     const first = t.depth === 2 && opts.newPagePerChapter && body.length > 0;
     body.push(new Paragraph({ heading: level, pageBreakBefore: first, children: runs(t.tokens, { bold: true, italics: t.depth >= 4 || undefined }) }));
@@ -262,9 +247,7 @@ function makeConverter(opts) {
       case 'list': list(t, 0); break;
       case 'blockquote':
         for (const inner of t.tokens) {
-          if (inner.type === 'paragraph') body.push(new Paragraph({ indent: { left: 360, right: 240 },
-            shading: { type: ShadingType.CLEAR, fill: TINT, color: 'auto' },
-            border: { left: { style: BorderStyle.SINGLE, size: 24, color: NAVY, space: 8 } },
+          if (inner.type === 'paragraph') body.push(new Paragraph({ indent: { left: INDENT, right: INDENT },
             spacing: { line: 300, before: 160, after: 160 }, children: runs(inner.tokens, {}) }));
           else block(inner);
         }
@@ -281,8 +264,6 @@ function makeConverter(opts) {
   return { block, body, index, table, counts: () => ({ tables, figures }) };
 }
 
-// ------------------------------------------------------------------ documento
-// Datos de la carátula institucional (modelo de la UNAJ entregado por el equipo).
 const META = {
   universidad: 'UNIVERSIDAD NACIONAL DE JULIACA',
   facultad: 'Facultad de Ciencias de Ingenierías',
@@ -296,7 +277,7 @@ const META = {
   anio: '2026',
   estado: 'Versión de entrega, para revisión del docente',
 };
-// Responsables de cada documento según los roles del plan de gestión del proyecto (documento 10).
+
 const ROL = {
   jefe: 'Flores Calcina, Alexander Edson (jefe de proyecto)',
   arquitecto: 'Flores Calcina, Alexander Edson (arquitecto y desarrollador)',
@@ -314,25 +295,20 @@ const LOGO_CARATULA = fs.readFileSync(path.join(RECURSOS, 'logo_unaj_caratula.pn
 const LOGO_ENCABEZADO = fs.readFileSync(path.join(RECURSOS, 'logo_unaj_encabezado.png'));
 const LOGO_ALT = { name: 'Logo UNAJ', title: 'Logo UNAJ', description: 'Logotipo de la Universidad Nacional de Juliaca' };
 
-/**
- * Carátula: institución y logo; el nombre formal del documento como título principal entre filetes
- * dorados; el título completo del proyecto; código, versión y fecha; y una ficha con el equipo.
- */
 function cover(info) {
   const c = (txt, o = {}) => new Paragraph({ alignment: AlignmentType.CENTER,
     spacing: { line: o.line || 276, before: o.before || 0, after: o.after === undefined ? 120 : o.after },
     border: o.border,
     children: [new TextRun({ text: txt, bold: o.bold, italics: o.italics, size: o.size, color: o.color,
       font: o.font || FONT, characterSpacing: o.spacing })] });
-  const gold = { style: BorderStyle.SINGLE, size: 12, color: GOLD, space: 10 };
   const none = { style: BorderStyle.NONE, size: 0, color: 'auto' };
   const noBorders = { top: none, bottom: none, left: none, right: none };
   const labelW = 2300, valueW = 5200;
   const fila = (label, values) => new TableRow({ cantSplit: true, children: [
     new TableCell({ width: { size: labelW, type: WidthType.DXA }, borders: noBorders, margins: { top: 40, bottom: 40, right: 160 },
       children: [new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { line: 276, before: 0, after: 0 },
-        children: [new TextRun({ text: label, bold: true, size: 20, color: NAVY, font: FONT, characterSpacing: 10 })] })] }),
-    new TableCell({ width: { size: valueW, type: WidthType.DXA }, borders: { ...noBorders, left: { style: BorderStyle.SINGLE, size: 8, color: GOLD } },
+        children: [new TextRun({ text: label, bold: true, size: 20, font: FONT, characterSpacing: 10 })] })] }),
+    new TableCell({ width: { size: valueW, type: WidthType.DXA }, borders: noBorders,
       margins: { top: 40, bottom: 40, left: 200 },
       children: values.map((v) => new Paragraph({ spacing: { line: 276, before: 0, after: 0 },
         children: [new TextRun({ text: v, size: 22, font: FONT })] })) }),
@@ -340,15 +316,15 @@ function cover(info) {
   const datos = [`Código ${info.codigo}`, info.version && `Versión ${info.version}`, info.fecha && fechaLarga(info.fecha)]
     .filter(Boolean).join('   ·   ');
   return [
-    c(META.universidad, { bold: true, size: 30, color: NAVY, after: 60 }),
+    c(META.universidad, { bold: true, size: 30, after: 60 }),
     c(META.facultad, { bold: true, color: GRAY, after: 60 }),
     c(META.escuela, { size: 22, color: GRAY, after: 360 }),
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 480 },
       children: [new ImageRun({ type: 'png', data: LOGO_CARATULA, transformation: { width: 259, height: 94 }, altText: LOGO_ALT })] }),
-    // Nombre formal del documento: es lo primero que se lee después de la institución.
-    c(info.titulo.toUpperCase(), { bold: true, size: 36, color: NAVY, line: 360, after: 0, border: { top: gold, bottom: gold } }),
+
+    c(info.titulo.toUpperCase(), { bold: true, size: 36, line: 360, after: 0 }),
     c('PROYECTO', { bold: true, size: 18, color: GRAY, before: 480, after: 80, spacing: 40 }),
-    c(info.proyecto, { bold: true, size: 26, color: NAVY, line: 320, after: 200 }),
+    c(info.proyecto, { bold: true, size: 26, line: 320, after: 200 }),
     c(datos, { size: 20, color: GRAY, after: 600 }),
     new Table({ alignment: AlignmentType.CENTER, width: { size: labelW + valueW, type: WidthType.DXA }, columnWidths: [labelW, valueW],
       borders: { ...noBorders, insideHorizontal: none, insideVertical: none },
@@ -364,11 +340,9 @@ function cover(info) {
   ];
 }
 
-/** Página de control del documento: ficha de identificación e historial de revisiones. */
 function controlPage(info, conv) {
   const title = (t, before = 0) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before, after: 240 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: GOLD, space: 4 } },
-    children: [new TextRun({ text: t, bold: true, font: FONT, size: 26, color: NAVY })] });
+    children: [new TextRun({ text: t, bold: true, font: FONT, size: 26 })] });
   const esc = (s) => String(s).replace(/\|/g, '\\|');
   const ficha = [
     ['Documento', info.titulo], ['Código', info.codigo], ['Versión', info.version || '—'],
@@ -389,7 +363,6 @@ function controlPage(info, conv) {
   return out;
 }
 
-/** Bloque inicial entre --- (código, norma…): GitHub lo muestra como tabla; aquí alimenta la carátula. */
 function frontMatter(md) {
   const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(md);
   if (!m) return { meta: {}, body: md };
@@ -401,7 +374,6 @@ function frontMatter(md) {
   return { meta, body: md.slice(m[0].length) };
 }
 
-/** Índice de tablas o de figuras: número, título y página (campo PAGEREF al marcador de cada leyenda). */
 function captionIndex(kind, items) {
   if (!items.length) return [];
   return [
@@ -431,18 +403,14 @@ function toc() {
 
 function headingStyle(id, name, size, opts) {
   return { id, name, basedOn: 'Normal', next: 'Normal', quickFormat: true,
-    run: { font: FONT, size, bold: true, italics: opts.italics, color: opts.color || NAVY },
+    run: { font: FONT, size, bold: true, italics: opts.italics, color: BLACK },
     paragraph: { alignment: opts.center ? AlignmentType.CENTER : AlignmentType.LEFT, keepNext: true, keepLines: true,
-      spacing: { before: opts.before, after: opts.rule ? 200 : 120, line: 360 }, outlineLevel: opts.outline,
-      // El nivel 1 lleva un filete dorado debajo, como el logo.
-      border: opts.rule ? { bottom: { style: BorderStyle.SINGLE, size: 8, color: GOLD, space: 4 } } : undefined } };
+      spacing: { before: opts.before, after: 120, line: 360 }, outlineLevel: opts.outline } };
 }
 
-/** Parte el contenido en secciones: vertical normal y una horizontal por cada diagrama ancho. */
 function sections(children, docTitle) {
-  // Encabezado institucional: logo a la derecha, tres líneas en negrita y un filete; número de página al pie.
   const hp = (children, last) => new Paragraph({ spacing: { line: 240, before: 0, after: 0 },
-    border: last ? { bottom: { style: BorderStyle.SINGLE, size: 6, color: '156082', space: 4 } } : undefined, children });
+    border: last ? { bottom: { style: BorderStyle.SINGLE, size: 4, color: BLACK, space: 4 } } : undefined, children });
   const ht = (txt) => new TextRun({ text: txt, bold: true, font: FONT, size: 22 });
   const header = () => new Header({ children: [
     hp([new ImageRun({ type: 'png', data: LOGO_ENCABEZADO, transformation: { width: 140, height: 40 }, altText: LOGO_ALT,
@@ -462,13 +430,13 @@ function sections(children, docTitle) {
   const empty = (K) => new K({ children: [new Paragraph({ children: [] })] });
   const margin = { top: 1700, bottom: 1440, left: 1440, right: 1440, header: 708, footer: 708 };
   const portrait = { page: { size: { width: 11906, height: 16838 }, margin } };
-  // Marco doble solo en la carátula.
-  const frame = { style: BorderStyle.DOUBLE, size: 6, color: NAVY, space: 24 };
+
+  const frame = { style: BorderStyle.DOUBLE, size: 6, color: BLACK, space: 24 };
   const coverBorders = { pageBorders: { display: PageBorderDisplay.FIRST_PAGE, offsetFrom: PageBorderOffsetFrom.PAGE },
     pageBorderTop: frame, pageBorderBottom: frame, pageBorderLeft: frame, pageBorderRight: frame };
   const landscape = { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE }, margin } };
   const out = [];
-  // La primera sección empieza con la carátula: esa página va sin encabezado ni número.
+
   const sec = (props, kids) => out.length === 0
     ? { properties: { ...props, page: { ...props.page, borders: coverBorders }, titlePage: true }, headers: { default: header(), first: empty(Header) },
       footers: { default: footer(), first: empty(Footer) }, children: kids }
@@ -495,14 +463,13 @@ async function convert(file) {
   let proyecto = META.proyecto;
 
   if (isReport) {
-    // La carátula del Markdown se reemplaza por la generada; el índice manual, por el automático.
     const firstHr = tokens.findIndex((t) => t.type === 'hr');
     const h2 = tokens.slice(0, firstHr).find((t) => t.type === 'heading' && t.depth === 2);
     title = 'Informe final del proyecto';
     if (h2) proyecto = clean(plain(h2.tokens));
     tokens = tokens.slice(firstHr + 1);
   }
-  // El historial del documento va a la página de control; su última fila da la versión y la fecha.
+
   let historial = null;
   const hi = tokens.findIndex((t) => t.type === 'heading' && t.depth === 2 && /^Historial del documento$/i.test(plain(t.tokens).trim()));
   if (hi >= 0 && !isReport) {
@@ -513,7 +480,7 @@ async function convert(file) {
   const last = historial && historial.rows[historial.rows.length - 1];
   const info = { n: base.slice(0, 2), titulo: title, proyecto, codigo: meta.codigo || base, norma: meta.norma,
     version: last ? plain(last[0].tokens).trim() : null, fecha: last ? plain(last[1].tokens).trim() : null, historial };
-  // El índice o "Contenido" escrito a mano en el Markdown sobra: Word genera el suyo.
+
   const idx = tokens.findIndex((t) => t.type === 'heading' && t.depth === 2 && /^(Índice|Contenido)$/.test(plain(t.tokens).trim()));
   if (idx >= 0) {
     const end = tokens.findIndex((t, i) => i > idx && (t.type === 'hr' || (t.type === 'heading' && t.depth <= 2)));
@@ -526,7 +493,7 @@ async function convert(file) {
     title, double: isReport, hrIsPageBreak: isReport, newPagePerChapter: isReport,
     numRef: () => { const r = 'num' + numbered; return r; },
   });
-  // Cada lista numerada reinicia en 1: se crea una referencia por lista.
+
   for (const t of tokens) {
     if (t.type === 'list' && t.ordered) {
       const ref = 'num' + numbered;
@@ -543,9 +510,16 @@ async function convert(file) {
     styles: {
       default: { document: { run: { font: FONT, size: 24 }, paragraph: { spacing: { line: isReport ? 480 : 360 } } } },
       paragraphStyles: [
-        headingStyle('Heading1', 'Heading 1', 26, { center: true, before: 360, outline: 0, rule: true }),
+        headingStyle('Heading1', 'Heading 1', 26, { center: true, before: 360, outline: 0 }),
         headingStyle('Heading2', 'Heading 2', 24, { before: 240, outline: 1 }),
-        headingStyle('Heading3', 'Heading 3', 24, { italics: true, before: 200, outline: 2, color: '2E4A7A' }),
+        headingStyle('Heading3', 'Heading 3', 24, { italics: true, before: 200, outline: 2 }),
+        headingStyle('Heading4', 'Heading 4', 24, { italics: true, before: 200, outline: 3 }),
+        headingStyle('Heading5', 'Heading 5', 24, { italics: true, before: 200, outline: 4 }),
+        headingStyle('Heading6', 'Heading 6', 24, { italics: true, before: 200, outline: 5 }),
+        { id: 'Caption', name: 'caption', basedOn: 'Normal', next: 'Normal', run: { color: BLACK, italics: true } },
+      ],
+      characterStyles: [
+        { id: 'Hyperlink', name: 'Hyperlink', basedOn: 'DefaultParagraphFont', run: { color: BLACK, underline: { type: 'single' } } },
       ],
     },
     numbering: { config: [

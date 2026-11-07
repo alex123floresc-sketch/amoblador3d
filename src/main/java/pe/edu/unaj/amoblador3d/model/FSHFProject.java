@@ -5,13 +5,6 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Todo el contenido de un proyecto.
- *
- * <p>Sistema de coordenadas (en metros): el origen es la esquina interior noroeste a nivel
- * del piso; X crece hacia el este, Z hacia el sur e Y hacia arriba. El interior va de
- * x = 0 a ancho, z = 0 a largo, y = 0 a alto.
- */
 public final class FSHFProject {
     public static final double DEFAULT_AMBIENT = 0.6;
 
@@ -24,16 +17,13 @@ public final class FSHFProject {
     public final List<FSHFOpening> openings = new ArrayList<>();
     public final List<FSHFLight> lights = new ArrayList<>();
     public final List<FSHFFurniture> furniture = new ArrayList<>();
-    /** Columnas, muros internos y recortes en L. */
     public final List<FSHFColumn> columns = new ArrayList<>();
-    /** Vistas de cámara guardadas por el usuario. */
     public final List<FSHFCameraView> views = new ArrayList<>();
 
     public FSHFProject() {
         for (FSHFWallSide side : FSHFWallSide.values()) walls.put(side, FSHFSurface.wall(side));
     }
 
-    /** Piso, las 4 paredes y el techo, en ese orden. */
     public List<FSHFSurface> surfaces() {
         List<FSHFSurface> all = new ArrayList<>();
         all.add(floor);
@@ -53,7 +43,7 @@ public final class FSHFProject {
         for (FSHFOpening o : openings) p.openings.add(o.copy());
         for (FSHFLight l : lights) p.lights.add(l.copy());
         for (FSHFFurniture f : furniture) p.furniture.add(f.copy());
-        p.views.addAll(views); // FSHFCameraView es inmutable
+        p.views.addAll(views);
         for (FSHFColumn c : columns) p.columns.add(c.copy());
         return p;
     }

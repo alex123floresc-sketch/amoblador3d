@@ -16,7 +16,6 @@ import pe.edu.unaj.amoblador3d.model.FSHFHome;
 import pe.edu.unaj.amoblador3d.model.FSHFProject;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 
-/** Casas con varios ambientes: ubicación, archivos .amob3d, base de datos y proyectos antiguos. */
 class FSHFHomePersistenceTest {
     @TempDir
     Path dir;
@@ -47,11 +46,11 @@ class FSHFHomePersistenceTest {
                 assertFalse(FSHFHome.overlaps(h.spaces.get(i).outer(), h.spaces.get(j).outer()), i + " y " + j);
             }
         }
-        // Muro con muro: el borde exterior de uno es el del siguiente.
+
         assertEquals(h.spaces.get(0).outer()[2], h.spaces.get(1).outer()[0], 1e-9);
         assertEquals("ambiente-4", h.nextId());
         assertEquals("Sala 2", h.uniqueName("Sala"));
-        assertEquals("sala 2", h.uniqueName("sala")); // sin distinguir mayúsculas, respetando lo escrito
+        assertEquals("sala 2", h.uniqueName("sala"));
     }
 
     @Test
@@ -69,7 +68,7 @@ class FSHFHomePersistenceTest {
         FSHFHome back = FSHFHomeJson.read(json, "X");
         assertEquals(json, FSHFHomeJson.write(back));
         assertEquals("Dormitorio", back.spaces.get(1).name);
-        // Una versión anterior lee el primer ambiente con normalidad.
+
         assertEquals(h.spaces.get(0).project.room, FSHFProjectJson.read(json).room);
     }
 
@@ -89,12 +88,12 @@ class FSHFHomePersistenceTest {
             FSHFProjectRepository repo = new FSHFProjectRepository(db);
             long id = repo.saveHome(null, "Dos pisos", h, null);
             assertEquals(FSHFHomeJson.write(h), FSHFHomeJson.write(repo.loadHome(id)));
-            // El primer ambiente va en las tablas: su puerta de otro tipo pasa el CHECK de la tabla opening.
+
             h.spaces.get(0).project.openings.get(0).type = pe.edu.unaj.amoblador3d.model.FSHFOpeningType.ENTRY;
             repo.saveHome(id, "Dos pisos", h, null);
             assertEquals(pe.edu.unaj.amoblador3d.model.FSHFOpeningType.ENTRY, repo.loadHome(id).spaces.get(0).project.openings.get(0).type);
         }
-        // Valores fuera de rango en un archivo se corrigen al abrirlo.
+
         String bad = FSHFHomeJson.write(h).replace("\"rotation\": 90", "\"rotation\": 100").replace("\"level\": 1", "\"level\": 9");
         FSHFHome fixed = FSHFHomeJson.read(bad, "X");
         assertEquals(90, fixed.spaces.get(2).rotation);
@@ -128,14 +127,14 @@ class FSHFHomePersistenceTest {
             long id = repo.saveHome(null, "Mi casa", h, null);
             FSHFHome back = repo.loadHome(id);
             assertEquals(FSHFHomeJson.write(h), FSHFHomeJson.write(back));
-            // Al guardar de nuevo con menos ambientes, no quedan restos.
+
             h.spaces.remove(2);
             h.spaces.get(1).project.room = new FSHFRoomDims(3, 3, 2.5, 0.15);
             repo.saveHome(id, "Mi casa", h, null);
             back = repo.loadHome(id);
             assertEquals(2, back.spaces.size());
             assertEquals(3, back.spaces.get(1).project.room.width(), 1e-9);
-            // Un proyecto guardado como una sola habitación se abre como casa de un ambiente.
+
             long old = repo.save(null, "Antiguo", room("Oficina"), null);
             assertEquals(1, repo.loadHome(old).spaces.size());
             repo.delete(id);

@@ -18,10 +18,6 @@ import javafx.scene.transform.Translate;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 
-/**
- * Miniaturas 3D de los muebles del catálogo (vistos de frente, desde arriba y un poco de costado),
- * con fondo transparente. Se guardan en caché: cada mueble se dibuja una sola vez.
- */
 public final class FSHFThumbnails {
     public static final int WIDTH = 116, HEIGHT = 80;
 
@@ -32,15 +28,10 @@ public final class FSHFThumbnails {
         this.models = models;
     }
 
-    /** Olvida las miniaturas (p. ej. tras editar un diseño). */
     public void clear() {
         cache.clear();
     }
 
-    /**
-     * Miniatura del mueble. Los paramétricos y los diseños se dibujan al momento; los modelos 3D
-     * se cargan en segundo plano y llegan después por {@code onReady} (mientras, devuelve null).
-     */
     public Image of(FSHFCatalogEntry e, Consumer<Image> onReady) {
         String key = e.id() + "|" + (e.design() != null ? e.design().toJson().toString().hashCode() : "");
         Image cached = cache.get(key);
@@ -74,10 +65,9 @@ public final class FSHFThumbnails {
         }
     }
 
-    /** Dibuja el mueble (origen en el centro de su base) encuadrado en la miniatura. */
     static Image render(Group furniture, FSHFCatalogEntry.Size s) {
         Group world = new Group(furniture);
-        world.getTransforms().add(new Rotate(180, Rotate.X_AXIS)); // Y hacia arriba, como en la habitación
+        world.getTransforms().add(new Rotate(180, Rotate.X_AXIS));
         PerspectiveCamera camera = new PerspectiveCamera(true);
         camera.setFieldOfView(30);
         camera.setNearClip(0.01);
@@ -94,7 +84,7 @@ public final class FSHFThumbnails {
                 SceneAntialiasing.BALANCED);
         sub.setCamera(camera);
         sub.setFill(Color.TRANSPARENT);
-        // Sin una escena, JavaFX no dibuja el 3D de la subescena en la captura.
+
         javafx.scene.Scene holder = new javafx.scene.Scene(new Group(sub), WIDTH * 2, HEIGHT * 2, true);
         holder.setFill(Color.TRANSPARENT);
         SnapshotParameters params = new SnapshotParameters();

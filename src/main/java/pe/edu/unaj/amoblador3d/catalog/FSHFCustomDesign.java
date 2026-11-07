@@ -9,20 +9,8 @@ import java.util.regex.Pattern;
 import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Mueble diseñado por el usuario en el Diseñador de muebles: un conjunto de piezas simples
- * (cajas, cilindros, esferas y barras), cada una con su posición, medidas y color.
- *
- * <p>Las piezas se describen en metros con el frente del mueble hacia +Z. Al colocarlo en la
- * habitación, el conjunto se escala para medir exactamente el ancho, alto y profundidad del
- * mueble (igual que los modelos 3D), así las colisiones siguen siendo exactas.
- *
- * <p>Cada pieza se pinta con el color principal o el secundario del mueble (que luego se pueden
- * cambiar en cada copia colocada) o con un color propio fijo (p. ej. tiradores metálicos).
- */
 public final class FSHFCustomDesign {
     public static final int MAX_PIECES = 300, MAX_NAME = 40;
-    /** Medida máxima de una pieza y distancia máxima al origen (m). */
     public static final double MAX_SIZE = 6, MAX_POS = 6, MIN_SIZE = 0.001;
     private static final Pattern COLOR = Pattern.compile("^#[0-9a-fA-F]{6}$");
 
@@ -51,7 +39,6 @@ public final class FSHFCustomDesign {
         }
     }
 
-    /** Qué color usa una pieza. */
     public enum Paint {
         MAIN("principal", "Color principal"), ACCENT("secundario", "Color secundario"), OWN("propio", "Color propio");
 
@@ -76,19 +63,13 @@ public final class FSHFCustomDesign {
         }
     }
 
-    /**
-     * Una pieza. (x, z) es el centro de la pieza en planta e y la altura de su base sobre el piso;
-     * width, height y depth son sus medidas en X, Y y Z.
-     */
     public static final class Piece {
         public String name;
         public Shape shape = Shape.BOX;
         public double x, y, z;
         public double width = 0.4, height = 0.4, depth = 0.4;
         public Paint paint = Paint.MAIN;
-        /** Solo con {@link Paint#OWN}. */
         public String color = "#c0c0c0";
-        /** null = el acabado del mueble. */
         public FSHFFinish finish;
 
         public Piece copy() {
@@ -108,7 +89,6 @@ public final class FSHFCustomDesign {
         }
     }
 
-    /** Caja envolvente de todas las piezas. */
     public record Bounds(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
         public double width() {
             return maxX - minX;
@@ -163,7 +143,6 @@ public final class FSHFCustomDesign {
         return false;
     }
 
-    /** Revisa que el diseño se pueda guardar. Devuelve un error o null. */
     public String validate() {
         if (name == null || name.isBlank()) return "Ponle un nombre al mueble.";
         if (name.trim().length() > MAX_NAME) return "El nombre puede tener hasta " + MAX_NAME + " letras.";
@@ -191,8 +170,6 @@ public final class FSHFCustomDesign {
     private static boolean validColor(String c) {
         return c != null && COLOR.matcher(c).matches();
     }
-
-    // ---------------------------------------------------------------- JSON
 
     public JsonObject toJson() {
         JsonObject j = new JsonObject();
@@ -222,7 +199,6 @@ public final class FSHFCustomDesign {
         return j;
     }
 
-    /** Lee un diseño. Lanza IllegalArgumentException con el motivo si no es válido. */
     public static FSHFCustomDesign fromJson(JsonObject j) {
         try {
             FSHFCustomDesign d = new FSHFCustomDesign();

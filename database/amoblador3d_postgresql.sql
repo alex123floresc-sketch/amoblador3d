@@ -1,28 +1,3 @@
--- =============================================================================
--- Amoblador3D: base de datos en PostgreSQL
---
--- Versión en PostgreSQL de la base SQLite que usa la aplicación (esquema v9, ver
--- database/amoblador3d_sqlite.sql). Mismas tablas y columnas, con los tipos y
--- reglas propios de PostgreSQL:
---
---   SQLite                              PostgreSQL
---   INTEGER PRIMARY KEY AUTOINCREMENT   BIGINT GENERATED ALWAYS AS IDENTITY
---   REAL                                DOUBLE PRECISION
---   TEXT con fecha ISO                  TIMESTAMPTZ
---   BLOB                                BYTEA
---   INTEGER 0/1                         BOOLEAN
---   UNIQUE COLLATE NOCASE               índice único sobre lower(name)
---
--- Además agrega: un dominio para colores, la tabla surface_material (catálogo de
--- acabados), un trigger que impide poner un material donde no corresponde (p. ej.
--- alfombra en una pared), updated_at automático y vistas de consulta.
---
--- Ejecutar (crea la base "amoblador3d" si no existe y todo dentro del esquema
--- "amoblador3d"; se puede volver a ejecutar, porque borra y recrea el esquema):
---
---   psql -U postgres -f database/amoblador3d_postgresql.sql
--- =============================================================================
-
 \set ON_ERROR_STOP on
 
 SELECT 'CREATE DATABASE amoblador3d ENCODING ''UTF8'''
@@ -36,34 +11,26 @@ DROP SCHEMA IF EXISTS amoblador3d CASCADE;
 CREATE SCHEMA amoblador3d;
 SET search_path TO amoblador3d;
 
--- Color en formato #rrggbb, como lo guarda la aplicación.
 CREATE DOMAIN color_hex AS VARCHAR(7)
     CHECK (VALUE ~ '^#[0-9A-Fa-f]{6}$');
 
--- -----------------------------------------------------------------------------
--- Proyectos
--- -----------------------------------------------------------------------------
 CREATE TABLE project (
     id             BIGINT           GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name           VARCHAR(100)     NOT NULL CHECK (btrim(name) <> ''),
-    width          DOUBLE PRECISION NOT NULL CHECK (width > 0),     -- medidas interiores, en metros
+    width          DOUBLE PRECISION NOT NULL CHECK (width > 0),
     length         DOUBLE PRECISION NOT NULL CHECK (length > 0),
     height         DOUBLE PRECISION NOT NULL CHECK (height > 0),
     wall_thickness DOUBLE PRECISION NOT NULL CHECK (wall_thickness > 0),
     ambient        DOUBLE PRECISION NOT NULL CHECK (ambient BETWEEN 0 AND 2),
-    baseboard_height DOUBLE PRECISION NOT NULL DEFAULT 0.08 CHECK (baseboard_height BETWEEN 0 AND 0.2), -- 0 = sin zócalo
+    baseboard_height DOUBLE PRECISION NOT NULL DEFAULT 0.08 CHECK (baseboard_height BETWEEN 0 AND 0.2),
     baseboard_color  color_hex      NOT NULL DEFAULT '#f7f5f0',
     created_at     TIMESTAMPTZ      NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ      NOT NULL DEFAULT now(),
-    thumbnail      BYTEA                                             -- miniatura PNG
+    thumbnail      BYTEA
 );
 
--- El nombre no distingue mayúsculas ("Sala" y "sala" son el mismo proyecto).
 CREATE UNIQUE INDEX project_name_key ON project (lower(name));
 
--- -----------------------------------------------------------------------------
--- Paredes, piso y techo
--- -----------------------------------------------------------------------------
 CREATE TABLE surface_material (
     id            VARCHAR(20)  PRIMARY KEY,
     label         VARCHAR(40)  NOT NULL,
@@ -74,7 +41,6 @@ CREATE TABLE surface_material (
     CHECK (on_wall OR on_floor OR on_ceiling)
 );
 
--- Mismos valores que el enum model/SurfaceMaterial.java.
 INSERT INTO surface_material (id, label, default_color, on_wall, on_floor, on_ceiling) VALUES
     ('pintura',     'Pintura mate',        '#f2efe9', TRUE,  FALSE, TRUE),
     ('satinado',    'Pintura satinada',    '#e9eef2', TRUE,  FALSE, TRUE),
@@ -97,26 +63,20 @@ CREATE TABLE surface (
     PRIMARY KEY (project_id, id)
 );
 
--- -----------------------------------------------------------------------------
--- Ventanas y puertas
--- -----------------------------------------------------------------------------
 CREATE TABLE opening (
     project_id  BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
-    position    INTEGER          NOT NULL CHECK (position >= 0),    -- orden en la lista
+    position    INTEGER          NOT NULL CHECK (position >= 0),
     id          VARCHAR(40)      NOT NULL,
-    -- window, door (puerta), entry (principal), double, sliding (corrediza), garage (portón) o passage (vano)
+
     type        VARCHAR(10)      NOT NULL CHECK (type IN ('window', 'door', 'entry', 'double', 'sliding', 'garage', 'passage')),
     wall        VARCHAR(10)      NOT NULL CHECK (wall IN ('norte', 'sur', 'este', 'oeste')),
-    wall_offset DOUBLE PRECISION NOT NULL CHECK (wall_offset >= 0), -- desde la esquina izquierda de la pared
+    wall_offset DOUBLE PRECISION NOT NULL CHECK (wall_offset >= 0),
     width       DOUBLE PRECISION NOT NULL CHECK (width > 0),
     height      DOUBLE PRECISION NOT NULL CHECK (height > 0),
-    sill        DOUBLE PRECISION NOT NULL CHECK (sill >= 0),        -- altura del alféizar (0 en puertas)
+    sill        DOUBLE PRECISION NOT NULL CHECK (sill >= 0),
     PRIMARY KEY (project_id, id)
 );
 
--- -----------------------------------------------------------------------------
--- Luces
--- -----------------------------------------------------------------------------
 CREATE TABLE light (
     project_id  BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position    INTEGER          NOT NULL CHECK (position >= 0),
@@ -125,40 +85,36 @@ CREATE TABLE light (
     color       color_hex        NOT NULL,
     intensity   DOUBLE PRECISION NOT NULL CHECK (intensity >= 0),
     cast_shadow BOOLEAN          NOT NULL DEFAULT TRUE,
-    -- bombilla y foco
+
     x DOUBLE PRECISION, y DOUBLE PRECISION, z DOUBLE PRECISION,
-    -- solo foco
+
     target_x DOUBLE PRECISION, target_z DOUBLE PRECISION,
     angle    DOUBLE PRECISION, penumbra DOUBLE PRECISION,
-    -- solo sol: entra por una ventana del mismo proyecto
+
     window_id VARCHAR(40), elevation DOUBLE PRECISION, deviation DOUBLE PRECISION,
     PRIMARY KEY (project_id, id),
     CHECK (type <> 'sun' OR window_id IS NOT NULL),
     FOREIGN KEY (project_id, window_id) REFERENCES opening(project_id, id) ON DELETE CASCADE
 );
 
--- -----------------------------------------------------------------------------
--- Muebles
--- -----------------------------------------------------------------------------
 CREATE TABLE furniture (
     project_id BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position   INTEGER          NOT NULL CHECK (position >= 0),
     id         VARCHAR(60)      NOT NULL,
-    type       VARCHAR(60)      NOT NULL,                    -- cama, mesa... o el id de un modelo
-    x          DOUBLE PRECISION NOT NULL,                    -- centro del mueble
+    type       VARCHAR(60)      NOT NULL,
+    x          DOUBLE PRECISION NOT NULL,
     z          DOUBLE PRECISION NOT NULL,
-    rotation   DOUBLE PRECISION NOT NULL DEFAULT 0,          -- grados
+    rotation   DOUBLE PRECISION NOT NULL DEFAULT 0,
     width      DOUBLE PRECISION NOT NULL CHECK (width > 0),
     depth      DOUBLE PRECISION NOT NULL CHECK (depth > 0),
     height     DOUBLE PRECISION NOT NULL CHECK (height > 0),
-    color      color_hex,                                    -- NULL: colores propios del modelo
-    locked     BOOLEAN          NOT NULL DEFAULT FALSE,      -- bloqueado: no se mueve
-    color2     color_hex,                                    -- color secundario (NULL: automático)
-    finish     VARCHAR(12),                                  -- acabado: mate, satinado... (NULL: el típico)
+    color      color_hex,
+    locked     BOOLEAN          NOT NULL DEFAULT FALSE,
+    color2     color_hex,
+    finish     VARCHAR(12),
     PRIMARY KEY (project_id, id)
 );
 
--- Muebles hechos en el Diseñador de muebles: sus piezas en JSON.
 CREATE TABLE custom_design (
     id         VARCHAR(60)  PRIMARY KEY,
     name       VARCHAR(100) NOT NULL,
@@ -167,24 +123,21 @@ CREATE TABLE custom_design (
     updated_at TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
--- Ambientes de una casa. El primero (data NULL) es el proyecto de las tablas de arriba; los
--- demás guardan su contenido en JSON (el mismo formato de los archivos .amob3d).
 CREATE TABLE home_space (
     project_id BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position   INTEGER          NOT NULL CHECK (position >= 0),
     id         VARCHAR(40)      NOT NULL,
     name       VARCHAR(40)      NOT NULL,
-    x          DOUBLE PRECISION NOT NULL,                     -- esquina interior noroeste, ya girado
+    x          DOUBLE PRECISION NOT NULL,
     z          DOUBLE PRECISION NOT NULL,
     data       JSONB,
-    rotation   SMALLINT         NOT NULL DEFAULT 0 CHECK (rotation IN (0, 90, 180, 270)), -- horario visto desde arriba
-    level      SMALLINT         NOT NULL DEFAULT 0 CHECK (level BETWEEN 0 AND 3),         -- 0 es el primer piso
+    rotation   SMALLINT         NOT NULL DEFAULT 0 CHECK (rotation IN (0, 90, 180, 270)),
+    level      SMALLINT         NOT NULL DEFAULT 0 CHECK (level BETWEEN 0 AND 3),
     PRIMARY KEY (project_id, position),
     UNIQUE (project_id, id),
-    CHECK ((position = 0) = (data IS NULL))                  -- solo el primero va en las tablas
+    CHECK ((position = 0) = (data IS NULL))
 );
 
--- Modelos 3D importados por el usuario.
 CREATE TABLE catalog_model (
     id         VARCHAR(60)      PRIMARY KEY,
     name       VARCHAR(100)     NOT NULL,
@@ -196,24 +149,22 @@ CREATE TABLE catalog_model (
     created_at TIMESTAMPTZ      NOT NULL DEFAULT now()
 );
 
--- Columnas, muros internos y recortes en L: bloques del piso al techo (rectángulos en planta).
 CREATE TABLE room_column (
     project_id BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position   INTEGER          NOT NULL,
     id         VARCHAR(60)      NOT NULL,
     kind       VARCHAR(6)       NOT NULL CHECK (kind IN ('column', 'wall', 'notch')),
     corner     VARCHAR(9)       CHECK (corner IN ('noroeste', 'noreste', 'suroeste', 'sureste')),
-    x          DOUBLE PRECISION NOT NULL,                   -- centro, en metros
+    x          DOUBLE PRECISION NOT NULL,
     z          DOUBLE PRECISION NOT NULL,
-    width      DOUBLE PRECISION NOT NULL CHECK (width > 0), -- medida en X
-    depth      DOUBLE PRECISION NOT NULL CHECK (depth > 0), -- medida en Z
+    width      DOUBLE PRECISION NOT NULL CHECK (width > 0),
+    depth      DOUBLE PRECISION NOT NULL CHECK (depth > 0),
     material   VARCHAR(20)      NOT NULL REFERENCES surface_material(id),
     color      color_hex        NOT NULL,
     PRIMARY KEY (project_id, id),
-    CHECK ((kind = 'notch') = (corner IS NOT NULL))         -- solo los recortes tienen esquina
+    CHECK ((kind = 'notch') = (corner IS NOT NULL))
 );
 
--- Vistas de cámara guardadas (ver el script SQLite para el significado de cada número).
 CREATE TABLE camera_view (
     project_id BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position   INTEGER          NOT NULL,
@@ -224,8 +175,6 @@ CREATE TABLE camera_view (
     PRIMARY KEY (project_id, position)
 );
 
--- Precios que el usuario cambió en el presupuesto (soles). Los referenciales están en
--- el código (estimate/PriceList.java); aquí solo van los cambiados.
 CREATE TABLE price (
     kind  VARCHAR(10)   NOT NULL CHECK (kind IN ('material', 'furniture', 'extra')),
     item  VARCHAR(60)   NOT NULL,
@@ -233,11 +182,6 @@ CREATE TABLE price (
     PRIMARY KEY (kind, item)
 );
 
--- -----------------------------------------------------------------------------
--- Reglas en triggers
--- -----------------------------------------------------------------------------
-
--- Cada material solo se puede usar donde corresponde (la alfombra no va en una pared).
 CREATE FUNCTION check_surface_material() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -258,7 +202,6 @@ CREATE TRIGGER surface_material_allowed
     BEFORE INSERT OR UPDATE ON surface
     FOR EACH ROW EXECUTE FUNCTION check_surface_material();
 
--- updated_at se actualiza solo al modificar el proyecto.
 CREATE FUNCTION touch_updated_at() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -271,11 +214,6 @@ CREATE TRIGGER project_touch
     BEFORE UPDATE ON project
     FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
 
--- -----------------------------------------------------------------------------
--- Vistas
--- -----------------------------------------------------------------------------
-
--- Lista de proyectos con su tamaño y cuántas cosas tiene.
 CREATE VIEW project_summary AS
 SELECT p.id,
        p.name,
@@ -287,7 +225,6 @@ SELECT p.id,
        p.updated_at
   FROM project p;
 
--- Cuánto del piso ocupan los muebles en cada proyecto.
 CREATE VIEW project_occupancy AS
 SELECT p.id,
        p.name,
@@ -298,7 +235,6 @@ SELECT p.id,
   LEFT JOIN furniture f ON f.project_id = p.id
  GROUP BY p.id;
 
--- Acabado de cada pared y del piso con el nombre del material.
 CREATE VIEW project_finishes AS
 SELECT s.project_id,
        p.name AS project,
@@ -309,9 +245,6 @@ SELECT s.project_id,
   JOIN project p          ON p.id = s.project_id
   JOIN surface_material m ON m.id = s.material;
 
--- -----------------------------------------------------------------------------
--- Proyecto de ejemplo: dormitorio de 4 x 3.5 m (el mismo del script SQLite)
--- -----------------------------------------------------------------------------
 INSERT INTO project (name, width, length, height, wall_thickness, ambient)
 VALUES ('Dormitorio de ejemplo', 4.0, 3.5, 2.5, 0.15, 0.6);
 
@@ -360,9 +293,3 @@ SELECT p.id, 0, 'Desde la puerta', 'walk', 2.0, 1.6, 2.9, 0.0, 0.0, 0.0
 INSERT INTO price (kind, item, price) VALUES ('material', 'pintura', 70.00);
 
 COMMIT;
-
--- Consultas de prueba:
---   SET search_path TO amoblador3d;
---   SELECT * FROM project_summary;
---   SELECT * FROM project_occupancy;
---   SELECT * FROM project_finishes;

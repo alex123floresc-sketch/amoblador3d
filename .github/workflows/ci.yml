@@ -1,5 +1,3 @@
-# Compila, ejecuta las pruebas y genera el .jar en cada push o pull request.
-# En Windows, porque es el sistema donde se usa la aplicación (y JavaFX trae partes nativas).
 name: CI
 
 on:

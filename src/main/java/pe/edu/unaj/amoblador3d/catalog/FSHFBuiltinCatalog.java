@@ -13,19 +13,11 @@ import java.util.List;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Size;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Source;
 
-/**
- * Lee los modelos 3D que vienen con la aplicación: {@code src/main/resources/assets/catalog.json}.
- *
- * <p>Formato de cada entrada: {@code { "id", "name", "file", "width", "depth", "height", "rotation", "category" }},
- * donde {@code file} es relativo a la carpeta {@code assets} y {@code category} es opcional
- * (una de {@link FSHFCatalog#CATEGORIES}; por defecto "Decoración").
- */
 public final class FSHFBuiltinCatalog {
     private static final String ROOT = "/assets/";
 
     private FSHFBuiltinCatalog() {}
 
-    /** Devuelve las entradas válidas y agrega a {@code warnings} los problemas encontrados. */
     public static List<FSHFCatalogEntry> load(List<String> warnings) {
         List<FSHFCatalogEntry> result = new ArrayList<>();
         try (InputStream in = FSHFBuiltinCatalog.class.getResourceAsStream(ROOT + "catalog.json")) {

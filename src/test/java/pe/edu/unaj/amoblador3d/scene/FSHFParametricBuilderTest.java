@@ -10,10 +10,6 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalog;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 
-/**
- * Regla de todos los muebles paramétricos: ocupan exactamente x ∈ [-ancho/2, ancho/2],
- * y ∈ [0, alto], z ∈ [-prof/2, prof/2] (si se salen, las colisiones no coinciden con lo que se ve).
- */
 class FSHFParametricBuilderTest {
     private static final double TOL = 1e-6;
 
@@ -37,7 +33,7 @@ class FSHFParametricBuilderTest {
                 assertTrue(b.getMinX() >= -s[0] / 2 - TOL && b.getMaxX() <= s[0] / 2 + TOL, what);
                 assertTrue(b.getMinY() >= -TOL && b.getMaxY() <= s[2] + TOL, what);
                 assertTrue(b.getMinZ() >= -s[1] / 2 - TOL && b.getMaxZ() <= s[1] / 2 + TOL, what);
-                // Y que lo ocupe casi todo (si no, se vería más chico que su caja de colisión).
+
                 assertTrue(b.getWidth() > s[0] * 0.9 && b.getDepth() > s[1] * 0.85 && b.getHeight() > s[2] * 0.95, what);
             }
         }

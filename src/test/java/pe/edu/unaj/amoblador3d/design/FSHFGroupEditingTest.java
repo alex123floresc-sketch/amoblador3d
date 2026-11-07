@@ -18,12 +18,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.persistence.FSHFProjectJson;
 import pe.edu.unaj.amoblador3d.util.FSHFOutcome;
 
-/** Imán, grupos de muebles, bloqueo y copiar/pegar. */
 class FSHFGroupEditingTest {
     private FSHFDesign design;
     private final List<String> warnings = new ArrayList<>();
 
-    /** Habitación vacía de 5 x 4 m (sin puertas, para que no estorbe su zona de giro). */
     @BeforeEach
     void setUp() {
         design = new FSHFDesign(new FSHFCatalog());
@@ -48,24 +46,24 @@ class FSHFGroupEditingTest {
 
     @Test
     void elImanPegaElMuebleALaPared() {
-        FSHFFurniture table = add("mesa", 2.5, 2); // 1.2 x 0.8
-        // Se suelta a 5 cm de la pared oeste: el borde queda en x = 0.05 -> se pega a x = 0.
+        FSHFFurniture table = add("mesa", 2.5, 2);
+
         List<FSHFSnapper.Guide> guides = design.drag(List.of(table), table, 0.65, 2, true);
         assertNotNull(guides);
         assertEquals(0.6, table.x, 1e-9);
         assertFalse(guides.isEmpty());
-        // Sin imán se queda donde se soltó.
+
         design.drag(List.of(table), table, 0.67, 2, false);
         assertEquals(0.67, table.x, 1e-9);
     }
 
     @Test
     void elImanPoneUnMuebleJuntoAOtro() {
-        FSHFFurniture a = add("mesa", 1.5, 2); // x de 0.9 a 2.1
-        FSHFFurniture b = add("silla", 3.5, 2); // 0.45 de ancho
-        // La silla se suelta con su borde izquierdo a 4 cm del borde derecho de la mesa.
+        FSHFFurniture a = add("mesa", 1.5, 2);
+        FSHFFurniture b = add("silla", 3.5, 2);
+
         design.drag(List.of(b), b, 2.1 + 0.225 + 0.04, 2.3, true);
-        // Las posiciones van al centímetro: con 0.45 m de ancho queda a lo sumo a 5 mm.
+
         assertEquals(2.1 + 0.225, b.x, 0.0051);
         assertFalse(FSHFFootprint.of(a).overlaps(FSHFFootprint.of(b)), "pegados pero sin superponerse");
     }
@@ -77,7 +75,7 @@ class FSHFGroupEditingTest {
         assertNull(design.moveGroup(List.of(a, b), 0.5, 0.5));
         assertEquals(1.5, a.x, 1e-9);
         assertEquals(2.5, b.x, 1e-9);
-        // Si uno chocaría, no se mueve ninguno.
+
         String err = design.moveGroup(List.of(a, b), 1.5, 2.1);
         assertNotNull(err);
         assertEquals(1.5, a.x, 1e-9);
@@ -92,7 +90,7 @@ class FSHFGroupEditingTest {
         assertNull(design.rotateGroup(List.of(a, b), 90));
         assertEquals(before, Math.hypot(a.x - b.x, a.z - b.z), 0.011);
         assertEquals(90, a.rotation, 1e-9);
-        // Al girar 90° quedan uno detrás del otro (misma X).
+
         assertEquals(a.x, b.x, 0.011);
     }
 
@@ -140,7 +138,7 @@ class FSHFGroupEditingTest {
         assertEquals("cama", pasted.type);
         assertFalse(pasted.locked, "lo pegado se puede mover");
         assertNull(other.checkFurniture(pasted, pasted));
-        // Pegar otra vez no lo pone encima del primero.
+
         FSHFFurniture again = other.paste(items).value().get(0);
         assertFalse(FSHFFootprint.of(pasted).overlaps(FSHFFootprint.of(again)));
         assertTrue(!pasted.id.equals(again.id));
@@ -160,7 +158,7 @@ class FSHFGroupEditingTest {
         List<FSHFFurniture> items = FSHFProjectJson.readClipboard(FSHFProjectJson.writeClipboard(List.of(closet)));
         FSHFDesign small = new FSHFDesign(new FSHFCatalog());
         FSHFProject p = new FSHFProject();
-        p.room = new FSHFRoomDims(1, 1, 2, 0.15); // más bajo que el closet
+        p.room = new FSHFRoomDims(1, 1, 2, 0.15);
         small.load(p);
         FSHFOutcome<List<FSHFFurniture>> out = small.paste(items);
         assertTrue(out.failed());

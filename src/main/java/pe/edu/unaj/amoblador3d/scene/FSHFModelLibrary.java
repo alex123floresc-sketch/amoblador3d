@@ -26,16 +26,6 @@ import pe.edu.unaj.amoblador3d.gltf.FSHFModelData;
 import pe.edu.unaj.amoblador3d.gltf.FSHFModelData.Primitive;
 import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 
-/**
- * Carga de modelos glTF (con caché: cada archivo se lee una sola vez, en segundo plano)
- * y escalado a medidas reales.
- *
- * <p>Un modelo descargado de internet puede venir en centímetros, en pulgadas o con el origen
- * en cualquier lugar. Para usarlo como mueble lo "normalizamos": lo giramos para que su frente
- * mire a +Z, medimos su caja envolvente, lo escalamos en cada eje para que mida EXACTAMENTE
- * ancho x alto x profundidad y lo movemos para que el centro de su base quede en el origen.
- * Así cumple la misma regla que los muebles paramétricos y las colisiones son exactas.
- */
 public final class FSHFModelLibrary {
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "carga-modelos");
@@ -43,14 +33,11 @@ public final class FSHFModelLibrary {
         return t;
     });
     private final Map<String, CompletableFuture<FSHFModelData>> cache = new HashMap<>();
-    /** Mallas de JavaFX de cada modelo (se comparten entre todas las copias del mueble). */
     private final Map<FSHFModelData, List<Part>> parts = new IdentityHashMap<>();
-    /** Variantes teñidas o con otro acabado de cada material ("#rrggbb|satinado" -> material). */
     private final Map<PhongMaterial, Map<String, PhongMaterial>> styled = new IdentityHashMap<>();
 
     private record Part(TriangleMesh mesh, PhongMaterial material) {}
 
-    /** Carga un modelo (con caché). Si falla, se puede reintentar más tarde. */
     public synchronized CompletableFuture<FSHFModelData> load(URL url) {
         String key = url.toString();
         CompletableFuture<FSHFModelData> f = cache.get(key);
@@ -67,31 +54,23 @@ public final class FSHFModelLibrary {
         return f;
     }
 
-    /** Olvida los modelos cargados (al recargar el catálogo). */
     public synchronized void clear() {
         cache.clear();
         parts.clear();
         styled.clear();
     }
 
-    /**
-     * Crea una copia del modelo escalada a las medidas pedidas (debe llamarse en el hilo de JavaFX).
-     *
-     * @param rotationDeg giro para que el frente del modelo mire a +Z
-     * @param tint        color con que se tiñe el modelo, o null para sus colores originales
-     * @param finish      acabado, o null para el brillo original
-     */
     Group fit(FSHFModelData data, double width, double depth, double height, double rotationDeg, String tint, FSHFFinish finish) {
         Group meshes = new Group();
         for (Part p : parts.computeIfAbsent(data, FSHFModelLibrary::createParts)) {
             MeshView view = new MeshView(p.mesh);
             view.setMaterial(styled(p.material, tint, finish));
-            // Con normales propias, NONE dibuja bien sin importar el orden de los vértices.
+
             view.setCullFace(CullFace.NONE);
             meshes.getChildren().add(view);
         }
         FSHFModelData.Box box = data.bounds(rotationDeg);
-        double safe = 1e-4; // evita dividir entre 0 en modelos planos
+        double safe = 1e-4;
         Group fitted = new Group(meshes);
         fitted.getTransforms().addAll(
                 new Scale(width / Math.max(box.sizeX(), safe), height / Math.max(box.sizeY(), safe), depth / Math.max(box.sizeZ(), safe)),
@@ -100,10 +79,6 @@ public final class FSHFModelLibrary {
         return fitted;
     }
 
-    /**
-     * El material teñido: si tiene textura, el tinte la multiplica; si no, se usa el tinte con el
-     * brillo de la pieza original (así las partes oscuras, como patas, siguen viéndose más oscuras).
-     */
     private PhongMaterial styled(PhongMaterial base, String tint, FSHFFinish finish) {
         if (tint == null && finish == null) return base;
         return styled.computeIfAbsent(base, k -> new java.util.HashMap<>()).computeIfAbsent(tint + "|" + finish, k -> {
@@ -142,9 +117,9 @@ public final class FSHFModelLibrary {
             int[] faces = new int[p.indices().length * stride];
             for (int i = 0; i < p.indices().length; i++) {
                 int v = p.indices()[i];
-                faces[i * stride] = v; // punto
-                if (hasNormals) faces[i * stride + 1] = v; // normal
-                faces[i * stride + stride - 1] = p.uvs() != null ? v : 0; // coordenada de textura
+                faces[i * stride] = v;
+                if (hasNormals) faces[i * stride + 1] = v;
+                faces[i * stride + stride - 1] = p.uvs() != null ? v : 0;
             }
             mesh.getFaces().setAll(faces);
             result.add(new Part(mesh, materials.computeIfAbsent(p.material(), FSHFModelLibrary::material)));
@@ -162,7 +137,6 @@ public final class FSHFModelLibrary {
         return phong;
     }
 
-    /** glTF guarda los colores en espacio lineal; la pantalla espera sRGB. */
     private static double toSrgb(double linear) {
         double c = clamp(linear);
         return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;

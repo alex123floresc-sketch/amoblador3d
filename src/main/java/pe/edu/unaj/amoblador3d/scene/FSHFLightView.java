@@ -21,30 +21,18 @@ import pe.edu.unaj.amoblador3d.model.FSHFLightType;
 import pe.edu.unaj.amoblador3d.model.FSHFOpening;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 
-/**
- * Luces de JavaFX, sus símbolos (esferas que se pueden seleccionar) y la "mancha de sol".
- *
- * <p>Las intensidades del proyecto están en unidades físicas (candelas y lux). JavaFX no usa
- * unidades físicas, así que se convierten con la atenuación de la luz: con más candelas, la
- * luz se debilita menos con la distancia. JavaFX tampoco dibuja sombras; para que el sol
- * "entre por la ventana" se proyecta la ventana sobre el piso y se dibuja esa zona iluminada.
- */
 final class FSHFLightView {
-    /** Brillo de la luz ambiental por cada unidad del control deslizante (0..2). */
     private static final double AMBIENT_SCALE = 0.45;
     private static final double POINT_SCALE = 0.35;
     private static final double SPOT_SCALE = 0.15;
     private static final double SUN_LUX_FOR_FULL = 5;
-    /** Fracción de la luz ambiental que queda de noche. */
     private static final double NIGHT_AMBIENT = 0.25;
 
     final Group group = new Group();
-    /** De noche no hay sol y la luz ambiental baja: se ven las bombillas y los focos. */
     private boolean night;
     private final AmbientLight ambient = new AmbientLight();
     private final List<SunInfo> suns = new ArrayList<>();
 
-    /** Datos del sol para dibujar su flecha en la capa 2D. */
     record SunInfo(FSHFLight light, Point3D helper, Point3D windowCenter) {}
 
     FSHFLightView() {
@@ -74,7 +62,6 @@ final class FSHFLightView {
         }
     }
 
-    /** Posición del símbolo de una luz (para el contorno de selección). */
     Point3D helperPosition(FSHFLight l) {
         if (l.type != FSHFLightType.SUN) return new Point3D(l.x, l.y, l.z);
         for (SunInfo s : suns) if (s.light == l) return s.helper;
@@ -100,7 +87,6 @@ final class FSHFLightView {
         group.getChildren().addAll(light, helper(l, new Point3D(l.x, l.y, l.z)));
     }
 
-    /** factor = intensidad a 1 m; la luz cae con el cuadrado de la distancia. */
     private static void attenuate(PointLight light, double factor) {
         if (factor <= 0) {
             light.setLightOn(false);
@@ -125,7 +111,6 @@ final class FSHFLightView {
         light.setLightOn(strength > 0);
         group.getChildren().add(light);
 
-        // Símbolo fuera de la ventana, en la dirección de donde vienen los rayos.
         Point3D windowCenter = wall.point(window.offset + window.width / 2, window.sill + window.height / 2, r.wallThickness() / 2);
         Point3D helperPos = windowCenter.subtract(dir.multiply(1.1));
         group.getChildren().add(helper(l, helperPos));
@@ -135,10 +120,6 @@ final class FSHFLightView {
         if (patch != null) group.getChildren().add(patch);
     }
 
-    /**
-     * Dirección de los rayos: hacia el interior (normal de la pared), girada "deviation"
-     * grados a un lado y bajando según la altura del sol.
-     */
     static Point3D sunDirection(FSHFWallFrame wall, FSHFLight l) {
         Point3D n = wall.interiorNormal();
         double a = Math.toRadians(l.deviation), e = Math.toRadians(l.elevation);
@@ -147,7 +128,6 @@ final class FSHFLightView {
         return new Point3D(hx * Math.cos(e), -Math.sin(e), hz * Math.cos(e)).normalize();
     }
 
-    /** Zona del piso iluminada por el sol: la ventana proyectada sobre el piso (recortada a la habitación). */
     private static MeshView sunPatch(FSHFRoomDims r, FSHFWallFrame wall, FSHFOpening w, Point3D dir, Color color, double strength) {
         if (strength <= 0) return null;
         double[][] corners = {
@@ -177,9 +157,8 @@ final class FSHFLightView {
         return view;
     }
 
-    /** Recorta un polígono convexo al rectángulo [x0, x1] x [z0, z1] (algoritmo de Sutherland-Hodgman). */
     static List<double[]> clip(List<double[]> poly, double x0, double z0, double x1, double z1) {
-        double[][] edges = {{0, x0, 1}, {0, x1, -1}, {1, z0, 1}, {1, z1, -1}}; // eje, límite, lado que se conserva
+        double[][] edges = {{0, x0, 1}, {0, x1, -1}, {1, z0, 1}, {1, z1, -1}};
         for (double[] e : edges) {
             if (poly.isEmpty()) break;
             int axis = (int) e[0];

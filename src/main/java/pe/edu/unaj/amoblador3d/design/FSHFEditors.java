@@ -22,24 +22,15 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Campos del panel de propiedades para cada tipo de entidad.
- *
- * <p>Los límites de cada campo son los mismos que usan las reglas de {@link FSHFDesign}
- * (antes el panel permitía, por ejemplo, un alféizar de 0 m que luego se rechazaba).
- */
 public final class FSHFEditors {
-    /** Callback para el botón "Duplicar" de los muebles. */
     public interface DuplicateHandler {
         String duplicate(FSHFFurniture f);
     }
 
-    /** Callback para "Diseñar a partir de este": abre el Diseñador de muebles. Devuelve un error o null. */
     public interface DesignHandler {
         String designFrom(FSHFFurniture f);
     }
 
-    /** Colores sugeridos (el selector de color sigue permitiendo cualquier otro). */
     private static final List<Option> WALL_COLORS = List.of(
             new Option("#f2efe9", "Blanco hueso"), new Option("#fafafa", "Blanco"), new Option("#d9d7d1", "Gris perla"),
             new Option("#e3d5bf", "Arena"), new Option("#c97b5a", "Terracota"), new Option("#a8b89a", "Verde salvia"),
@@ -58,7 +49,6 @@ public final class FSHFEditors {
             new Option("#d9c6a5", "Haya"), new Option("#a0764f", "Roble"), new Option("#6d4c33", "Nogal"),
             new Option("#f4f1ea", "Blanco"), new Option("#8a8f94", "Gris"), new Option("#2f3236", "Negro"),
             new Option("#5b7fa6", "Azul"), new Option("#7a9a6e", "Verde"));
-    /** Telas, frentes y detalles: colores que suelen combinar con la madera o el blanco. */
     private static final List<Option> ACCENT_COLORS = List.of(
             new Option("#f4f1ea", "Crudo"), new Option("#e3d5bf", "Arena"), new Option("#5b7fa6", "Azul"),
             new Option("#2f4a6d", "Azul marino"), new Option("#8c2f39", "Vino"), new Option("#c97b5a", "Terracota"),
@@ -67,7 +57,6 @@ public final class FSHFEditors {
 
     private FSHFEditors() {}
 
-    /** Nombre del color si es uno de los sugeridos ("Blanco hueso"), o el código "#rrggbb". */
     public static String colorName(String color) {
         for (List<Option> list : List.of(WALL_COLORS, FLOOR_COLORS, FURNITURE_COLORS, ACCENT_COLORS, BASEBOARD_COLORS)) {
             for (Option o : list) if (o.value().equalsIgnoreCase(color)) return o.label();
@@ -79,7 +68,6 @@ public final class FSHFEditors {
         return of(design, entity, onDuplicate, null);
     }
 
-    /** @param onDesign "Diseñar a partir de este mueble" (null: no se muestra el botón) */
     public static FSHFEditable of(FSHFDesign design, Object entity, DuplicateHandler onDuplicate, DesignHandler onDesign) {
         if (entity instanceof FSHFOpening o) return new OpeningEditor(design, o);
         if (entity instanceof FSHFLight l) return new LightEditor(design, l);
@@ -90,7 +78,6 @@ public final class FSHFEditors {
         throw new IllegalArgumentException("Entidad desconocida: " + entity);
     }
 
-    /** Revisa que un número esté dentro de los límites del campo. */
     private static String checkField(List<FSHFField> fields, String key, Object value) {
         for (FSHFField f : fields) {
             if (!f.key().equals(key)) continue;
@@ -102,8 +89,6 @@ public final class FSHFEditors {
         }
         return "Campo desconocido: " + key;
     }
-
-    // ---------------------------------------------------------------- Aberturas
 
     private record OpeningEditor(FSHFDesign design, FSHFOpening o) implements FSHFEditable {
         @Override
@@ -159,7 +144,7 @@ public final class FSHFEditors {
             if (key.equals("type")) {
                 FSHFOpeningType t = FSHFOpeningType.fromId((String) value);
                 if (!t.isDoor()) return "Elige un tipo de puerta.";
-                // Primero con las medidas típicas del tipo nuevo; si no caben, con las de ahora.
+
                 c.type = t;
                 c.width = t.defaultWidth();
                 c.height = Math.min(t.defaultHeight(), design.room().height() - MARGIN);
@@ -185,8 +170,6 @@ public final class FSHFEditors {
             return design.changeOpening(o, c);
         }
     }
-
-    // ---------------------------------------------------------------- Luces
 
     private record LightEditor(FSHFDesign design, FSHFLight l) implements FSHFEditable {
         @Override
@@ -278,8 +261,6 @@ public final class FSHFEditors {
         }
     }
 
-    // ---------------------------------------------------------------- Muebles
-
     private record FurnitureEditor(FSHFDesign design, FSHFFurniture f, DuplicateHandler onDuplicate, DesignHandler onDesign)
             implements FSHFEditable {
         private static final String AUTO = "auto";
@@ -313,7 +294,7 @@ public final class FSHFEditors {
             fields.add(FSHFField.slider("rotation", "Rotación", 0, 359, 1, "°"));
             fields.add(FSHFField.section("Apariencia"));
             if (e.hasMainColor()) fields.add(FSHFField.color("color", "Color principal", FURNITURE_COLORS));
-            // Los modelos 3D traen sus propios colores y texturas: solo se pueden teñir.
+
             if (e.kind() == FSHFCatalogEntry.Kind.MODEL) fields.add(FSHFField.color("color", "Tinte (opcional)", FURNITURE_COLORS));
             if (e.accentLabel() != null) fields.add(FSHFField.color("color2", e.accentLabel(), ACCENT_COLORS));
             if (e.kind() != FSHFCatalogEntry.Kind.MISSING) {
@@ -337,7 +318,7 @@ public final class FSHFEditors {
                 case "depth" -> f.depth;
                 case "height" -> f.height;
                 case "color" -> f.color;
-                // Automático: se muestra el que se está viendo (el del diseño o el típico del mueble).
+
                 case "color2" -> f.color2 != null ? f.color2
                         : entry().design() != null ? entry().design().color2 : FSHFCatalog.autoAccent(f.type, f.color);
                 case "finish" -> f.finish == null ? AUTO : f.finish.id();
@@ -373,11 +354,10 @@ public final class FSHFEditors {
                     return design.changeFurniture(f, c, false);
                 }
                 case "finish" -> {
-                    c.finish = FSHFFinish.fromId((String) value); // "auto" -> null
+                    c.finish = FSHFFinish.fromId((String) value);
                     return design.changeFurniture(f, c, false);
                 }
                 case "rotation" -> {
-                    // Cualquier ángulo vale: -90 es 270, 450 es 90.
                     if (!(value instanceof Double d) || !Double.isFinite(d)) return "Rotación debe ser un número.";
                     c.rotation = ((d % 360) + 360) % 360;
                     return design.changeFurniture(f, c, false);
@@ -399,7 +379,6 @@ public final class FSHFEditors {
             return design.changeFurniture(f, c, key.equals("x") || key.equals("z"));
         }
 
-        /** Agranda o achica las tres medidas a la vez, sin salirse de los límites del mueble. */
         private String scale(double factor) {
             FSHFCatalogEntry e = entry();
             FSHFFurniture c = f.copy();
@@ -453,14 +432,10 @@ public final class FSHFEditors {
         }
     }
 
-    // ---------------------------------------------------------------- Varios muebles
-
-    /** Acciones para un grupo de muebles seleccionados (devuelven un error o null). */
     public interface GroupHandler {
         String duplicate(List<FSHFFurniture> group);
     }
 
-    /** Panel de varios muebles seleccionados: se mueven, giran, duplican, bloquean o eliminan juntos. */
     public static FSHFEditable group(FSHFDesign design, List<FSHFFurniture> group, GroupHandler handler) {
         return new GroupEditor(design, List.copyOf(group), handler);
     }
@@ -512,8 +487,6 @@ public final class FSHFEditors {
         }
     }
 
-    // ---------------------------------------------------------------- Paredes y piso
-
     private record SurfaceEditor(FSHFDesign design, FSHFSurface s) implements FSHFEditable {
         @Override
         public Object entity() {
@@ -545,7 +518,6 @@ public final class FSHFEditors {
         @Override
         public String set(String key, Object value) {
             return switch (key) {
-                // Al cambiar de material se toma su color típico; luego se puede ajustar.
                 case "material" -> {
                     FSHFSurfaceMaterial m = FSHFSurfaceMaterial.fromId((String) value);
                     yield design.changeSurface(s, m, m.defaultColor());
@@ -567,8 +539,6 @@ public final class FSHFEditors {
             return actions;
         }
     }
-
-    // ---------------------------------------------------------------- Columnas, muros internos y recortes
 
     private record ColumnEditor(FSHFDesign design, FSHFColumn c) implements FSHFEditable {
         @Override
@@ -671,8 +641,6 @@ public final class FSHFEditors {
             return actions;
         }
     }
-
-    // ---------------------------------------------------------------- Zócalo
 
     private record BaseboardEditor(FSHFDesign design, FSHFBaseboard b) implements FSHFEditable {
         @Override

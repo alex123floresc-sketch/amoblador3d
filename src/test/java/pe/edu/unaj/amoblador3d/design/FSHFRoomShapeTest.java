@@ -29,11 +29,9 @@ import pe.edu.unaj.amoblador3d.persistence.FSHFProjectJson;
 import pe.edu.unaj.amoblador3d.persistence.FSHFProjectRepository;
 import pe.edu.unaj.amoblador3d.util.FSHFOutcome;
 
-/** Columnas, muros internos, habitación en L, techo y zócalo. */
 class FSHFRoomShapeTest {
     private FSHFDesign design;
 
-    /** 5 x 4 x 2.5 m, ventana al norte (1.5 a 2.7 m) y puerta al sur (0.5 a 1.4 m). */
     @BeforeEach
     void setUp() {
         design = new FSHFDesign(new FSHFCatalog());
@@ -62,7 +60,7 @@ class FSHFRoomShapeTest {
         over.z = 2;
         assertNotNull(design.checkFurniture(table, over));
         assertTrue(design.checkFurniture(table, over).contains("columna"), design.checkFurniture(table, over));
-        // Y una columna no se puede poner encima de un mueble.
+
         assertNotNull(design.changeColumn(col, moved(col, table.x, table.z)));
     }
 
@@ -72,7 +70,7 @@ class FSHFRoomShapeTest {
         assertTrue(design.changeColumn(col, moved(col, 2, 0.15)).contains("Ventana"), "pegada a la pared norte, frente a la ventana");
         assertTrue(design.changeColumn(col, moved(col, 0.95, 3.6)).contains("Puerta"), "en el paso de la puerta");
         assertNull(design.changeColumn(col, moved(col, 4.85, 0.15)), "en la esquina noreste no tapa nada");
-        // Tampoco se puede mover la ventana detrás de la columna.
+
         FSHFOpening window = design.openings().get(0);
         String err = FSHFEditors.of(design, window, f -> null).set("offset", 3.7);
         assertNotNull(err);
@@ -82,9 +80,9 @@ class FSHFRoomShapeTest {
     @Test
     void lasColumnasNoTapanLasLuces() {
         pe.edu.unaj.amoblador3d.model.FSHFLight bulb = design.addLight(pe.edu.unaj.amoblador3d.model.FSHFLightType.POINT).value();
-        FSHFColumn wall = design.addColumn(FSHFColumn.Kind.WALL).value(); // se busca un lugar sin la bombilla del centro
+        FSHFColumn wall = design.addColumn(FSHFColumn.Kind.WALL).value();
         assertFalse(bulb.x > wall.minX() && bulb.x < wall.maxX() && bulb.z > wall.minZ() && bulb.z < wall.maxZ());
-        // Llevarla dentro del muro: primero a su misma Z (fuera en X) y luego a su X.
+
         FSHFEditable editor = FSHFEditors.of(design, bulb, f -> null);
         assertNull(editor.set("x", wall.maxX() + 0.3 < 4.95 ? wall.maxX() + 0.3 : wall.minX() - 0.3));
         assertNull(editor.set("z", wall.z));
@@ -104,29 +102,29 @@ class FSHFRoomShapeTest {
         FSHFQuantities q = FSHFQuantities.of(design.snapshot());
         assertEquals(20 - 3, q.floorArea(), 1e-9);
         assertEquals(before.perimeter(), q.perimeter(), 1e-9, "una L tiene el mismo perímetro que el rectángulo");
-        // La pared este pierde 1.5 m y la sur 2 m; las dos caras del recorte suman lo mismo.
+
         assertEquals(before.wallNet().get(FSHFWallSide.ESTE) - 1.5 * 2.5, q.wallNet().get(FSHFWallSide.ESTE), 1e-9);
         assertEquals(before.wallNet().get(FSHFWallSide.SUR) - 2 * 2.5, q.wallNet().get(FSHFWallSide.SUR), 1e-9);
         assertEquals((2 + 1.5) * 2.5, q.columnFacesTotal(), 1e-9);
         assertEquals(before.wallNetTotal() + before.columnFacesTotal(), q.wallNetTotal() + q.columnFacesTotal(), 1e-9);
-        // Al agrandar la habitación el recorte sigue en su esquina.
+
         design.setRoom(new FSHFRoomDims(6, 5, 2.5, 0.15));
         assertEquals(5, notch.x, 1e-9);
         assertEquals(4.25, notch.z, 1e-9);
-        // Un recorte que no deja habitación no se acepta.
+
         assertTrue(design.addNotch(FSHFColumn.Corner.NOROESTE, 5.8, 1).failed());
     }
 
     @Test
     void unMuroInternoSueltoSumaSuContornoAlZocaloYSusCarasALaPintura() {
-        FSHFColumn wall = design.addColumn(FSHFColumn.Kind.WALL).value(); // 1.5 x 0.12
+        FSHFColumn wall = design.addColumn(FSHFColumn.Kind.WALL).value();
         assertNull(design.changeColumn(wall, moved(wall, 2.5, 2)));
         FSHFQuantities q = FSHFQuantities.of(design.snapshot());
         double outline = 2 * (1.5 + 0.12);
         assertEquals(outline * 2.5, q.columnFacesTotal(), 1e-9);
         assertEquals(18 + outline - 0.9, q.baseboard(), 1e-9);
         assertEquals(20 - 1.5 * 0.12, q.floorArea(), 1e-9);
-        // Pegado a la pared oeste: esa cara ya no se ve ni lleva zócalo.
+
         FSHFColumn turned = wall.copy();
         turned.width = 0.12;
         turned.depth = 1.5;
@@ -146,7 +144,7 @@ class FSHFRoomShapeTest {
         assertTrue(e.lines().stream().anyMatch(l -> l.detail().startsWith("Techo") && l.priceKey().equals(
                 FSHFPriceList.Key.material(FSHFSurfaceMaterial.MADERA))));
         assertTrue(e.lines().stream().anyMatch(l -> l.priceKey().equals(FSHFPriceList.BASEBOARD)));
-        // Sin zócalo no se cobra zócalo.
+
         assertNull(FSHFEditors.of(design, design.baseboard(), f -> null).set("height", 0.0));
         e = FSHFEstimate.of(design.snapshot(), new FSHFCatalog(), new FSHFPriceList());
         assertTrue(e.lines().stream().noneMatch(l -> l.priceKey().equals(FSHFPriceList.BASEBOARD)));

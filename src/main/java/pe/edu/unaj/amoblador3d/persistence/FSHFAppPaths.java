@@ -2,12 +2,6 @@ package pe.edu.unaj.amoblador3d.persistence;
 
 import java.nio.file.Path;
 
-/**
- * Carpetas de datos del usuario. En Windows: {@code %APPDATA%\Amoblador3D}.
- *
- * <p>La propiedad de sistema {@code amoblador.home} permite usar otra carpeta
- * (útil para pruebas: {@code -Damoblador.home=C:\temp\prueba}).
- */
 public final class FSHFAppPaths {
     private FSHFAppPaths() {}
 
@@ -19,17 +13,14 @@ public final class FSHFAppPaths {
         return Path.of(System.getProperty("user.home"), ".amoblador3d");
     }
 
-    /** Base de datos SQLite con los proyectos y el catálogo de modelos importados. */
     public static Path database() {
         return dataDir().resolve("amoblador3d.db");
     }
 
-    /** Archivos .glb/.gltf importados por el usuario. */
     public static Path modelsDir() {
         return dataDir().resolve("modelos");
     }
 
-    /** Registro de errores de la aplicación (ver {@code util.AppLog}). */
     public static Path logsDir() {
         return dataDir().resolve("logs");
     }

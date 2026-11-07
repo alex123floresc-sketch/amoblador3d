@@ -1,13 +1,5 @@
 package pe.edu.unaj.amoblador3d.model;
 
-/**
- * Tipos de luz:
- * <ul>
- *   <li>POINT: bombilla, ilumina en todas direcciones desde un punto (intensidad en candelas).</li>
- *   <li>SPOT: foco, cono de luz que apunta a un punto del piso (candelas).</li>
- *   <li>SUN: sol que entra por una ventana, rayos paralelos (lux).</li>
- * </ul>
- */
 public enum FSHFLightType {
     POINT("point", "Bombilla", "#ffe2b8", 6),
     SPOT("spot", "Foco", "#fff4e0", 25),

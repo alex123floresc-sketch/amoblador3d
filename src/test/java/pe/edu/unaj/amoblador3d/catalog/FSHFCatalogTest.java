@@ -32,7 +32,7 @@ class FSHFCatalogTest {
                 }
             }
         }
-        // Los modelos incluidos usan el campo "category" de catalog.json.
+
         assertEquals(FSHFCatalog.LIVING, c.get("sofa").category());
     }
 }

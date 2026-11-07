@@ -5,13 +5,6 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-/**
- * Deshacer / rehacer con "fotos" (snapshots) del proyecto.
- *
- * <p>Después de cada cambio se guarda el proyecto completo como texto JSON. Deshacer = volver a
- * cargar la foto anterior. Es más simple y robusto que programar la operación inversa de cada
- * acción, y como un proyecto pesa pocos KB, guardar 100 fotos no es problema.
- */
 public final class FSHFHistory {
     private static final int MAX_STEPS = 100;
 
@@ -23,11 +16,6 @@ public final class FSHFHistory {
     private String saved;
     private boolean pending;
 
-    /**
-     * @param capture  devuelve el estado actual como texto
-     * @param restore  aplica un estado guardado
-     * @param onChange se llama cuando cambian deshacer/rehacer/cambios sin guardar
-     */
     public FSHFHistory(Supplier<String> capture, Consumer<String> restore, Runnable onChange) {
         this.capture = capture;
         this.restore = restore;
@@ -43,33 +31,26 @@ public final class FSHFHistory {
         pending = false;
     }
 
-    /** Empieza un historial nuevo (al abrir o crear un proyecto). */
     public void reset() {
         start();
         onChange.run();
     }
 
-    /** Registra el estado actual como un paso nuevo (si cambió algo). */
     public void commit() {
         pending = false;
         String snapshot = capture.get();
         if (snapshot.equals(stack.get(index))) return;
-        stack.subList(index + 1, stack.size()).clear(); // un cambio nuevo descarta el "rehacer"
+        stack.subList(index + 1, stack.size()).clear();
         stack.add(snapshot);
         if (stack.size() > MAX_STEPS) stack.remove(0);
         index = stack.size() - 1;
         onChange.run();
     }
 
-    /**
-     * Indica que hay un cambio que se registrará en breve (quien llama programa el
-     * {@link #commit()}); sirve para agrupar cambios seguidos, como al elegir un color.
-     */
     public void markPending() {
         pending = true;
     }
 
-    /** Si hay un cambio pendiente, lo registra ya. */
     public void flush() {
         if (pending) commit();
     }
@@ -92,14 +73,12 @@ public final class FSHFHistory {
         return true;
     }
 
-    /** Marca el estado actual como "guardado". */
     public void markSaved() {
         flush();
         saved = stack.get(index);
         onChange.run();
     }
 
-    /** Marca el estado actual como "no guardado" (p. ej. al recuperar un autoguardado). */
     public void markUnsaved() {
         saved = null;
         onChange.run();

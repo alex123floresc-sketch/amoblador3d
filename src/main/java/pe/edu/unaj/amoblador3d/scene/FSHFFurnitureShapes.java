@@ -20,17 +20,9 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign.Shape;
 import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 
-/**
- * Nodos 3D de los muebles hechos en el Diseñador ({@link FSHFCustomDesign}) y conversión de un
- * mueble paramétrico en piezas editables (para "Diseñar a partir de este mueble").
- *
- * <p>Cada pieza es una forma de 1 x 1 x 1 m escalada a sus medidas: así todas las formas se
- * describen igual (centro en planta, altura de la base y ancho x alto x profundidad).
- */
 public final class FSHFFurnitureShapes {
     private FSHFFurnitureShapes() {}
 
-    /** Colores con que se pinta un diseño: los del mueble colocado o los del propio diseño. */
     public record Colors(String main, String accent, FSHFFinish finish) {
         public static Colors of(FSHFCustomDesign d) {
             return new Colors(d.color, d.color2, d.finish);
@@ -42,14 +34,12 @@ public final class FSHFFurnitureShapes {
         }
     }
 
-    /** El diseño en sus propias medidas (sin escalar), con el origen en el centro de la base. */
     public static Group design(FSHFCustomDesign d, Colors colors) {
         Group g = new Group();
         for (Piece p : d.pieces) g.getChildren().add(piece(p, colors));
         return g;
     }
 
-    /** El diseño escalado a las medidas del mueble colocado (como los modelos 3D). */
     static Group fit(FSHFCustomDesign d, FSHFFurniture f) {
         FSHFCustomDesign.Bounds b = d.bounds();
         double safe = 1e-4;
@@ -60,7 +50,6 @@ public final class FSHFFurnitureShapes {
         return fitted;
     }
 
-    /** Una pieza: forma unitaria movida, escalada y (en las barras) acostada. */
     public static Node piece(Piece p, Colors colors) {
         Shape3D shape = switch (p.shape) {
             case BOX -> new Box(1, 1, 1);
@@ -83,17 +72,7 @@ public final class FSHFFurnitureShapes {
         return FSHFMaterials.finished(color, p.finish != null ? p.finish : colors.finish());
     }
 
-    // ---------------------------------------------------------------- Paramétrico -> piezas
-
-    /**
-     * Convierte un mueble paramétrico (con sus medidas y colores actuales) en un diseño editable.
-     * Las piezas del color principal o secundario quedan ligadas a esos colores; el resto
-     * (almohadas, tiradores, el televisor...) conservan su color propio.
-     *
-     * @return null si el mueble no es paramétrico
-     */
     public static FSHFCustomDesign fromParametric(FSHFFurniture f, String name) {
-        // Las escaleras tienen piezas inclinadas o giradas, que el Diseñador no sabe representar.
         if (pe.edu.unaj.amoblador3d.catalog.FSHFCatalog.isStair(f.type)) return null;
         Group g = FSHFParametricBuilder.build(f);
         if (g == null) return null;
@@ -142,7 +121,6 @@ public final class FSHFFurnitureShapes {
         return d;
     }
 
-    /** El acabado más parecido al brillo de un material. */
     private static FSHFFinish finishOf(PhongMaterial m) {
         Color spec = m.getSpecularColor();
         if (spec == null) return FSHFFinish.MATE;

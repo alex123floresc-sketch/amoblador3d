@@ -63,7 +63,7 @@ class FSHFCustomDesignTest {
         FSHFCatalogEntry e = FSHFCatalogEntry.custom(stool());
         assertEquals(FSHFCatalogEntry.Kind.CUSTOM, e.kind());
         assertEquals(0.45, e.defaults().height(), 1e-9);
-        assertEquals("Color secundario", e.accentLabel()); // el asiento usa el secundario
+        assertEquals("Color secundario", e.accentLabel());
         assertTrue(e.hasMainColor());
     }
 
@@ -105,7 +105,7 @@ class FSHFCustomDesignTest {
         assertEquals(1, catalog.search(FSHFCatalog.LIVING, "banqu").stream().filter(e -> e.id().equals("diseno-test")).count());
         catalog.setCustom(List.of());
         assertEquals(FSHFCatalogEntry.Kind.MISSING, catalog.get("diseno-test").kind());
-        // Un diseño no puede ocultar a un mueble paramétrico con el mismo id.
+
         FSHFCustomDesign fake = stool();
         fake.id = "cama";
         catalog.setCustom(List.of(fake));

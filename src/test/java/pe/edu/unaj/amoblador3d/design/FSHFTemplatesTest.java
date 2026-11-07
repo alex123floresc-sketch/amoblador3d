@@ -18,11 +18,11 @@ class FSHFTemplatesTest {
     @Test
     void todasLasPlantillasCumplenLasReglas() throws Exception {
         FSHFCatalog catalog = new FSHFCatalog();
-        catalog.setModels(FSHFBuiltinCatalog.load(new ArrayList<>())); // con la planta (modelo 3D)
+        catalog.setModels(FSHFBuiltinCatalog.load(new ArrayList<>()));
         assertTrue(catalog.contains("planta"));
         for (FSHFTemplates.Template t : FSHFTemplates.all(catalog)) {
             FSHFProject p = t.build().get();
-            // Pasa por el mismo camino que un archivo (validación incluida).
+
             FSHFProject read = FSHFProjectJson.read(FSHFProjectJson.write(p));
             FSHFDesign d = new FSHFDesign(catalog);
             List<String> warnings = d.load(read);

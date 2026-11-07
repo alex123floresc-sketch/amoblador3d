@@ -16,15 +16,7 @@ import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 
-/**
- * Habitaciones listas para empezar: medidas típicas, puerta, ventanas, luces, acabados y
- * muebles ya ubicados. Todas cumplen las reglas de {@link FSHFDesign} (lo revisa una prueba).
- *
- * <p>Recordatorio de giros: con 0° el frente del mueble mira al sur (+Z), con 90° al este,
- * con 180° al norte y con 270° al oeste.
- */
 public final class FSHFTemplates {
-    /** @param build crea el proyecto (cada vez uno nuevo) */
     public record Template(String name, String description, Supplier<FSHFProject> build) {}
 
     private FSHFTemplates() {}
@@ -44,9 +36,6 @@ public final class FSHFTemplates {
                 new Template("Habitación vacía", "4 × 3.5 m · solo una ventana, una puerta y luces", FSHFTemplates::empty));
     }
 
-    // ---------------------------------------------------------------- Ayudantes
-
-    /** Arma un proyecto paso a paso (los ids se numeran por tipo: "cama-1", "silla-2"...). */
     private static final class Builder {
         final FSHFProject p = new FSHFProject();
         private final FSHFCatalog catalog;
@@ -71,7 +60,6 @@ public final class FSHFTemplates {
             return this;
         }
 
-        /** Mueble con las medidas por defecto del catálogo. */
         FSHFFurniture add(String type, double x, double z, double rotation) {
             FSHFCatalogEntry e = catalog.get(type);
             FSHFCatalogEntry.Size s = e.defaults();
@@ -80,7 +68,6 @@ public final class FSHFTemplates {
             return f;
         }
 
-        /** Mueble con otras medidas (ancho y profundidad; el alto es el del catálogo). */
         FSHFFurniture add(String type, double x, double z, double rotation, double width, double depth) {
             FSHFFurniture f = add(type, x, z, rotation);
             f.width = width;
@@ -102,7 +89,6 @@ public final class FSHFTemplates {
             return this;
         }
 
-        /** Una bombilla en el centro del techo y el sol por la primera ventana. */
         FSHFProject lights() {
             FSHFLight bulb = new FSHFLight(id("point"), FSHFLightType.POINT);
             bulb.x = p.room.width() / 2;
@@ -121,19 +107,17 @@ public final class FSHFTemplates {
         }
     }
 
-    // ---------------------------------------------------------------- Plantillas
-
     private static FSHFProject bedroom(FSHFCatalog c) {
         Builder b = new Builder(c, 3.5, 3.2, 2.5)
                 .window(FSHFWallSide.NORTE, 1.15, 1.2, 1.0, 0.9)
                 .door(FSHFWallSide.SUR, 2.4, 0.9)
                 .floor(FSHFSurfaceMaterial.MADERA, "#c9a274")
                 .walls(FSHFSurfaceMaterial.PINTURA, "#e3d5bf");
-        b.add("cama", 1.4, 0.95, 0); // cabecera contra la pared norte
+        b.add("cama", 1.4, 0.95, 0);
         b.add("mesa-noche", 0.475, 0.2, 0);
         b.add("mesa-noche", 2.325, 0.2, 0);
-        b.add("closet", 3.2, 0.8, 270); // contra la pared este, abre hacia el oeste
-        b.add("comoda", 0.225, 2.2, 90); // contra la pared oeste
+        b.add("closet", 3.2, 0.8, 270);
+        b.add("comoda", 0.225, 2.2, 90);
         return b.lights();
     }
 
@@ -143,11 +127,11 @@ public final class FSHFTemplates {
                 .door(FSHFWallSide.SUR, 0.3, 0.9)
                 .floor(FSHFSurfaceMaterial.PORCELANATO, "#c9c3b9")
                 .walls(FSHFSurfaceMaterial.PINTURA, "#f2efe9");
-        b.p.walls.get(FSHFWallSide.NORTE).material = FSHFSurfaceMaterial.LADRILLO; // pared del televisor
+        b.p.walls.get(FSHFWallSide.NORTE).material = FSHFSurfaceMaterial.LADRILLO;
         b.p.walls.get(FSHFWallSide.NORTE).color = "#a4553a";
         b.add("rack-tv", 2.8, 0.225, 0);
-        b.add("sillon", 2.8, 3.55, 180); // frente al televisor
-        b.add("mesa", 2.8, 2.1, 0, 1.0, 0.5).height = 0.45; // mesa de centro
+        b.add("sillon", 2.8, 3.55, 180);
+        b.add("mesa", 2.8, 2.1, 0, 1.0, 0.5).height = 0.45;
         b.add("librero", 0.15, 1.6, 90);
         if (c.contains("planta")) b.add("planta", 4.6, 3.6, 0);
         return b.lights();
@@ -160,13 +144,13 @@ public final class FSHFTemplates {
                 .floor(FSHFSurfaceMaterial.MADERA, "#b07d4f")
                 .walls(FSHFSurfaceMaterial.PINTURA, "#d9d7d1");
         b.add("mesa", 2.2, 1.6, 0, 1.6, 0.9);
-        b.add("silla", 1.8, 0.9, 0); // lado norte, miran a la mesa (sur)
+        b.add("silla", 1.8, 0.9, 0);
         b.add("silla", 2.6, 0.9, 0);
-        b.add("silla", 1.8, 2.3, 180); // lado sur, miran al norte
+        b.add("silla", 1.8, 2.3, 180);
         b.add("silla", 2.6, 2.3, 180);
-        b.add("silla", 1.15, 1.6, 90); // cabeceras
+        b.add("silla", 1.15, 1.6, 90);
         b.add("silla", 3.25, 1.6, 270);
-        b.add("comoda", 3.775, 3.0, 270); // aparador contra la pared este
+        b.add("comoda", 3.775, 3.0, 270);
         return b.lights();
     }
 
@@ -176,9 +160,9 @@ public final class FSHFTemplates {
                 .door(FSHFWallSide.SUR, 2.1, 0.85)
                 .floor(FSHFSurfaceMaterial.CERAMICO, "#e4e0d8")
                 .walls(FSHFSurfaceMaterial.SATINADO, "#e9eef2");
-        b.add("cocina", 1.2, 0.3, 0, 2.4, 0.6); // contra la pared norte
+        b.add("cocina", 1.2, 0.3, 0, 2.4, 0.6);
         b.add("refrigeradora", 2.75, 0.35, 0);
-        b.add("cocina", 0.3, 1.2, 90, 1.2, 0.6); // tramo de la L, contra la pared oeste
+        b.add("cocina", 0.3, 1.2, 90, 1.2, 0.6);
         b.add("mesa", 1.5, 1.6, 0, 0.9, 0.7);
         b.add("silla", 1.5, 1.0, 0);
         b.add("silla", 1.5, 2.2, 180);
@@ -202,8 +186,8 @@ public final class FSHFTemplates {
                 .door(FSHFWallSide.SUR, 1.9, 0.9)
                 .floor(FSHFSurfaceMaterial.MADERA, "#7a5235")
                 .walls(FSHFSurfaceMaterial.PINTURA, "#fafafa");
-        b.add("escritorio", 1.0, 0.35, 0, 1.4, 0.7); // contra la pared norte
-        b.add("silla", 1.0, 0.95, 180); // mira al escritorio
+        b.add("escritorio", 1.0, 0.35, 0, 1.4, 0.7);
+        b.add("silla", 1.0, 0.95, 180);
         b.add("librero", 0.175, 1.9, 90, 1.0, 0.35);
         if (c.contains("planta")) b.add("planta", 2.6, 0.4, 0);
         return b.lights();

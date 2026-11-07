@@ -33,10 +33,6 @@ import pe.edu.unaj.amoblador3d.estimate.FSHFQuantities;
 import pe.edu.unaj.amoblador3d.persistence.FSHFPriceRepository;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Ventana del metrado y presupuesto. Los precios unitarios se editan en la misma tabla
- * (doble clic o Enter) y se guardan en la base de datos para todos los proyectos.
- */
 final class FSHFEstimateDialog {
     private final Stage stage = new Stage();
     private final Supplier<FSHFEstimate> compute;
@@ -48,10 +44,6 @@ final class FSHFEstimateDialog {
     private final Label summary = new Label(), total = new Label(), error = new Label();
     private FSHFEstimate estimate;
 
-    /**
-     * @param compute     calcula el presupuesto del proyecto actual con {@code prices}
-     * @param onExportPdf genera el informe PDF (lo hace la ventana principal, que tiene las vistas)
-     */
     static void show(Window owner, String projectName, Supplier<FSHFEstimate> compute, FSHFPriceList prices,
                      FSHFPriceRepository repository, Runnable onExportPdf) {
         new FSHFEstimateDialog(owner, projectName, compute, prices, repository, onExportPdf).stage.showAndWait();
@@ -182,7 +174,6 @@ final class FSHFEstimateDialog {
         recompute();
     }
 
-    /** CSV con punto y coma (lo que espera Excel en español) y BOM para que lea bien las tildes. */
     private void exportCsv() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Exportar presupuesto");
@@ -212,7 +203,6 @@ final class FSHFEstimateDialog {
         return String.format(java.util.Locale.ROOT, "%.2f", v).replace('.', ',');
     }
 
-    /** Celda que parte el texto en varias líneas en lugar de cortarlo con "…". */
     private static final class WrappingCell extends TableCell<FSHFEstimate.Line, String> {
         private final javafx.scene.text.Text text = new javafx.scene.text.Text();
 
@@ -231,7 +221,6 @@ final class FSHFEstimateDialog {
         }
     }
 
-    /** Celda del precio: muestra "S/ 65.00" y al editarla, un campo de texto. */
     private final class PriceCell extends TableCell<FSHFEstimate.Line, FSHFEstimate.Line> {
         private final TextField field = new TextField();
 
@@ -269,7 +258,7 @@ final class FSHFEstimateDialog {
         private void apply() {
             FSHFEstimate.Line line = getItem();
             Double value = FSHFUnits.parse(field.getText());
-            super.cancelEdit(); // la tabla se vuelve a llenar con el presupuesto nuevo
+            super.cancelEdit();
             if (line == null) return;
             if (value == null || value < 0) {
                 showError("Escribe el precio como un número positivo (por ejemplo 65,50).");

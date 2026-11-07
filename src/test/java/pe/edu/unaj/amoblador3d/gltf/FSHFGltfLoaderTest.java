@@ -18,14 +18,9 @@ import java.util.Base64;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/**
- * Los modelos se arman en memoria (un triángulo o un cuadrado), así no hace falta guardar
- * archivos .glb en el repositorio y cada prueba muestra exactamente qué datos lee.
- */
 class FSHFGltfLoaderTest {
     private static final double EPS = 1e-6;
 
-    /** Triángulo rectángulo de 1 m en el plano XY: (0,0,0), (1,0,0), (0,1,0). */
     private static final float[] TRIANGLE = {0, 0, 0, 1, 0, 0, 0, 1, 0};
 
     @Test
@@ -42,7 +37,6 @@ class FSHFGltfLoaderTest {
 
     @Test
     void leeUnGlbBinarioConIndices() throws IOException {
-        // Cuadrado de 2 x 1 m con 4 vértices y 6 índices de 16 bits.
         float[] square = {0, 0, 0, 2, 0, 0, 2, 1, 0, 0, 1, 0};
         byte[] positions = floats(square);
         byte[] indices = shorts(0, 1, 2, 0, 2, 3);
@@ -70,7 +64,6 @@ class FSHFGltfLoaderTest {
 
     @Test
     void seAplicaLaTransformacionDeLosNodos() throws IOException {
-        // El nodo padre mueve 5 m en X; el hijo escala x2. Un modelo en "centímetros" se ve así.
         String nodes = """
             "nodes":[{"translation":[5,0,0],"children":[1]},{"mesh":0,"scale":[2,2,2]}],
             """;
@@ -85,7 +78,6 @@ class FSHFGltfLoaderTest {
         String nodes = "\"nodes\":[{\"mesh\":0,\"scale\":[-1,1,1]}],";
         FSHFModelData m = FSHFGltfLoader.parse(gltf(dataUri(floats(TRIANGLE)), nodes, ""), null);
 
-        // Sin corregir, el espejo dejaría las caras mirando hacia adentro.
         assertArrayEquals(new int[] {0, 2, 1}, m.primitives().get(0).indices());
     }
 
@@ -153,7 +145,7 @@ class FSHFGltfLoaderTest {
     void unGlbCortadoSeDetecta() throws IOException {
         byte[] full = glb("{\"asset\":{\"version\":\"2.0\"}}", floats(TRIANGLE));
         byte[] cut = java.util.Arrays.copyOf(full, full.length - 8);
-        ByteBuffer.wrap(cut).order(ByteOrder.LITTLE_ENDIAN).putInt(8, full.length); // dice medir más
+        ByteBuffer.wrap(cut).order(ByteOrder.LITTLE_ENDIAN).putInt(8, full.length);
         IOException e = assertThrows(IOException.class, () -> FSHFGltfLoader.parse(cut, null));
         assertTrue(e.getMessage().contains("incompleto"), e.getMessage());
     }
@@ -185,9 +177,6 @@ class FSHFGltfLoaderTest {
         assertTrue(e.getMessage().contains("geometría"), e.getMessage());
     }
 
-    // ---------------------------------------------------------------- ayudas
-
-    /** glTF de un triángulo; {@code nodes} reemplaza la lista de nodos y {@code materials} se agrega. */
     private static byte[] gltf(String bufferUri, String nodes, String materials) {
         return gltf(bufferUri, nodes, materials, -1);
     }
@@ -207,7 +196,6 @@ class FSHFGltfLoaderTest {
         return json.getBytes(StandardCharsets.UTF_8);
     }
 
-    /** Contenedor .glb: cabecera de 12 bytes, bloque JSON y bloque BIN, cada uno alineado a 4. */
     private static byte[] glb(String json, byte[] bin) throws IOException {
         byte[] j = pad(json.getBytes(StandardCharsets.UTF_8), (byte) ' ');
         byte[] b = pad(bin, (byte) 0);

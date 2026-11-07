@@ -21,16 +21,6 @@ import pe.edu.unaj.amoblador3d.report.FSHFPdfLayout.Align;
 import pe.edu.unaj.amoblador3d.report.FSHFPdfLayout.Row;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Informe en PDF para entregar: datos de la habitación, la planta con cotas, la vista 3D,
- * la lista de muebles, ventanas y puertas, y el metrado con el presupuesto.
- *
- * <p>No depende de JavaFX: recibe las imágenes ya convertidas a PNG.
- *
- * @param planPng  planta 2D (puede ser null)
- * @param viewPng  vista 3D (puede ser null)
- * @param labels   nombre visible de cada elemento ("Cama 1")
- */
 public record FSHFProjectReport(String name, FSHFProject project, FSHFEstimate estimate, byte[] planPng, byte[] viewPng,
                             Function<Object, String> labels) {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", FSHFUnits.LOCALE);

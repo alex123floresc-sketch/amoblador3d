@@ -9,7 +9,6 @@ import javafx.scene.control.TextInputDialog;
 import javafx.stage.Window;
 import pe.edu.unaj.amoblador3d.util.FSHFAppLog;
 
-/** Mensajes y preguntas al usuario, todos con el mismo estilo. */
 final class FSHFDialogs {
     static final ButtonType SAVE = new ButtonType("Guardar", ButtonBar.ButtonData.YES);
     static final ButtonType DISCARD = new ButtonType("No guardar", ButtonBar.ButtonData.NO);
@@ -36,7 +35,6 @@ final class FSHFDialogs {
         return a.showAndWait().orElse(ButtonType.CANCEL) == ok;
     }
 
-    /** "¿Guardar los cambios?" Devuelve SAVE, DISCARD o CANCEL. */
     static ButtonType unsavedChanges(Window owner, String name) {
         Alert a = new Alert(Alert.AlertType.WARNING, "Si no los guardas, se perderán.", SAVE, DISCARD, ButtonType.CANCEL);
         prepare(a, owner, "Cambios sin guardar", "¿Guardar los cambios de \"" + name + "\"?");
@@ -55,7 +53,7 @@ final class FSHFDialogs {
         d.setTitle(title);
         d.setHeaderText(header);
         d.getDialogPane().getStylesheets().add(FSHFMainWindow.STYLESHEET);
-        // Sin esto, JavaFX corta los mensajes largos con "..." en lugar de agrandar la ventana.
+
         d.getDialogPane().setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         d.getDialogPane().setMinWidth(420);
         d.setResizable(true);

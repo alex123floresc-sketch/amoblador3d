@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class FSHFAppLogTest {
-
     @Test
     void seGuardanLosMensajesYLasTrazasEnElArchivo(@TempDir Path dir) throws Exception {
         FSHFAppLog.init(dir.resolve("logs"));
@@ -24,7 +23,7 @@ class FSHFAppLogTest {
         Logger log = FSHFAppLog.of(FSHFAppLogTest.class);
         log.warning("precio dañado en la base");
         log.log(Level.SEVERE, "falló el guardado", new IllegalStateException("disco lleno"));
-        FSHFAppLog.close(); // en Windows la carpeta temporal no se puede borrar con el archivo abierto
+        FSHFAppLog.close();
 
         String text = Files.readString(file, StandardCharsets.UTF_8);
         assertTrue(text.contains("WARNING [FSHFAppLogTest] precio dañado en la base"), text);

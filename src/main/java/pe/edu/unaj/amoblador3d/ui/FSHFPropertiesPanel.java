@@ -37,14 +37,6 @@ import pe.edu.unaj.amoblador3d.design.FSHFField.Option;
 import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Panel derecho: dibuja el formulario del elemento seleccionado a partir de sus
- * {@link FSHFField}. El mismo panel sirve para paredes, piso, aberturas, luces y muebles.
- *
- * <p>Los números se aplican al presionar Enter o al salir del campo (Esc deshace lo escrito).
- * Los que tienen deslizador cambian en vivo mientras se arrastra (un solo paso de deshacer al
- * soltarlo). Si el cambio no es válido, se muestra el motivo y el campo vuelve al valor anterior.
- */
 final class FSHFPropertiesPanel {
     private static final double SWATCH = 22, PREVIEW = 58;
 
@@ -56,18 +48,13 @@ final class FSHFPropertiesPanel {
     private final VBox form = new VBox(10);
     private final FlowPane actions = new FlowPane(6, 6);
     private final Button delete = new Button("Eliminar");
-    /** Controles de cada campo, para actualizar sus valores sin rehacer el formulario. */
     private final Map<String, Node> controls = new LinkedHashMap<>();
     private final Map<String, Slider> sliders = new LinkedHashMap<>();
 
-    /** Se llama después de cada cambio aplicado (para registrarlo en deshacer). */
     private final Runnable onChanged;
-    /** Se llama en cada paso de un deslizador (el cambio se registra al soltarlo). */
     private Runnable onPending = () -> {};
-    /** Cabecera opcional del formulario (p. ej. la miniatura del mueble), o null. */
     private Function<Object, Node> header = e -> null;
     private boolean sliding;
-    /** Miniatura de cada opción de una galería (p. ej. "ladrillo" -> textura). */
     private final Function<String, Image> previews;
     private final Node emptyState;
 
@@ -118,7 +105,6 @@ final class FSHFPropertiesPanel {
         content.getChildren().setAll(title, emptyState);
     }
 
-    /** Muestra el formulario de un elemento (o la ayuda inicial si es null). */
     void show(FSHFEditable e) {
         if (e == null) {
             showEmpty();
@@ -129,7 +115,6 @@ final class FSHFPropertiesPanel {
         build();
     }
 
-    /** Vuelve a leer los valores (tras deshacer, arrastrar, etc.). Rehace el formulario si cambiaron los campos. */
     void refresh() {
         if (editable == null || sliding) return;
         List<FSHFField> fields = editable.fields();
@@ -151,10 +136,9 @@ final class FSHFPropertiesPanel {
         }
         updating = false;
         updateEnabled();
-        buildActions(); // p. ej. al bloquear un mueble se deshabilitan sus botones
+        buildActions();
     }
 
-    /** Deshabilita los campos y el botón Eliminar que no se pueden usar (mueble bloqueado). */
     private void updateEnabled() {
         for (Map.Entry<String, Node> e : controls.entrySet()) e.getValue().setDisable(!editable.isEnabled(e.getKey()));
         for (Map.Entry<String, Slider> e : sliders.entrySet()) e.getValue().setDisable(!editable.isEnabled(e.getKey()));
@@ -175,7 +159,6 @@ final class FSHFPropertiesPanel {
         if (editable.showDelete()) actions.getChildren().add(delete);
     }
 
-    /** Mismos campos, en el mismo orden y con las mismas opciones (los límites pueden cambiar). */
     private static boolean sameShape(List<FSHFField> a, List<FSHFField> b) {
         if (a.size() != b.size()) return false;
         for (int i = 0; i < a.size(); i++) {
@@ -219,7 +202,7 @@ final class FSHFPropertiesPanel {
             setControlValue(f, control);
             Label label = new Label(f.label());
             label.getStyleClass().add("field-label");
-            // Galerías y colores con sugerencias ocupan todo el ancho; el resto va en dos columnas.
+
             if (f.type() == FSHFField.Type.GALLERY || (f.type() == FSHFField.Type.COLOR && !f.options().isEmpty())) {
                 if (row > 0) {
                     blocks.add(grid);
@@ -271,11 +254,6 @@ final class FSHFPropertiesPanel {
         content.getChildren().setAll(children);
     }
 
-    /**
-     * Deslizador de un número: aplica el valor en vivo mientras se arrastra y registra un solo
-     * paso de deshacer al soltarlo. Si un valor intermedio no es válido (choca con algo), se
-     * muestra el motivo y se sigue con el último valor que sí se pudo aplicar.
-     */
     private Slider createSlider(FSHFField f) {
         Slider sl = new Slider(f.min(), f.max(), f.min());
         sl.getStyleClass().add("field-slider");
@@ -378,7 +356,7 @@ final class FSHFPropertiesPanel {
                     }
                     b.setOnAction(e -> {
                         if (!updating && !o.value().equals(editable.get(f.key()))) apply(f.key(), o.value());
-                        else setControlValue(f, tiles); // un clic sobre el ya elegido no lo "apaga"
+                        else setControlValue(f, tiles);
                     });
                     tiles.getChildren().add(b);
                 }
@@ -473,11 +451,10 @@ final class FSHFPropertiesPanel {
         applied(editable.set(key, value));
     }
 
-    /** @param err mensaje de error o null si el cambio se aplicó */
     private void applied(String err) {
         if (err != null) {
             showError(err);
-            refresh(); // vuelve a mostrar los valores que siguen vigentes
+            refresh();
             return;
         }
         hideError();

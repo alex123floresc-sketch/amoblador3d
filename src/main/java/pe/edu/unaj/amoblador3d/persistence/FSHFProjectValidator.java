@@ -13,14 +13,6 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
-/**
- * Revisa un proyecto leído de un archivo o de la base de datos ANTES de mostrarlo.
- *
- * <p>Corrección: la versión anterior empezaba a cargar el proyecto y fallaba a la mitad si un
- * mueble o una luz tenía datos incompletos, dejando la escena vacía o rota. Ahora se revisa
- * todo primero; lo que no se puede arreglar produce un error claro y la escena actual no se toca.
- * Las aberturas que no caben las descarta después {@code Design.load} con un aviso.
- */
 public final class FSHFProjectValidator {
     private static final Pattern COLOR = Pattern.compile("^#[0-9a-fA-F]{6}$");
 
@@ -62,7 +54,7 @@ public final class FSHFProjectValidator {
             if (c.material == null || !c.material.allowedOnWalls()) c.material = FSHFSurface.DEFAULT_WALL;
             if (c.color == null || !COLOR.matcher(c.color).matches()) c.color = c.material.defaultColor();
         }
-        // Vistas dañadas o con nombre repetido se descartan (no son motivo para no abrir el proyecto).
+
         Set<String> names = new HashSet<>();
         p.views.removeIf(v -> !v.isValid() || !names.add(v.name().trim().toLowerCase()));
         for (FSHFFurniture f : p.furniture) {
@@ -78,7 +70,6 @@ public final class FSHFProjectValidator {
         }
     }
 
-    /** Un material que no corresponde (p. ej. alfombra en una pared) o un color dañado vuelven al valor por defecto. */
     private static void fixSurface(FSHFSurface s, FSHFSurfaceMaterial fallback) {
         if (s.material == null || !s.material.allowedOn(s)) s.material = fallback;
         if (s.color == null || !COLOR.matcher(s.color).matches()) s.color = s.material.defaultColor();
