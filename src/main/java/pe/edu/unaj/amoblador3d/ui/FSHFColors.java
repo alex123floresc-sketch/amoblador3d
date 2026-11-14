@@ -3,6 +3,9 @@ package pe.edu.unaj.amoblador3d.ui;
 import java.util.Locale;
 import javafx.scene.paint.Color;
 
+/**
+ * Convierte colores de JavaFX a texto hexadecimal.
+ */
 final class FSHFColors {
     private FSHFColors() {}
 

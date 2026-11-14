@@ -9,6 +9,10 @@ import javafx.scene.control.TextInputDialog;
 import javafx.stage.Window;
 import pe.edu.unaj.amoblador3d.util.FSHFAppLog;
 
+/**
+ * Diálogos comunes: error, información, confirmación, cambios sin guardar y pedir un
+ * texto.
+ */
 final class FSHFDialogs {
     static final ButtonType SAVE = new ButtonType("Guardar", ButtonBar.ButtonData.YES);
     static final ButtonType DISCARD = new ButtonType("No guardar", ButtonBar.ButtonData.NO);

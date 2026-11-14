@@ -23,6 +23,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 
+/**
+ * Guarda, abre, renombra y elimina proyectos en la base de datos, con sus ambientes,
+ * elementos y miniatura.
+ */
 public final class FSHFProjectRepository {
     public record Summary(long id, String name, Instant updatedAt, byte[] thumbnail) {}
 

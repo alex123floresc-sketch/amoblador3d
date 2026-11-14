@@ -22,6 +22,11 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Editores del panel de propiedades para cada tipo de elemento (habitación, mueble,
+ * abertura, luz, superficie y columna): definen qué campos se muestran y cómo se aplican
+ * los cambios.
+ */
 public final class FSHFEditors {
     public interface DuplicateHandler {
         String duplicate(FSHFFurniture f);

@@ -9,6 +9,11 @@ import java.util.regex.Pattern;
 import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Mueble diseñado por el usuario en el diseñador de muebles: lista de piezas (cajas,
+ * cilindros, esferas y barras) con medidas, posición, color y acabado. Se valida y se
+ * guarda como JSON.
+ */
 public final class FSHFCustomDesign {
     public static final int MAX_PIECES = 300, MAX_NAME = 40;
     public static final double MAX_SIZE = 6, MAX_POS = 6, MIN_SIZE = 0.001;

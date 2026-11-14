@@ -2,6 +2,10 @@ package pe.edu.unaj.amoblador3d.catalog;
 
 import java.net.URL;
 
+/**
+ * Elemento del catálogo de muebles: identificador, nombre, categoría, medidas iniciales
+ * y rangos permitidos, y el modelo 3D o el diseño propio del que proviene, si lo hay.
+ */
 public record FSHFCatalogEntry(
         String id,
         String name,

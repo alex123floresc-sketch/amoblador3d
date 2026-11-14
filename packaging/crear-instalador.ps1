@@ -24,7 +24,7 @@ $modules = 'java.base,java.desktop,java.sql,java.logging,jdk.jfr,jdk.unsupported
 $common = @(
     '--name', 'Amoblador3D',
     '--app-version', $version,
-    '--vendor', 'UNAJ',
+    '--vendor', 'FSHF',
     '--description', 'Diseñador de interiores 3D con medidas reales',
     '--input', $in,
     '--main-jar', 'amoblador3d.jar',

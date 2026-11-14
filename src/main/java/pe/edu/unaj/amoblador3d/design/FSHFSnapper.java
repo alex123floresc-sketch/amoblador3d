@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import pe.edu.unaj.amoblador3d.model.FSHFFootprint;
 
+/**
+ * Imán al arrastrar: ajusta la posición de un mueble para pegarlo a las paredes y a los
+ * bordes o centros de otros muebles, y devuelve las guías que se dibujan en pantalla.
+ */
 public final class FSHFSnapper {
     public static final double THRESHOLD = 0.08;
 

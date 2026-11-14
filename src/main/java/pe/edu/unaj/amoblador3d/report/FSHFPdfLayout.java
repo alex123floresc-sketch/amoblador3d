@@ -14,6 +14,10 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
+/**
+ * Maquetación del informe PDF con PDFBox: páginas, títulos, párrafos, tablas, imágenes y
+ * pie de página.
+ */
 final class FSHFPdfLayout implements AutoCloseable {
     static final float MARGIN = 42;
     private static final PDRectangle SIZE = PDRectangle.A4;

@@ -3,6 +3,9 @@ package pe.edu.unaj.amoblador3d.util;
 import java.text.NumberFormat;
 import java.util.Locale;
 
+/**
+ * Utilidades de unidades: redondeo, límites y formato de metros, números y soles.
+ */
 public final class FSHFUnits {
     public static final Locale LOCALE = Locale.forLanguageTag("es-PE");
 

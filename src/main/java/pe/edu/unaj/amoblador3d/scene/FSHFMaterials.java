@@ -7,6 +7,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 
+/**
+ * Materiales 3D (color, brillo y acabado) que usan los muebles, las paredes y los
+ * marcos.
+ */
 final class FSHFMaterials {
     private static final Map<String, PhongMaterial> CACHE = new HashMap<>();
 

@@ -5,6 +5,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Genera identificadores únicos para los elementos del ambiente (muebles, aberturas,
+ * luces y columnas).
+ */
 final class FSHFIdGenerator {
     private static final Pattern NUMBERED = Pattern.compile("^(.*)-(\\d+)$");
     private final Map<String, Integer> counters = new HashMap<>();

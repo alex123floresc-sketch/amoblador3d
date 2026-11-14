@@ -34,6 +34,10 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry;
 import pe.edu.unaj.amoblador3d.scene.FSHFThumbnails;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Panel del catálogo de muebles: categorías, buscador, botones para agregar y menú de
+ * los diseños y modelos propios.
+ */
 final class FSHFCatalogPanel {
     interface Actions {
         void add(String type);

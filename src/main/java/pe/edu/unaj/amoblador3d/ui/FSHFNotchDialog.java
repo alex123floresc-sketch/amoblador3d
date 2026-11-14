@@ -16,6 +16,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFColumn;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Diálogo para dar forma de L a la habitación eligiendo la esquina y el tamaño del
+ * recorte.
+ */
 final class FSHFNotchDialog {
     record Notch(FSHFColumn.Corner corner, double width, double depth) {}
 

@@ -14,6 +14,10 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign;
 import pe.edu.unaj.amoblador3d.model.FSHFHome;
 import pe.edu.unaj.amoblador3d.model.FSHFProject;
 
+/**
+ * Convierte una casa con varios ambientes a JSON y de vuelta, y completa los datos que
+ * falten en archivos de versiones anteriores.
+ */
 public final class FSHFHomeJson {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 

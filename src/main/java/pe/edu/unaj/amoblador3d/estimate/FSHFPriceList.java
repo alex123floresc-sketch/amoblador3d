@@ -4,6 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 
+/**
+ * Lista de precios referenciales en soles de materiales y muebles; permite cambiar un
+ * precio y volver a los valores por defecto.
+ */
 public final class FSHFPriceList {
     public enum Kind {
         MATERIAL("material"), FURNITURE("furniture"), EXTRA("extra");

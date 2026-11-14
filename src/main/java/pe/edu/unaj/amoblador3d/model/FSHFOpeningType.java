@@ -2,6 +2,10 @@ package pe.edu.unaj.amoblador3d.model;
 
 import java.util.List;
 
+/**
+ * Tipos de abertura (ventana, puerta normal, principal, doble, corrediza, portón de
+ * cochera y vano) con sus medidas iniciales y cómo abren.
+ */
 public enum FSHFOpeningType {
     WINDOW("window", "Ventana", 1.2, 1.0, 0.9),
     DOOR("door", "Puerta", 0.9, 2.1, 0),

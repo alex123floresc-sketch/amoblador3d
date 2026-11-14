@@ -1,5 +1,8 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Las cuatro paredes de la habitación: norte, sur, este y oeste.
+ */
 public enum FSHFWallSide {
     NORTE("norte", "Norte"),
     SUR("sur", "Sur"),

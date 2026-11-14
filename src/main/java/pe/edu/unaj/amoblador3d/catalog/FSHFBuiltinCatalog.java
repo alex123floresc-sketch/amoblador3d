@@ -13,6 +13,10 @@ import java.util.List;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Size;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Source;
 
+/**
+ * Carga el catálogo de muebles incluido en la aplicación (archivo assets/catalog.json):
+ * los muebles paramétricos y los modelos 3D de serie.
+ */
 public final class FSHFBuiltinCatalog {
     private static final String ROOT = "/assets/";
 

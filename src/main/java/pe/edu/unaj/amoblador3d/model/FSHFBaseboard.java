@@ -1,5 +1,8 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Zócalo del ambiente: alto y color (un alto de 0 significa sin zócalo).
+ */
 public final class FSHFBaseboard {
     public static final String ID = "zocalo";
     public static final double DEFAULT_HEIGHT = 0.08, MAX_HEIGHT = 0.2;

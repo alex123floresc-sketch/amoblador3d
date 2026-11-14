@@ -21,6 +21,10 @@ import pe.edu.unaj.amoblador3d.report.FSHFPdfLayout.Align;
 import pe.edu.unaj.amoblador3d.report.FSHFPdfLayout.Row;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Informe PDF de un proyecto: planta con cotas, vista 3D, ventanas y puertas, muebles y
+ * presupuesto.
+ */
 public record FSHFProjectReport(String name, FSHFProject project, FSHFEstimate estimate, byte[] planPng, byte[] viewPng,
                             Function<Object, String> labels) {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", FSHFUnits.LOCALE);

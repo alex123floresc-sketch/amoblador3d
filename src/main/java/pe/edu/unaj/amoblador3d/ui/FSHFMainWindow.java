@@ -109,6 +109,10 @@ import pe.edu.unaj.amoblador3d.scene.FSHFSurfacePreview;
 import pe.edu.unaj.amoblador3d.util.FSHFOutcome;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Ventana principal: menú, barra de herramientas, barra de ambientes, catálogo, vista 3D
+ * y panel de propiedades. Coordina todas las acciones del usuario.
+ */
 public final class FSHFMainWindow {
     public static final String STYLESHEET = FSHFMainWindow.class.getResource("/ui/app.css").toExternalForm();
     private static final String APP_NAME = "Amoblador3D";

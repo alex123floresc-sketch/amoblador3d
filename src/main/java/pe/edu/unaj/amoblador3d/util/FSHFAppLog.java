@@ -15,6 +15,10 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
+/**
+ * Registro de errores de la aplicación en la carpeta de datos, incluidos los errores no
+ * capturados.
+ */
 public final class FSHFAppLog {
     private static final String ROOT = "pe.edu.unaj.amoblador3d";
     private static final int FILE_LIMIT = 1024 * 1024;

@@ -3,6 +3,10 @@ package pe.edu.unaj.amoblador3d.model;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Materiales para paredes, piso y techo, con su color inicial y en qué superficies se
+ * pueden usar.
+ */
 public enum FSHFSurfaceMaterial {
     PINTURA("pintura", "Pintura mate", "#f2efe9", true, false, true),
     SATINADO("satinado", "Pintura satinada", "#e9eef2", true, false, true),

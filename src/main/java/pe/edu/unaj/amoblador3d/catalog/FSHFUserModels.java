@@ -22,6 +22,10 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Source;
 import pe.edu.unaj.amoblador3d.persistence.FSHFCatalogRepository;
 import pe.edu.unaj.amoblador3d.persistence.FSHFCatalogRepository.ModelRow;
 
+/**
+ * Modelos 3D (.glb y .gltf) importados por el usuario: los copia a la carpeta de datos,
+ * guarda la lista y permite quitarlos.
+ */
 public final class FSHFUserModels {
     public record Imported(String id, String name, String folder, String file, Path path) {}
 

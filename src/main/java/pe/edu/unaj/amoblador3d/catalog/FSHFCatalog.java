@@ -11,6 +11,11 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Range;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Size;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Source;
 
+/**
+ * Catálogo de muebles disponible: reúne los muebles paramétricos, los modelos 3D
+ * incluidos o importados y los diseños propios del usuario, y permite buscarlos por
+ * nombre o categoría.
+ */
 public final class FSHFCatalog {
     public static final String BEDROOM = "Dormitorio", LIVING = "Sala", DINING = "Comedor", KITCHEN = "Cocina",
             BATHROOM = "Baño", OFFICE = "Oficina", STAIRS = "Escaleras", DECORATION = "Decoración", MY_DESIGNS = "Mis diseños",

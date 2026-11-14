@@ -1,5 +1,9 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Mueble colocado en el ambiente: tipo, posición, giro, medidas, colores, acabado y si
+ * está bloqueado.
+ */
 public final class FSHFFurniture {
     public String id;
     public String type;

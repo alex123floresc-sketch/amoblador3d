@@ -21,6 +21,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFLightType;
 import pe.edu.unaj.amoblador3d.model.FSHFOpening;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 
+/**
+ * Dibuja las luces en la escena 3D, incluido el sol que entra por las ventanas, y aplica
+ * el modo noche.
+ */
 final class FSHFLightView {
     private static final double AMBIENT_SCALE = 0.45;
     private static final double POINT_SCALE = 0.35;

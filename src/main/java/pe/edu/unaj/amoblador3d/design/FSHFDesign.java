@@ -31,6 +31,12 @@ import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.util.FSHFOutcome;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Estado del ambiente que se está diseñando: medidas, aberturas, luces, muebles,
+ * superficies, columnas y vistas guardadas. Aplica las reglas del dominio (los muebles
+ * no chocan, no tapan puertas ni ventanas y quedan dentro de la habitación) y avisa a la
+ * interfaz de cada cambio.
+ */
 public final class FSHFDesign {
     public static final double MARGIN = 0.05;
     public static final int MAX_ACTIVE_LIGHTS = 3;

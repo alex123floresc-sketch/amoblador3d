@@ -8,6 +8,9 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
+/**
+ * Mensaje breve que aparece sobre la vista y se oculta solo.
+ */
 final class FSHFToast {
     enum Kind { INFO, ERROR }
 

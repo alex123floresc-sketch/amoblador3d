@@ -21,6 +21,11 @@ import java.util.Map;
 import pe.edu.unaj.amoblador3d.gltf.FSHFModelData.Material;
 import pe.edu.unaj.amoblador3d.gltf.FSHFModelData.Primitive;
 
+/**
+ * Lector de modelos 3D en formato glTF 2.0 (.gltf con sus archivos .bin, y .glb): lee
+ * mallas, normales, coordenadas de textura y materiales, y aplica la transformación de
+ * cada nodo.
+ */
 public final class FSHFGltfLoader {
     private static final int GLB_MAGIC = 0x46546C67;
     private static final int CHUNK_JSON = 0x4E4F534A;

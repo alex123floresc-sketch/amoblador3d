@@ -1,5 +1,9 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Abertura en una pared (ventana, puerta o vano): pared, posición, ancho, alto y altura
+ * desde el piso.
+ */
 public final class FSHFOpening {
     public String id;
     public FSHFOpeningType type;

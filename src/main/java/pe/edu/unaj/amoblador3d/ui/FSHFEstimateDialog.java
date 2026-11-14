@@ -33,6 +33,10 @@ import pe.edu.unaj.amoblador3d.estimate.FSHFQuantities;
 import pe.edu.unaj.amoblador3d.persistence.FSHFPriceRepository;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Ventana de metrado y presupuesto: tabla con cantidades y precios editables, total y
+ * exportación a CSV.
+ */
 final class FSHFEstimateDialog {
     private final Stage stage = new Stage();
     private final Supplier<FSHFEstimate> compute;

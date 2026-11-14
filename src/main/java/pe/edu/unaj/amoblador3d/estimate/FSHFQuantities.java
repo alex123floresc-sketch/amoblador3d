@@ -10,6 +10,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFProject;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 
+/**
+ * Metrado de un ambiente: área del piso, área neta de cada pared sin ventanas ni
+ * puertas, caras de las columnas y perímetro para el zócalo.
+ */
 public record FSHFQuantities(double floorArea, Map<FSHFWallSide, Double> wallNet, List<ColumnFaces> columnFaces,
                          double openingsArea, double perimeter, double baseboard, double volume) {
     public record ColumnFaces(FSHFColumn column, double area, double exposedLength) {}

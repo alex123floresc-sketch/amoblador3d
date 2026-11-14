@@ -9,6 +9,10 @@ import javafx.scene.transform.Rotate;
 import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 
+/**
+ * Construye en 3D los 18 muebles paramétricos (cama, sofá, closet, escaleras, etc.) a
+ * partir de sus medidas y colores.
+ */
 final class FSHFParametricBuilder {
     private FSHFParametricBuilder() {}
 

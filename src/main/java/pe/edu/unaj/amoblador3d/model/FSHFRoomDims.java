@@ -2,6 +2,9 @@ package pe.edu.unaj.amoblador3d.model;
 
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Medidas de la habitación (ancho, largo, alto y grosor de muro) y su validación.
+ */
 public record FSHFRoomDims(double width, double length, double height, double wallThickness) {
     public static final FSHFRoomDims DEFAULT = new FSHFRoomDims(4, 3.5, 2.5, 0.15);
 

@@ -15,6 +15,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFHome;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Panel de la casa completa: tabla de ambientes con área y costo, piso que se ve y
+ * acciones sobre cada ambiente.
+ */
 final class FSHFHomePanel {
     interface Host {
         FSHFHome home();

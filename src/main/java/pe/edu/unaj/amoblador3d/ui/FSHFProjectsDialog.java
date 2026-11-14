@@ -25,6 +25,9 @@ import pe.edu.unaj.amoblador3d.persistence.FSHFProjectRepository;
 import pe.edu.unaj.amoblador3d.persistence.FSHFProjectRepository.Summary;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Ventana para abrir, renombrar o eliminar proyectos guardados, con su miniatura.
+ */
 final class FSHFProjectsDialog {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
             .withLocale(FSHFUnits.LOCALE).withZone(ZoneId.systemDefault());

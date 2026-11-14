@@ -2,6 +2,10 @@ package pe.edu.unaj.amoblador3d.gltf;
 
 import java.util.List;
 
+/**
+ * Modelo 3D ya leído: primitivas con sus vértices, índices y material, y la caja que lo
+ * contiene.
+ */
 public record FSHFModelData(List<Primitive> primitives) {
     public record Primitive(float[] positions, float[] normals, float[] uvs, int[] indices, Material material) {}
 

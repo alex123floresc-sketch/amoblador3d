@@ -14,6 +14,10 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry;
 import pe.edu.unaj.amoblador3d.design.FSHFDesign;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 
+/**
+ * Nodo 3D de cada mueble del ambiente; se reconstruye cuando cambian sus datos o termina
+ * de cargar su modelo.
+ */
 final class FSHFFurnitureView {
     final Group group = new Group();
     private final FSHFModelLibrary models;

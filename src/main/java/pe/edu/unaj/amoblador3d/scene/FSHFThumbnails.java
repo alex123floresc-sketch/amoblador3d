@@ -18,6 +18,9 @@ import javafx.scene.transform.Translate;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 
+/**
+ * Miniaturas de los muebles del catálogo, dibujadas una vez y guardadas en memoria.
+ */
 public final class FSHFThumbnails {
     public static final int WIDTH = 116, HEIGHT = 80;
 

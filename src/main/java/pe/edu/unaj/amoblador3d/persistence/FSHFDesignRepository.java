@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign;
 
+/**
+ * Guarda, lista y elimina en la base de datos los diseños de muebles propios.
+ */
 public final class FSHFDesignRepository {
     private final FSHFDatabase db;
 

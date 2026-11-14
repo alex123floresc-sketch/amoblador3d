@@ -22,6 +22,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Capa 2D dibujada sobre la vista: cotas, contorno de la selección, asas, guías del
+ * imán, rectángulo de selección y mediciones.
+ */
 final class FSHFOverlay {
     private static final Color DIM = Color.web("#ffd166");
     private static final Color SELECT = Color.web("#4f9cf9");

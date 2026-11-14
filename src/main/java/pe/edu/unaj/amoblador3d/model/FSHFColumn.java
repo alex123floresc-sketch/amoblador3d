@@ -1,5 +1,9 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Columna, muro interno o recorte que da forma de L a la habitación: un bloque del piso
+ * al techo con su posición, medidas y acabado.
+ */
 public final class FSHFColumn {
     public enum Kind {
         COLUMN("column", "Columna", 0.3, 0.3),

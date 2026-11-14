@@ -3,6 +3,10 @@ package pe.edu.unaj.amoblador3d.design;
 import java.util.List;
 import java.util.function.Supplier;
 
+/**
+ * Contrato de todo elemento que se puede editar en el panel de propiedades: título,
+ * campos, lectura y escritura de valores y acciones disponibles.
+ */
 public interface FSHFEditable {
     Object entity();
 

@@ -43,6 +43,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Vista principal del ambiente en 3D, en planta y en recorrido: cámara, ratón, teclado,
+ * selección, arrastre de muebles y medición de distancias.
+ */
 public final class FSHFSceneView {
     private static final String ENTITY = "amoblador.entity";
     private static final double CLICK_TOLERANCE = 5;

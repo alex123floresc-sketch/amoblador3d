@@ -23,6 +23,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 
+/**
+ * Lectura y escritura de proyectos en JSON (archivos .amob3d y portapapeles), incluidos
+ * los diseños propios que usan.
+ */
 public final class FSHFProjectJson {
     public static final String APP = "Amoblador3D";
     public static final int VERSION = 2;

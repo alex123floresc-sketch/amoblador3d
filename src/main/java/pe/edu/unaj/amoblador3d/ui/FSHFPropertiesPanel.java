@@ -37,6 +37,10 @@ import pe.edu.unaj.amoblador3d.design.FSHFField.Option;
 import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Panel derecho de propiedades: crea los controles del elemento seleccionado y aplica
+ * los cambios.
+ */
 final class FSHFPropertiesPanel {
     private static final double SWATCH = 22, PREVIEW = 58;
 

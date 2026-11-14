@@ -2,6 +2,10 @@ package pe.edu.unaj.amoblador3d.design;
 
 import java.util.List;
 
+/**
+ * Descripción de un campo del panel de propiedades: tipo de control (número, deslizador,
+ * selección, galería, color o casilla), límites, paso y unidad.
+ */
 public record FSHFField(String key, String label, Type type, double min, double max, double step, String unit, List<Option> options,
                     boolean slider) {
     public enum Type { NUMBER, SELECT, GALLERY, COLOR, CHECKBOX, SECTION }

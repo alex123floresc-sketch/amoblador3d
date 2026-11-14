@@ -1,5 +1,8 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Superficie del ambiente (piso, techo o una de las paredes) con su material y color.
+ */
 public final class FSHFSurface {
     public static final String FLOOR_ID = "piso", CEILING_ID = "techo";
     public static final FSHFSurfaceMaterial DEFAULT_FLOOR = FSHFSurfaceMaterial.MADERA;

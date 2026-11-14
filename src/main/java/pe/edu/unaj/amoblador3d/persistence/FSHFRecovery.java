@@ -15,6 +15,10 @@ import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import pe.edu.unaj.amoblador3d.model.FSHFHome;
 
+/**
+ * Autoguardado: escribe periódicamente una copia del trabajo sin guardar y la ofrece al
+ * abrir la aplicación si esta se cerró de golpe.
+ */
 public final class FSHFRecovery {
     public record Snapshot(FSHFHome home, Long projectId, String name, Instant savedAt) {}
 

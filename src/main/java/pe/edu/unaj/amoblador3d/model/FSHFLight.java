@@ -1,5 +1,8 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Luz del ambiente: tipo, posición, color e intensidad.
+ */
 public final class FSHFLight {
     public String id;
     public FSHFLightType type;

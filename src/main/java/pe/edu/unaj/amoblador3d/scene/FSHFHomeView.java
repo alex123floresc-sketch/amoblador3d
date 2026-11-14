@@ -38,6 +38,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFProject;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Vista de la casa completa en 3D o en planta: dibuja todos los ambientes y permite
+ * elegirlos, arrastrarlos y cambiar de piso.
+ */
 public final class FSHFHomeView {
     private static final String SPACE = "amoblador.space";
     private static final double SNAP = 0.35;

@@ -18,6 +18,9 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry.Size;
 import pe.edu.unaj.amoblador3d.gltf.FSHFModelData;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Diálogo para importar un modelo 3D: nombre, categoría y medidas reales.
+ */
 final class FSHFImportModelDialog {
     record Result(String name, Size size, double rotation) {}
 

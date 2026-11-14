@@ -6,6 +6,9 @@ import javafx.scene.shape.MeshView;
 import javafx.scene.shape.TriangleMesh;
 import javafx.scene.shape.VertexFormat;
 
+/**
+ * Mallas 3D básicas (cajas y caras) con las que se construyen paredes, pisos y muebles.
+ */
 final class FSHFMeshes {
     private FSHFMeshes() {}
 

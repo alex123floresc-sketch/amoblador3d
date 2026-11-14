@@ -9,6 +9,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+/**
+ * Conexión a la base de datos SQLite: crea el esquema, aplica las migraciones entre
+ * versiones sin perder datos y ejecuta operaciones dentro de transacciones.
+ */
 public final class FSHFDatabase implements AutoCloseable {
     static final int SCHEMA_VERSION = 9;
 

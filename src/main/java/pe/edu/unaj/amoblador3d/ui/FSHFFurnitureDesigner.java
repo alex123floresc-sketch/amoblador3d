@@ -64,6 +64,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 import pe.edu.unaj.amoblador3d.scene.FSHFFurnitureShapes;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Ventana del diseñador de muebles: lista de piezas, vista 3D giratoria, panel de
+ * medidas y colores, plantillas, deshacer y guardar.
+ */
 final class FSHFFurnitureDesigner {
     record Saved(FSHFCustomDesign design, boolean replace) {}
 

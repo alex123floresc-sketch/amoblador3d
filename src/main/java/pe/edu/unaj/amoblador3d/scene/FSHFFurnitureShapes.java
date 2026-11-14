@@ -20,6 +20,10 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCustomDesign.Shape;
 import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 
+/**
+ * Convierte un diseño propio o un mueble paramétrico en piezas 3D con sus colores y
+ * materiales.
+ */
 public final class FSHFFurnitureShapes {
     private FSHFFurnitureShapes() {}
 

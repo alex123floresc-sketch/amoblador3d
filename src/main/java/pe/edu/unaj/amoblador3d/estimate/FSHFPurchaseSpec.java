@@ -2,6 +2,10 @@ package pe.edu.unaj.amoblador3d.estimate;
 
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 
+/**
+ * Regla de compra de un material: unidad de venta, rendimiento, número de manos,
+ * desperdicio y redondeo. Convierte metros cuadrados en la cantidad que hay que comprar.
+ */
 public record FSHFPurchaseSpec(String unit, double coverage, int coats, double waste, double step) {
     private static final FSHFPurchaseSpec PAINT = new FSHFPurchaseSpec("gal", 35, 2, 0, 0.25);
     private static final FSHFPurchaseSpec WALLPAPER = new FSHFPurchaseSpec("rollo", 5.3, 1, 0.10, 1);

@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+/**
+ * Historial para deshacer y rehacer: guarda instantáneas del proyecto y lleva la cuenta
+ * de si hay cambios sin guardar.
+ */
 public final class FSHFHistory {
     private static final int MAX_STEPS = 100;
 

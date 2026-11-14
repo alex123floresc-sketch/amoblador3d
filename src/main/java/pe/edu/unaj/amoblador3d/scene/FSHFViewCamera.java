@@ -5,6 +5,10 @@ import javafx.geometry.Point3D;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.transform.Affine;
 
+/**
+ * Cámara de la vista: órbita, planta y recorrido en primera persona. Convierte puntos de
+ * la pantalla en puntos del piso.
+ */
 final class FSHFViewCamera {
     enum Mode { THREE_D, PLAN, WALK }
 

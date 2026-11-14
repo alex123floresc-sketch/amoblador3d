@@ -2,6 +2,10 @@ package pe.edu.unaj.amoblador3d.persistence;
 
 import java.nio.file.Path;
 
+/**
+ * Rutas de la carpeta de datos del usuario (%APPDATA%\Amoblador3D en Windows): base de
+ * datos, modelos importados y registros de errores.
+ */
 public final class FSHFAppPaths {
     private FSHFAppPaths() {}
 

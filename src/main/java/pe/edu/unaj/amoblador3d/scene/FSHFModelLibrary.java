@@ -26,6 +26,10 @@ import pe.edu.unaj.amoblador3d.gltf.FSHFModelData;
 import pe.edu.unaj.amoblador3d.gltf.FSHFModelData.Primitive;
 import pe.edu.unaj.amoblador3d.model.FSHFFinish;
 
+/**
+ * Carga y guarda en memoria los modelos 3D del catálogo y los ajusta a las medidas de
+ * cada mueble.
+ */
 public final class FSHFModelLibrary {
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "carga-modelos");

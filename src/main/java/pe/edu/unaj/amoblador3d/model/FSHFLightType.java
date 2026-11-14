@@ -1,5 +1,9 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Tipos de luz (bombilla, foco y sol que entra por una ventana) con su color inicial e
+ * intensidad máxima.
+ */
 public enum FSHFLightType {
     POINT("point", "Bombilla", "#ffe2b8", 6),
     SPOT("spot", "Foco", "#fff4e0", 25),

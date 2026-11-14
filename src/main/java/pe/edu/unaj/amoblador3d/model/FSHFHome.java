@@ -3,6 +3,10 @@ package pe.edu.unaj.amoblador3d.model;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Casa con varios ambientes: posición, giro y piso de cada ambiente, muros compartidos,
+ * puertas que dan a la calle y pasos entre ambientes.
+ */
 public final class FSHFHome {
     public static final int MAX_SPACES = 30, MAX_NAME = 40, MAX_LEVELS = 4;
     public static final double SLAB = 0.2;

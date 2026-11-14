@@ -8,6 +8,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 
+/**
+ * Texturas de los materiales (ladrillo, madera, cerámico, etc.) generadas a escala real
+ * y guardadas en memoria.
+ */
 final class FSHFSurfaceTextures {
     private static final int CACHE_LIMIT = 32;
     private static final Map<String, PhongMaterial> CACHE = new LinkedHashMap<>(16, 0.75f, true) {

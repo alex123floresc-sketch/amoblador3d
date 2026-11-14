@@ -5,6 +5,10 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Proyecto de un ambiente: medidas, superficies, aberturas, luces, muebles, columnas,
+ * zócalo y vistas guardadas.
+ */
 public final class FSHFProject {
     public static final double DEFAULT_AMBIENT = 0.6;
 

@@ -7,6 +7,9 @@ import javafx.scene.shape.MeshView;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 
+/**
+ * Geometría de una pared: extremos, normal interior y las cajas con que se dibuja.
+ */
 record FSHFWallFrame(FSHFWallSide side, double width, double length, double thickness) {
     static FSHFWallFrame of(FSHFWallSide side, FSHFRoomDims r) {
         return new FSHFWallFrame(side, r.width(), r.length(), r.wallThickness());

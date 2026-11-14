@@ -14,6 +14,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Presupuesto de un ambiente: líneas de acabados y muebles con cantidad, precio unitario
+ * y subtotal, calculadas a partir del metrado y de la lista de precios.
+ */
 public record FSHFEstimate(FSHFQuantities quantities, List<Line> lines) {
     public enum Section {
         FINISHES("Acabados"), EXTRAS("Complementos"), FURNITURE("Muebles");

@@ -1,5 +1,9 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Acabado de un mueble (mate, satinado, brillante o metálico) y el brillo con que se
+ * dibuja.
+ */
 public enum FSHFFinish {
     MATE("mate", "Mate", 0.04, 8),
     SATINADO("satinado", "Satinado", 0.22, 22),

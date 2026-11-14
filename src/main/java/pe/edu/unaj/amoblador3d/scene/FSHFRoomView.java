@@ -20,6 +20,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 
+/**
+ * Construye en 3D la habitación: piso, techo, paredes con sus vanos, zócalo, puertas y
+ * ventanas.
+ */
 final class FSHFRoomView {
     private static final double BASEBOARD_DEPTH = 0.012;
     private static final double PLINTH_MARGIN = 0.3, PLINTH_DEPTH = 0.08;

@@ -9,6 +9,10 @@ import java.util.zip.DeflaterOutputStream;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
 
+/**
+ * Codificador PNG propio, para exportar la vista y las miniaturas sin librerías
+ * adicionales.
+ */
 final class FSHFPng {
     private FSHFPng() {}
 

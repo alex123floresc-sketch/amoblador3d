@@ -28,6 +28,10 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import pe.edu.unaj.amoblador3d.persistence.FSHFProjectRepository;
 
+/**
+ * Pantalla de bienvenida: proyecto nuevo, plantilla, casa de ejemplo o abrir un
+ * proyecto.
+ */
 final class FSHFWelcomeDialog {
     record Choice(Kind kind, Long projectId) {}
 

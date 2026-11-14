@@ -6,6 +6,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import pe.edu.unaj.amoblador3d.estimate.FSHFPriceList;
 
+/**
+ * Guarda en la base de datos los precios cambiados por el usuario.
+ */
 public final class FSHFPriceRepository {
     private final FSHFDatabase db;
 

@@ -23,6 +23,9 @@ import pe.edu.unaj.amoblador3d.model.FSHFOpening;
 import pe.edu.unaj.amoblador3d.model.FSHFProject;
 import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 
+/**
+ * Ventana para elegir una plantilla de ambiente con vista previa.
+ */
 final class FSHFTemplatesDialog {
     private static final double PREVIEW_W = 340, PREVIEW_H = 280;
 

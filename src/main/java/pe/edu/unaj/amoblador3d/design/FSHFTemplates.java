@@ -16,6 +16,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFRoomDims;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
 
+/**
+ * Plantillas de ambientes listos para empezar (dormitorio, sala, comedor, cocina, baño y
+ * oficina) con sus medidas, aberturas, luces y muebles.
+ */
 public final class FSHFTemplates {
     public record Template(String name, String description, Supplier<FSHFProject> build) {}
 

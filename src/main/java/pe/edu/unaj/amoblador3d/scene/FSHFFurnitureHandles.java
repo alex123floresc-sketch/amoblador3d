@@ -10,6 +10,10 @@ import pe.edu.unaj.amoblador3d.design.FSHFDesign;
 import pe.edu.unaj.amoblador3d.model.FSHFFurniture;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Asas del mueble seleccionado en la vista 3D, para estirarlo, cambiar su alto o girarlo
+ * con el ratón.
+ */
 final class FSHFFurnitureHandles {
     enum Kind { RIGHT, LEFT, FRONT, BACK, TOP, ROTATE }
 

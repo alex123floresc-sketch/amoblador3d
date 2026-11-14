@@ -13,6 +13,10 @@ import pe.edu.unaj.amoblador3d.model.FSHFSurface;
 import pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial;
 import pe.edu.unaj.amoblador3d.util.FSHFUnits;
 
+/**
+ * Revisa un proyecto leído de un archivo y corrige o rechaza los valores fuera de rango
+ * antes de abrirlo.
+ */
 public final class FSHFProjectValidator {
     private static final Pattern COLOR = Pattern.compile("^#[0-9a-fA-F]{6}$");
 

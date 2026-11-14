@@ -24,6 +24,11 @@ import pe.edu.unaj.amoblador3d.scene.FSHFModelLibrary;
 import pe.edu.unaj.amoblador3d.ui.FSHFMainWindow;
 import pe.edu.unaj.amoblador3d.util.FSHFAppLog;
 
+/**
+ * Aplicación JavaFX de Amoblador3D. Al iniciar prepara el registro de errores, abre la
+ * base de datos y muestra la ventana principal; al cerrar libera la conexión y el
+ * registro, y muestra un aviso si ocurre un error inesperado.
+ */
 public final class FSHFApp extends Application {
     private static final Logger LOG = FSHFAppLog.of(FSHFApp.class);
     private FSHFDatabase db;

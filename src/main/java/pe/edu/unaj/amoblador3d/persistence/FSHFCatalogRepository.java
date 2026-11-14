@@ -8,6 +8,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Acceso a la tabla de la base de datos donde se registran los modelos 3D importados.
+ */
 public final class FSHFCatalogRepository {
     public record ModelRow(String id, String name, String file, double width, double depth, double height, double rotation) {}
 

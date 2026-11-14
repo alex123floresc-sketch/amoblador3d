@@ -1,5 +1,9 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Vista guardada por el usuario: tipo de cámara (órbita 3D, planta o recorrido),
+ * posición y orientación.
+ */
 public record FSHFCameraView(String name, Kind kind, double x, double y, double z, double yaw, double pitch, double distance) {
     public static final int MAX_NAME = 60;
 

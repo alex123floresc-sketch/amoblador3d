@@ -1,5 +1,9 @@
 package pe.edu.unaj.amoblador3d.model;
 
+/**
+ * Huella de un mueble en planta: un rectángulo girado. Detecta superposiciones con el
+ * teorema del eje separador y comprueba que el mueble quede dentro de la habitación.
+ */
 public record FSHFFootprint(double x, double z, double hw, double hd, double angle) {
     private static final double EPS = 1e-6;
 
