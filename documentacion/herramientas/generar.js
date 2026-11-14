@@ -56,7 +56,7 @@ function runs(tokens, style = {}) {
         else out.push(text(t.text, style));
         break;
       case 'escape': out.push(text(t.text, style)); break;
-      case 'html': break;
+      case 'html': if (/^<br\s*\/?>$/i.test(t.text.trim())) out.push(new TextRun({ break: 1 })); break;
       default: if (t.text) out.push(text(t.text, style));
     }
   }
@@ -162,13 +162,14 @@ function makeConverter(opts) {
     caption('Figura', figures, take('Figura') || clean(img.text || lastHeading));
     const data = fs.readFileSync(path.join(SRC, decodeURI(img.href)));
     const w = data.readUInt32BE(16), h = data.readUInt32BE(20);
-    const maxW = opts.double ? 470 : 600;
+    const maxW = 600;
     const k = Math.min(1, maxW / w, 700 / h);
     body.push(new Paragraph({ alignment: AlignmentType.CENTER, keepNext: true, spacing: { after: 120 }, border: { top: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 4 }, bottom: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 4 }, left: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 4 }, right: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 4 } },
       children: [new ImageRun({ type: 'png', data, transformation: { width: Math.round(w * k), height: Math.round(h * k) } })] }));
     body.push(new Paragraph({ spacing: { after: 240, line: lineSpacing }, children: [
       new TextRun({ text: 'Nota.', italics: true, font: FONT }),
-      new TextRun({ text: ' Captura de pantalla de Amoblador3D 2.0.0. Elaboración propia.', font: FONT })] }));
+      new TextRun({ text: img.href.startsWith('wireframes/') ? ' Boceto de baja fidelidad (wireframe). Elaboración propia.'
+        : ' Captura de pantalla de Amoblador3D 2.0.0. Elaboración propia.', font: FONT })] }));
   }
 
   function code(t) {
@@ -190,13 +191,31 @@ function makeConverter(opts) {
       if (wide) body.push({ landscape: body.splice(start) });
       return;
     }
+    const listing = take('Figura');
+    if (listing) {
+      figures++;
+      caption('Figura', figures, listing);
+    }
     const lines = t.text.split('\n');
+    // Código con números de línea (fragmentos con título o el documento 09): la continuación de una
+    // línea larga queda alineada con el código, no debajo del número.
+    const numbered = !!listing || (lines.length > 1 && lines.every((l) => /^\s*\d+  /.test(l)));
+    const gutter = numbered ? (/^\s*\d+\s+/.exec(lines[0]) || [''])[0].length : 0;
+    const hang = Math.round(gutter * 88);
     lines.forEach((l, i) => body.push(new Paragraph({
       shading: { type: ShadingType.CLEAR, fill: CODE_BG, color: 'auto' },
-      spacing: { line: 240, before: i === 0 ? 120 : 0, after: i === lines.length - 1 ? 200 : 0 },
-      indent: { left: 360, right: 240 },
-      children: [new TextRun({ text: l || ' ', font: MONO, size: 18 })],
+      keepNext: listing ? i < lines.length - 1 : undefined,
+      keepLines: listing ? true : undefined,
+      spacing: { line: 240, before: i === 0 ? 120 : 0, after: i === lines.length - 1 ? (listing ? 120 : 200) : 0 },
+      indent: hang ? { left: 360 + hang, hanging: hang, right: 240 } : { left: 360, right: 240 },
+      children: [new TextRun({ text: l || ' ', font: MONO, size: numbered ? 16 : 18 })],
     })));
+    if (listing) {
+      body.push(new Paragraph({ spacing: { after: 240, line: lineSpacing }, children: [
+        new TextRun({ text: 'Nota.', italics: true, font: FONT }),
+        new TextRun({ text: ' Fragmento del código fuente de Amoblador3D 2.0.0. El número de la izquierda es el número de línea'
+          + ' dentro del archivo indicado en el título. Elaboración propia.', font: FONT })] }));
+    }
   }
 
   function list(t, level) {
@@ -265,17 +284,13 @@ function makeConverter(opts) {
 }
 
 const META = {
-  universidad: 'UNIVERSIDAD NACIONAL DE JULIACA',
-  facultad: 'Facultad de Ciencias de Ingenierías',
-  escuela: 'ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMAS Y SOFTWARE',
   proyecto: 'Amoblador3D: aplicación de escritorio para el diseño de interiores en 3D con medidas reales y estimación de presupuesto',
   integrantes: ['Flores Calcina, Alexander Edson', 'Sandia Condori, George James', 'Huanca Tiña, Erick Reison', 'Flores Ccori, Brayan'],
-  docente: 'Noe Tipo Mamani',
-  asignatura: 'Bases de Datos',
-  semestre: '2026-II',
+  codigos: ['', '', '', ''],
   lugar: 'JULIACA – PERÚ',
   anio: '2026',
-  estado: 'Versión de entrega, para revisión del docente',
+  estado: 'Versión publicada',
+  equipo: 'FSHF',
 };
 
 const ROL = {
@@ -286,13 +301,20 @@ const ROL = {
   documentador: 'Flores Ccori, Brayan (documentador)',
 };
 const ELABORA = { '00': 'documentador', '01': 'jefe', '02': 'analista', '03': 'arquitecto', '04': 'calidad',
-  '05': 'documentador', '06': 'documentador', '07': 'arquitecto', '08': 'documentador' };
+  '05': 'documentador', '06': 'documentador', '07': 'arquitecto', '08': 'documentador', '09': 'arquitecto' };
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const fechaLarga = (iso) => { const [a, m, d] = iso.split('-').map(Number); return `${d} de ${MESES[m - 1]} de ${a}`; };
 const RECURSOS = path.join(__dirname, 'recursos');
-const LOGO_CARATULA = fs.readFileSync(path.join(RECURSOS, 'logo_unaj_caratula.png'));
-const LOGO_ENCABEZADO = fs.readFileSync(path.join(RECURSOS, 'logo_unaj_encabezado.png'));
-const LOGO_ALT = { name: 'Logo UNAJ', title: 'Logo UNAJ', description: 'Logotipo de la Universidad Nacional de Juliaca' };
+// Logo del equipo: para cambiarlo basta reemplazar recursos/logo_equipo.png (PNG de cualquier tamaño).
+// Los Word ya generados se actualizan sin regenerarlos con: python cambiar_logo.py
+const LOGO = fs.readFileSync(path.join(RECURSOS, 'logo_equipo.png'));
+const LOGO_PX = { w: LOGO.readUInt32BE(16), h: LOGO.readUInt32BE(20) };
+const logoTam = (alto, anchoMax = 567) => {
+  let w = Math.round(alto * LOGO_PX.w / LOGO_PX.h), h = alto;
+  if (w > anchoMax) { w = anchoMax; h = Math.round(anchoMax * LOGO_PX.h / LOGO_PX.w); }
+  return { width: w, height: h };
+};
+const LOGO_ALT = { name: 'Logo del equipo', title: 'Logo del equipo', description: 'Logotipo del equipo FSHF' };
 
 function cover(info) {
   const c = (txt, o = {}) => new Paragraph({ alignment: AlignmentType.CENTER,
@@ -315,11 +337,8 @@ function cover(info) {
   const datos = [`Código ${info.codigo}`, info.version && `Versión ${info.version}`, info.fecha && fechaLarga(info.fecha)]
     .filter(Boolean).join('   ·   ');
   return [
-    c(META.universidad, { bold: true, size: 30, after: 60 }),
-    c(META.facultad, { bold: true, color: GRAY, after: 60 }),
-    c(META.escuela, { size: 22, color: GRAY, after: 360 }),
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 480 },
-      children: [new ImageRun({ type: 'png', data: LOGO_CARATULA, transformation: { width: 259, height: 94 }, altText: LOGO_ALT })] }),
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600, after: 720 },
+      children: [new ImageRun({ type: 'png', data: LOGO, transformation: logoTam(91), altText: LOGO_ALT })] }),
 
     c(info.titulo.toUpperCase(), { bold: true, size: 36, line: 360, after: 0 }),
     c('PROYECTO', { bold: true, size: 18, color: GRAY, before: 480, after: 80, spacing: 40 }),
@@ -328,10 +347,9 @@ function cover(info) {
     new Table({ alignment: AlignmentType.CENTER, width: { size: labelW + valueW, type: WidthType.DXA }, columnWidths: [labelW, valueW],
       borders: { ...noBorders, insideHorizontal: none, insideVertical: none },
       rows: [
-        fila('INTEGRANTES', META.integrantes),
-        fila('DOCENTE', [META.docente]),
-        fila('ASIGNATURA', [META.asignatura]),
-        fila('SEMESTRE', [META.semestre]),
+        fila('INTEGRANTES', META.integrantes.map((n, i) => (META.codigos[i] ? `${n} (código ${META.codigos[i]})` : n))),
+        fila('EQUIPO', [META.equipo]),
+        fila('FECHA', [info.fecha ? fechaLarga(info.fecha) : fechaLarga(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10))]),
       ] }),
     c(META.lugar, { bold: true, before: 720, after: 0 }),
     c(META.anio, { bold: true, after: 0 }),
@@ -349,7 +367,7 @@ function controlPage(info, conv) {
     ['Norma de referencia', info.norma || '—'], ['Proyecto', info.proyecto],
     ['Elaborado por', ROL[ELABORA[info.n]] || 'Equipo del proyecto'],
     ['Revisado por', ELABORA[info.n] === 'calidad' ? ROL.jefe : ROL.calidad],
-    ['Aprobado por', ROL.jefe], ['Docente de la asignatura', META.docente],
+    ['Aprobado por', ROL.jefe],
   ];
   const md = '| Campo | Valor |\n|---|---|\n' + ficha.map(([k, v]) => `| **${k}** | ${esc(v)} |`).join('\n');
   const out = [title('Control del documento')];
@@ -410,15 +428,8 @@ function headingStyle(id, name, size, opts) {
 function sections(children, docTitle) {
   const hp = (children, last) => new Paragraph({ spacing: { line: 240, before: 0, after: 0 },
     border: last ? { bottom: { style: BorderStyle.SINGLE, size: 4, color: BLACK, space: 4 } } : undefined, children });
-  const ht = (txt) => new TextRun({ text: txt, bold: true, font: FONT, size: 22 });
   const header = () => new Header({ children: [
-    hp([new ImageRun({ type: 'png', data: LOGO_ENCABEZADO, transformation: { width: 140, height: 40 }, altText: LOGO_ALT,
-      floating: { horizontalPosition: { relative: HorizontalPositionRelativeFrom.MARGIN, align: HorizontalPositionAlign.RIGHT },
-        verticalPosition: { relative: VerticalPositionRelativeFrom.PARAGRAPH, offset: 0 },
-        wrap: { type: TextWrappingType.NONE }, allowOverlap: true } }),
-    ht('Universidad Nacional de Juliaca')]),
-    hp([ht('Facultad de Ciencias de Ingenierías')]),
-    hp([ht('Escuela Profesional de Ingeniería de Sistemas y Software')], true),
+    hp([new ImageRun({ type: 'png', data: LOGO, transformation: logoTam(38), altText: LOGO_ALT })], true),
   ] });
   const fr = (o) => new TextRun({ font: FONT, size: 18, color: GRAY, ...o });
   const footer = () => new Footer({ children: [new Paragraph({
@@ -542,7 +553,10 @@ async function convert(file) {
 }
 
 (async () => {
-  const files = fs.readdirSync(SRC).filter((f) => /^\d\d_.*\.md$/.test(f)).sort();
+  // Opcional: node generar.js <origen> <destino> 05 09  -> solo genera los documentos con esos números
+  const solo = process.argv.slice(4);
+  const files = fs.readdirSync(SRC).filter((f) => /^\d\d_.*\.md$/.test(f))
+    .filter((f) => !solo.length || solo.includes(f.slice(0, 2))).sort();
   for (const f of files) await convert(f);
 })().catch((e) => { console.error(e); process.exitCode = 1; })
   .finally(() => fs.rmSync(WORK, { recursive: true, force: true }));

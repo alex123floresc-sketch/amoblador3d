@@ -175,7 +175,7 @@ aplicación sigue guardando sus proyectos en SQLite.
 | `"java" no se reconoce como un comando` | Java no está en el PATH. Reinstala marcando *Add to PATH*, o agrega `C:\Program Files\Eclipse Adoptium\jdk-21...\bin` a la variable PATH, y abre una terminal nueva. |
 | `JAVA_HOME not found` / `JAVA_HOME is set to an invalid directory` | Crea la variable de entorno `JAVA_HOME` con la carpeta del JDK (la que contiene `bin`, sin `\bin` al final). |
 | `release version 21 not supported` | Tienes un Java más antiguo. Instala el 21 y revisa con `java -version`. |
-| La primera ejecución falla al descargar | Revisa tu conexión a internet (o el proxy de la red de la universidad) y vuelve a ejecutar. |
+| La primera ejecución falla al descargar | Revisa tu conexión a internet (o el proxy de la red) y vuelve a ejecutar. |
 | `.\mvnw.cmd : no se puede cargar ... la ejecución de scripts está deshabilitada` | Estás en la carpeta equivocada o PowerShell lo bloquea: ejecuta `cmd /c mvnw.cmd javafx:run`. |
 | Aparece "No se pudo abrir la base de datos" | Otra copia de la aplicación está abierta, o el archivo `.db` está abierto en DB Browser con cambios sin guardar. Cierra la otra y vuelve a abrir. |
 | La vista 3D se ve negra o muy lenta | Actualiza el controlador de la tarjeta de video. |

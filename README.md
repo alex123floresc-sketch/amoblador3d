@@ -14,12 +14,12 @@ Solo necesitas Java 21 o superior. Maven no hace falta instalarlo: el proyecto t
 configuración **Amoblador3D** (arriba a la derecha) y pulsa ▶. Ojo: un doble clic en `mvnw.cmd`
 solo no abre nada, porque no sabe qué hacer.
 
-```powershell
-.\mvnw.cmd javafx:run          # abrir la aplicación (Windows)
-.\mvnw.cmd test                # ejecutar las pruebas
-.\mvnw.cmd package             # crear target\amoblador3d.jar (incluye todo)
-java -jar target\amoblador3d.jar
-```
+| Comando | Qué hace |
+|---|---|
+| `.\mvnw.cmd javafx:run` | Abre la aplicación |
+| `.\mvnw.cmd test` | Ejecuta las pruebas |
+| `.\mvnw.cmd package` | Crea `target\amoblador3d.jar`, que incluye todas las librerías |
+| `java -jar target\amoblador3d.jar` | Abre el `.jar` generado |
 
 En Linux/macOS usa `./mvnw` en lugar de `.\mvnw.cmd`.
 
