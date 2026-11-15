@@ -38,6 +38,10 @@ final class FSHFRoomView {
     private PhongMaterial baseboardMaterial;
     private FSHFBaseboard baseboard;
 
+    private java.util.Set<FSHFWallSide> exteriorSides = java.util.Set.of();
+    private PhongMaterial facadeMat;
+    private double facadeTile = 1.0;
+
     void rebuild(FSHFDesign design) {
         dims = design.room();
         group.getChildren().clear();
@@ -96,18 +100,34 @@ final class FSHFRoomView {
     }
 
     private void createWall(Group g, FSHFWallFrame wall, List<FSHFOpening> openings, PhongMaterial material, double tile) {
-        double h = dims.height(), t = dims.wallThickness();
+        double h = dims.height();
         List<FSHFOpening> sorted = new ArrayList<>(openings);
         sorted.sort(Comparator.comparingDouble(o -> o.offset));
         double cursor = wall.start();
         for (FSHFOpening o : sorted) {
-            if (o.offset > cursor) g.getChildren().add(wall.texturedBox(cursor, o.offset, 0, h, 0, t, tile, material));
+            if (o.offset > cursor) seg(g, wall, cursor, o.offset, 0, h, material, tile);
             double a0 = o.offset, a1 = o.offset + o.width, top = o.sill + o.height;
-            if (o.sill > 1e-6) g.getChildren().add(wall.texturedBox(a0, a1, 0, o.sill, 0, t, tile, material));
-            if (h - top > 1e-6) g.getChildren().add(wall.texturedBox(a0, a1, top, h, 0, t, tile, material));
+            if (o.sill > 1e-6) seg(g, wall, a0, a1, 0, o.sill, material, tile);
+            if (h - top > 1e-6) seg(g, wall, a0, a1, top, h, material, tile);
             cursor = Math.max(cursor, a1);
         }
-        if (wall.end() > cursor) g.getChildren().add(wall.texturedBox(cursor, wall.end(), 0, h, 0, t, tile, material));
+        if (wall.end() > cursor) seg(g, wall, cursor, wall.end(), 0, h, material, tile);
+    }
+
+    /** Dibuja un tramo de muro (interior) y, si es muro exterior, lo recubre por fuera con la fachada. */
+    private void seg(Group g, FSHFWallFrame wall, double a0, double a1, double y0, double y1, PhongMaterial material, double tile) {
+        double t = dims.wallThickness();
+        g.getChildren().add(wall.texturedBox(a0, a1, y0, y1, 0, t, tile, material));
+        if (facadeMat != null && exteriorSides.contains(wall.side())) {
+            g.getChildren().add(wall.texturedBox(a0, a1, y0, y1, t, t + 0.03, facadeTile, facadeMat));
+        }
+    }
+
+    /** Fachada: acabado de la cara exterior de los muros que dan al exterior (solo en la casa completa). */
+    void setFacade(java.util.Set<FSHFWallSide> exterior, PhongMaterial material, double tile) {
+        this.exteriorSides = exterior != null ? exterior : java.util.Set.of();
+        this.facadeMat = material;
+        this.facadeTile = tile;
     }
 
     private void createBaseboard(Group g, FSHFWallFrame wall, List<FSHFOpening> openings) {

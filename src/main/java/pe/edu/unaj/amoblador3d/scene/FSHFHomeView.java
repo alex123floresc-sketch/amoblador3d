@@ -61,6 +61,9 @@ public final class FSHFHomeView {
     private final Group exteriorGroup = new Group();
     private final Group roofGroup = new Group();
     private boolean roofVisible = true;
+    // Acabado de fachada: tarrajeo/pintura clara para la cara exterior de los muros.
+    private static final javafx.scene.paint.PhongMaterial FACADE_MAT =
+            FSHFSurfaceTextures.material(pe.edu.unaj.amoblador3d.model.FSHFSurfaceMaterial.PINTURA, "#eae7e1");
     private final Canvas canvas = new Canvas();
 
     private FSHFHome home = new FSHFHome();
@@ -171,6 +174,7 @@ public final class FSHFHomeView {
             p.openings.addAll(h.passagesInto(s));
             d.load(p);
             FSHFRoomView room = new FSHFRoomView();
+            room.setFacade(new java.util.HashSet<>(home.exteriorWalls(s)), FACADE_MAT, 1.0);
             room.rebuild(d);
             FSHFFurnitureView furniture = new FSHFFurnitureView(models, msg -> { });
             furniture.setOnModelLoaded(this::render);
