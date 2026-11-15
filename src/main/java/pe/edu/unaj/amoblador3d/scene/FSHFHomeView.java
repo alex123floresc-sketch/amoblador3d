@@ -213,9 +213,11 @@ public final class FSHFHomeView {
 
     private void updateLevels() {
         boolean plan = cam.mode == FSHFViewCamera.Mode.PLAN;
+        // En 3D se muestran TODOS los pisos apilados (maqueta de casa completa);
+        // en planta, solo el piso actual. La edición se mantiene en el piso activo.
         for (SpaceNode n : nodes) {
             int l = n.space().level;
-            n.group().setVisible(plan ? l == level : l <= level);
+            n.group().setVisible(plan ? l == level : true);
             n.group().setMouseTransparent(l != level);
         }
     }
@@ -234,7 +236,11 @@ public final class FSHFHomeView {
 
     public void frame() {
         double[] b = bounds();
-        double y0 = home.elevation(level), h = y0 + home.levelHeight(level);
+        // En planta se encuadra el piso actual; en 3D, toda la casa (todos los pisos).
+        int topLevel = Math.max(0, home.levels() - 1);
+        double y0 = home.elevation(level);
+        double h = isPlan() ? y0 + home.levelHeight(level)
+                            : home.elevation(topLevel) + home.levelHeight(topLevel);
         cam.frame(b[0], isPlan() ? y0 : 0, b[1], b[2], h, b[3]);
         render();
     }
@@ -274,8 +280,9 @@ public final class FSHFHomeView {
     /** Techo plano moderno sobre toda la casa (se muestra/oculta con el botón Techo). */
     private void buildRoof(double[] b) {
         roofGroup.getChildren().clear();
-        // Arriba de todo el apilado visible (maqueta de casa completa).
-        double top = home.spaces.isEmpty() ? 2.5 : home.elevation(level) + home.levelHeight(level);
+        // Siempre encima del piso más alto (en 3D se ven todos los pisos juntos).
+        int topLevel = Math.max(0, home.levels() - 1);
+        double top = home.spaces.isEmpty() ? 2.5 : home.elevation(topLevel) + home.levelHeight(topLevel);
         double over = 0.25;  // alero
         Box slab = new Box(b[2] - b[0] + 2 * over, 0.22, b[3] - b[1] + 2 * over);
         slab.setMaterial(FSHFMaterials.of("#6b6f73"));

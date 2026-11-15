@@ -71,6 +71,8 @@ class FSHFExampleHouseTest {
 
         FSHFHome leido = FSHFHomeJson.read(json, "Casa de ejemplo");
         assertEquals(h.spaces.size(), leido.spaces.size());
+        assertEquals(2, leido.levels(), "al leer debe conservar los dos pisos");
+        assertEquals(1, espacio(leido, "Dormitorio principal").level, "el dormitorio sigue en el piso 2");
         assertTrue(json.contains("Dormitorio principal") && json.contains("Pasillo"));
 
         // Genera el recurso que viaja con la aplicación.
