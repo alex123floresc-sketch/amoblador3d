@@ -19,8 +19,8 @@ import pe.edu.unaj.amoblador3d.persistence.FSHFHomeJson;
 class FSHFExampleHouseTest {
 
     private static final String[] ESPERADOS = {
-            "Cochera", "Comedor", "Cocina", "Estudio 1", "Sala",
-            "Estudio 2", "Baño", "Pasillo", "Dormitorio 1", "Dormitorio 2"
+            "Sala, comedor y cocina", "Baño principal", "Dormitorio principal",
+            "Pasillo", "Entrada", "Dormitorio 2", "Baño 2", "Dormitorio 3"
     };
 
     @Test
@@ -60,7 +60,7 @@ class FSHFExampleHouseTest {
 
         FSHFHome leido = FSHFHomeJson.read(json, "Casa de ejemplo");
         assertEquals(h.spaces.size(), leido.spaces.size());
-        assertTrue(json.contains("Dormitorio 1") && json.contains("Pasillo"));
+        assertTrue(json.contains("Dormitorio principal") && json.contains("Pasillo"));
 
         // Genera el recurso que viaja con la aplicación.
         Path out = Path.of("src", "main", "resources", "ejemplo", "casa-ejemplo.amob3d");
