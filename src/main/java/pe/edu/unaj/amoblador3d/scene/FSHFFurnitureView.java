@@ -8,6 +8,11 @@ import java.util.Set;
 import java.util.function.Consumer;
 import javafx.application.Platform;
 import javafx.scene.Group;
+import javafx.scene.image.PixelWriter;
+import javafx.scene.image.WritableImage;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.PhongMaterial;
+import javafx.scene.shape.Box;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 import pe.edu.unaj.amoblador3d.catalog.FSHFCatalogEntry;
@@ -26,14 +31,42 @@ final class FSHFFurnitureView {
     private final Set<String> warnedUrls = new HashSet<>();
     private Runnable onModelLoaded = () -> {};
 
+    // Sombra de contacto suave (mancha oscura con bordes difuminados) bajo cada mueble.
+    private static final double SHADOW_T = 0.004;
+    private static final PhongMaterial SHADOW_MAT = createShadowMaterial();
+
+    private static PhongMaterial createShadowMaterial() {
+        int n = 96;
+        WritableImage img = new WritableImage(n, n);
+        PixelWriter pw = img.getPixelWriter();
+        double c = (n - 1) / 2.0;
+        for (int y = 0; y < n; y++) {
+            for (int x = 0; x < n; x++) {
+                double dx = (x - c) / c, dz = (y - c) / c;
+                double dist = Math.min(1, Math.sqrt(dx * dx + dz * dz));
+                double a = Math.pow(1 - dist, 1.7) * 0.42;
+                pw.setColor(x, y, Color.rgb(18, 18, 20, a));
+            }
+        }
+        PhongMaterial m = new PhongMaterial(Color.rgb(18, 18, 20));
+        m.setDiffuseMap(img);
+        return m;
+    }
+
     private static final class Holder {
         final Group node = new Group();
+        final Group content = new Group();
+        final Box shadow = new Box(1, SHADOW_T, 1);
         final Translate position = new Translate();
         final Rotate rotation = new Rotate(0, Rotate.Y_AXIS);
         String shape;
 
         Holder() {
             node.getTransforms().addAll(position, rotation);
+            shadow.setMaterial(SHADOW_MAT);
+            shadow.setMouseTransparent(true);
+            shadow.setTranslateY(SHADOW_T / 2 + 0.002);
+            node.getChildren().addAll(shadow, content);
         }
     }
 
@@ -71,6 +104,8 @@ final class FSHFFurnitureView {
             h.position.setX(f.x);
             h.position.setZ(f.z);
             h.rotation.setAngle(f.rotation);
+            h.shadow.setWidth(Math.max(f.width * 1.08, 0.2));
+            h.shadow.setDepth(Math.max(f.depth * 1.08, 0.2));
         }
     }
 
@@ -82,12 +117,12 @@ final class FSHFFurnitureView {
         switch (entry.kind()) {
             case PARAMETRIC -> {
                 Group g = FSHFParametricBuilder.build(f);
-                h.node.getChildren().setAll(g != null ? g : FSHFParametricBuilder.missing(f));
+                h.content.getChildren().setAll(g != null ? g : FSHFParametricBuilder.missing(f));
             }
-            case CUSTOM -> h.node.getChildren().setAll(FSHFFurnitureShapes.fit(entry.design(), f));
-            case MISSING -> h.node.getChildren().setAll(FSHFParametricBuilder.missing(f));
+            case CUSTOM -> h.content.getChildren().setAll(FSHFFurnitureShapes.fit(entry.design(), f));
+            case MISSING -> h.content.getChildren().setAll(FSHFParametricBuilder.missing(f));
             case MODEL -> {
-                h.node.getChildren().setAll(FSHFParametricBuilder.placeholder(f));
+                h.content.getChildren().setAll(FSHFParametricBuilder.placeholder(f));
                 String shape = h.shape;
                 double w = f.width, d = f.depth, ht = f.height;
                 String tint = f.color;
@@ -101,7 +136,7 @@ final class FSHFFurnitureView {
                         }
                         return;
                     }
-                    h.node.getChildren().setAll(models.fit(data, w, d, ht, entry.modelRotation(), tint, finish));
+                    h.content.getChildren().setAll(models.fit(data, w, d, ht, entry.modelRotation(), tint, finish));
                     onModelLoaded.run();
                 }));
             }
