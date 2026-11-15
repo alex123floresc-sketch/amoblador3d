@@ -1,0 +1,929 @@
+{
+  "app": "Space Cat",
+  "version": 1,
+  "room": {
+    "width": 6.0,
+    "length": 3.0,
+    "height": 2.5,
+    "wallThickness": 0.15
+  },
+  "surfaces": {
+    "piso": {
+      "material": "porcelanato",
+      "color": "#8d8f93"
+    },
+    "pared-norte": {
+      "material": "pintura",
+      "color": "#d9d9d9"
+    },
+    "pared-sur": {
+      "material": "pintura",
+      "color": "#d9d9d9"
+    },
+    "pared-este": {
+      "material": "pintura",
+      "color": "#d9d9d9"
+    },
+    "pared-oeste": {
+      "material": "pintura",
+      "color": "#d9d9d9"
+    },
+    "techo": {
+      "material": "pintura",
+      "color": "#fafafa"
+    }
+  },
+  "baseboard": {
+    "height": 0.08,
+    "color": "#f7f5f0"
+  },
+  "openings": [
+    {
+      "id": "door-1",
+      "type": "door",
+      "wall": "sur",
+      "offset": 2.55,
+      "width": 0.9,
+      "height": 2.1,
+      "sill": 0.0
+    },
+    {
+      "id": "win-1",
+      "type": "window",
+      "wall": "norte",
+      "offset": 2.4,
+      "width": 1.2,
+      "height": 1.0,
+      "sill": 0.9
+    }
+  ],
+  "ambient": 0.6,
+  "lights": [
+    {
+      "id": "point-1",
+      "type": "point",
+      "color": "#ffe2b8",
+      "intensity": 6.0,
+      "castShadow": true,
+      "x": 3.0,
+      "y": 2.25,
+      "z": 1.5
+    }
+  ],
+  "furniture": [],
+  "space": {
+    "id": "ambiente-1",
+    "name": "Cochera",
+    "x": 0.0,
+    "z": 0.0,
+    "rotation": 0,
+    "level": 0
+  },
+  "spaces": [
+    {
+      "id": "ambiente-2",
+      "name": "Comedor",
+      "x": 6.3,
+      "z": 0.0,
+      "rotation": 0,
+      "level": 0,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 3.5,
+          "length": 3.0,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#c9c3b9"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "door-1",
+            "type": "door",
+            "wall": "sur",
+            "offset": 1.3,
+            "width": 0.9,
+            "height": 2.1,
+            "sill": 0.0
+          },
+          {
+            "id": "win-1",
+            "type": "window",
+            "wall": "norte",
+            "offset": 1.15,
+            "width": 1.2,
+            "height": 1.0,
+            "sill": 0.9
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 1.75,
+            "y": 2.25,
+            "z": 1.5
+          }
+        ],
+        "furniture": [
+          {
+            "id": "mesa-1",
+            "type": "mesa",
+            "x": 1.75,
+            "z": 1.5,
+            "rotation": 0.0,
+            "width": 1.2,
+            "depth": 0.8,
+            "height": 0.75,
+            "color": "#a0764f"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ambiente-3",
+      "name": "Cocina",
+      "x": 10.0,
+      "z": 0.0,
+      "rotation": 0,
+      "level": 0,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 3.5,
+          "length": 2.8,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#d7d2c7"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#eceae3"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#eceae3"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#eceae3"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#eceae3"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "door-1",
+            "type": "door",
+            "wall": "sur",
+            "offset": 1.3,
+            "width": 0.9,
+            "height": 2.1,
+            "sill": 0.0
+          },
+          {
+            "id": "win-1",
+            "type": "window",
+            "wall": "norte",
+            "offset": 1.15,
+            "width": 1.2,
+            "height": 1.0,
+            "sill": 0.9
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 1.75,
+            "y": 2.25,
+            "z": 1.4
+          }
+        ],
+        "furniture": []
+      }
+    },
+    {
+      "id": "ambiente-4",
+      "name": "Estudio 1",
+      "x": 13.7,
+      "z": 0.0,
+      "rotation": 0,
+      "level": 0,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 2.5,
+          "length": 2.0,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#c9a274"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "door-1",
+            "type": "door",
+            "wall": "sur",
+            "offset": 0.8,
+            "width": 0.9,
+            "height": 2.1,
+            "sill": 0.0
+          },
+          {
+            "id": "win-1",
+            "type": "window",
+            "wall": "norte",
+            "offset": 0.65,
+            "width": 1.2,
+            "height": 1.0,
+            "sill": 0.9
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 1.25,
+            "y": 2.25,
+            "z": 1.0
+          }
+        ],
+        "furniture": [
+          {
+            "id": "librero-1",
+            "type": "librero",
+            "x": 0.2,
+            "z": 1.0,
+            "rotation": 90.0,
+            "width": 0.8,
+            "depth": 0.3,
+            "height": 1.8,
+            "color": "#a0764f"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ambiente-5",
+      "name": "Sala",
+      "x": 0.0,
+      "z": 3.3,
+      "rotation": 0,
+      "level": 0,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 5.0,
+          "length": 4.5,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#c9c3b9"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "door-1",
+            "type": "door",
+            "wall": "sur",
+            "offset": 2.05,
+            "width": 0.9,
+            "height": 2.1,
+            "sill": 0.0
+          },
+          {
+            "id": "win-1",
+            "type": "window",
+            "wall": "norte",
+            "offset": 1.9,
+            "width": 1.2,
+            "height": 1.0,
+            "sill": 0.9
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 2.5,
+            "y": 2.25,
+            "z": 2.25
+          }
+        ],
+        "furniture": [
+          {
+            "id": "sillon-1",
+            "type": "sillon",
+            "x": 2.5,
+            "z": 4.0,
+            "rotation": 180.0,
+            "width": 2.0,
+            "depth": 0.9,
+            "height": 0.85,
+            "color": "#6f7f8f"
+          },
+          {
+            "id": "rack-tv-2",
+            "type": "rack-tv",
+            "x": 2.5,
+            "z": 0.25,
+            "rotation": 0.0,
+            "width": 1.6,
+            "depth": 0.45,
+            "height": 1.25,
+            "color": "#3b3b3b"
+          },
+          {
+            "id": "mesa-3",
+            "type": "mesa",
+            "x": 2.5,
+            "z": 2.25,
+            "rotation": 0.0,
+            "width": 1.2,
+            "depth": 0.8,
+            "height": 0.75,
+            "color": "#a0764f"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ambiente-6",
+      "name": "Estudio 2",
+      "x": 5.3,
+      "z": 3.3,
+      "rotation": 0,
+      "level": 0,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 2.5,
+          "length": 2.0,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#c9a274"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "door-1",
+            "type": "door",
+            "wall": "sur",
+            "offset": 0.8,
+            "width": 0.9,
+            "height": 2.1,
+            "sill": 0.0
+          },
+          {
+            "id": "win-1",
+            "type": "window",
+            "wall": "norte",
+            "offset": 0.65,
+            "width": 1.2,
+            "height": 1.0,
+            "sill": 0.9
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 1.25,
+            "y": 2.25,
+            "z": 1.0
+          }
+        ],
+        "furniture": [
+          {
+            "id": "librero-1",
+            "type": "librero",
+            "x": 0.2,
+            "z": 1.0,
+            "rotation": 90.0,
+            "width": 0.8,
+            "depth": 0.3,
+            "height": 1.8,
+            "color": "#a0764f"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ambiente-7",
+      "name": "Baño",
+      "x": 8.0,
+      "z": 3.3,
+      "rotation": 0,
+      "level": 0,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 2.5,
+          "length": 1.8,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#d9e2e6"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#eef3f5"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#eef3f5"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#eef3f5"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#eef3f5"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "door-1",
+            "type": "door",
+            "wall": "sur",
+            "offset": 0.8,
+            "width": 0.9,
+            "height": 2.1,
+            "sill": 0.0
+          },
+          {
+            "id": "win-1",
+            "type": "window",
+            "wall": "norte",
+            "offset": 0.65,
+            "width": 1.2,
+            "height": 1.0,
+            "sill": 0.9
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 1.25,
+            "y": 2.25,
+            "z": 0.9
+          }
+        ],
+        "furniture": []
+      }
+    },
+    {
+      "id": "ambiente-8",
+      "name": "Pasillo",
+      "x": 10.7,
+      "z": 3.3,
+      "rotation": 0,
+      "level": 0,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 1.5,
+          "length": 4.5,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#c9c3b9"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#f2efe9"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "door-1",
+            "type": "door",
+            "wall": "sur",
+            "offset": 0.3,
+            "width": 0.9,
+            "height": 2.1,
+            "sill": 0.0
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 0.75,
+            "y": 2.25,
+            "z": 2.25
+          }
+        ],
+        "furniture": []
+      }
+    },
+    {
+      "id": "ambiente-9",
+      "name": "Dormitorio 1",
+      "x": 13.7,
+      "z": 2.3,
+      "rotation": 0,
+      "level": 0,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 4.0,
+          "length": 3.5,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#c9a274"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "door-1",
+            "type": "door",
+            "wall": "sur",
+            "offset": 1.55,
+            "width": 0.9,
+            "height": 2.1,
+            "sill": 0.0
+          },
+          {
+            "id": "win-1",
+            "type": "window",
+            "wall": "norte",
+            "offset": 1.4,
+            "width": 1.2,
+            "height": 1.0,
+            "sill": 0.9
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 2.0,
+            "y": 2.25,
+            "z": 1.75
+          }
+        ],
+        "furniture": [
+          {
+            "id": "cama-1",
+            "type": "cama",
+            "x": 2.0,
+            "z": 1.0,
+            "rotation": 0.0,
+            "width": 1.4,
+            "depth": 1.9,
+            "height": 0.9,
+            "color": "#8b6b4a"
+          },
+          {
+            "id": "closet-2",
+            "type": "closet",
+            "x": 3.7,
+            "z": 2.7,
+            "rotation": 270.0,
+            "width": 1.2,
+            "depth": 0.6,
+            "height": 2.0,
+            "color": "#e8e2d6"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ambiente-10",
+      "name": "Dormitorio 2",
+      "x": 13.7,
+      "z": 6.0,
+      "rotation": 0,
+      "level": 0,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 4.0,
+          "length": 3.5,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#c9a274"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#e3d5bf"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "door-1",
+            "type": "door",
+            "wall": "sur",
+            "offset": 1.55,
+            "width": 0.9,
+            "height": 2.1,
+            "sill": 0.0
+          },
+          {
+            "id": "win-1",
+            "type": "window",
+            "wall": "norte",
+            "offset": 1.4,
+            "width": 1.2,
+            "height": 1.0,
+            "sill": 0.9
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 2.0,
+            "y": 2.25,
+            "z": 1.75
+          }
+        ],
+        "furniture": [
+          {
+            "id": "cama-1",
+            "type": "cama",
+            "x": 2.0,
+            "z": 1.0,
+            "rotation": 0.0,
+            "width": 1.4,
+            "depth": 1.9,
+            "height": 0.9,
+            "color": "#8b6b4a"
+          },
+          {
+            "id": "closet-2",
+            "type": "closet",
+            "x": 3.7,
+            "z": 2.7,
+            "rotation": 270.0,
+            "width": 1.2,
+            "depth": 0.6,
+            "height": 2.0,
+            "color": "#e8e2d6"
+          }
+        ]
+      }
+    }
+  ]
+}

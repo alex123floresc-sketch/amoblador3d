@@ -1831,64 +1831,18 @@ public final class FSHFMainWindow {
     }
 
     private FSHFHome exampleHome() {
-        var templates = pe.edu.unaj.amoblador3d.design.FSHFTemplates.all(catalog);
-        java.util.function.Function<String, FSHFProject> room = n -> templates.stream().filter(t -> t.name().equals(n))
-                .findFirst().orElseThrow().build().get();
-
-        // ---- Planta baja (nivel 0): sala, comedor, estudio, cocina y baño ----
-        FSHFProject salaP = room.apply("Sala");
-        FSHFHome h = FSHFHome.of(salaP, "Sala");
-        FSHFHome.Space sala = h.spaces.get(0);
-
-        FSHFProject comedorP = room.apply("Comedor");
-        FSHFProject estudioP = room.apply("Oficina");
-        FSHFProject cocinaP = room.apply("Cocina");
-        FSHFProject banoP = room.apply("Baño");
-
-        double right1 = sala.outer()[2] + comedorP.room.wallThickness();
-        FSHFHome.Space comedor = new FSHFHome.Space(h.nextId(), "Comedor", FSHFUnits.round(right1), 0, comedorP);
-        h.spaces.add(comedor);
-
-        double right2 = comedor.outer()[2] + estudioP.room.wallThickness();
-        h.spaces.add(new FSHFHome.Space(h.nextId(), "Estudio", FSHFUnits.round(right2), 0, estudioP));
-
-        double below = sala.outer()[3] + cocinaP.room.wallThickness();
-        FSHFHome.Space cocina = new FSHFHome.Space(h.nextId(), "Cocina", 0, FSHFUnits.round(below), cocinaP);
-        h.spaces.add(cocina);
-
-        double bathX = cocina.outer()[2] + banoP.room.wallThickness();
-        h.spaces.add(new FSHFHome.Space(h.nextId(), "Baño", FSHFUnits.round(bathX), FSHFUnits.round(below), banoP));
-
-        // Escalera que sube al segundo piso, apoyada en la sala
-        addExampleStair(salaP, 0.6, 0.6);
-
-        // ---- Segundo piso (nivel 1): dos dormitorios con un pasillo entre ellos ----
-        FSHFProject dorm1 = room.apply("Dormitorio");
-        FSHFProject pasilloP = room.apply("Habitación vacía");
-        FSHFProject dorm2 = room.apply("Dormitorio");
-
-        FSHFHome.Space d1 = new FSHFHome.Space(h.nextId(), "Dormitorio 1", 0, 0, dorm1, 0, 1);
-        h.spaces.add(d1);
-        double pRight = d1.outer()[2] + pasilloP.room.wallThickness();
-        FSHFHome.Space pasillo = new FSHFHome.Space(h.nextId(), "Pasillo", FSHFUnits.round(pRight), 0, pasilloP, 0, 1);
-        h.spaces.add(pasillo);
-        double d2x = pasillo.outer()[2] + dorm2.room.wallThickness();
-        h.spaces.add(new FSHFHome.Space(h.nextId(), "Dormitorio 2", FSHFUnits.round(d2x), 0, dorm2, 0, 1));
-
-        // La escalera baja a la planta baja desde el pasillo
-        addExampleStair(pasilloP, 0.6, 0.6);
-        return h;
-    }
-
-    /** Coloca una escalera del catálogo en un ambiente del ejemplo, si existe. */
-    private void addExampleStair(FSHFProject p, double x, double z) {
-        if (catalog == null || !catalog.contains("escalera")) return;
-        var e = catalog.get("escalera");
-        var s = e.defaults();
-        p.furniture.add(new pe.edu.unaj.amoblador3d.model.FSHFFurniture(
-                "escalera-ejemplo-" + p.furniture.size(), "escalera",
-                FSHFUnits.round(x), FSHFUnits.round(z), 0,
-                s.width(), s.depth(), s.height(), e.defaultColor()));
+        // La casa de ejemplo viaja con la aplicación como proyecto editable
+        // (/ejemplo/casa-ejemplo.amob3d). Si no se puede leer, se arma en código.
+        try (var in = getClass().getResourceAsStream("/ejemplo/casa-ejemplo.amob3d")) {
+            if (in != null) {
+                String text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                return pe.edu.unaj.amoblador3d.persistence.FSHFHomeJson.read(text, "Casa de ejemplo");
+            }
+        } catch (IOException | pe.edu.unaj.amoblador3d.persistence.FSHFProjectFormatException e) {
+            java.util.logging.Logger.getLogger(FSHFMainWindow.class.getName())
+                    .warning("No se pudo leer la casa de ejemplo del recurso: " + e.getMessage());
+        }
+        return pe.edu.unaj.amoblador3d.design.FSHFExampleHouse.build(catalog);
     }
 
     private void loadHome(FSHFHome h, Long id, String name) {
