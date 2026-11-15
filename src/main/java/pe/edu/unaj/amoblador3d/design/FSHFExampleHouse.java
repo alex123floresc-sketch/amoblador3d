@@ -31,24 +31,30 @@ public final class FSHFExampleHouse {
     private static final String PISO_BANO = "#dde6ea"; // piso de baño
     private static final String MURO = "#f2f1ec";      // pared hueso
 
+    // Rejilla simétrica: columna izquierda y derecha del MISMO ancho, con el
+    // pasillo recto y centrado entre ellas.
+    private static final double COL = 4.60;   // ancho de cada columna lateral
+    private static final double HALL = 1.80;  // ancho del pasillo (uniforme)
+    private static final double RX = COL + HALL;  // inicio de la columna derecha = 6.40
+
     public static FSHFHome build(FSHFCatalog catalog) {
         // Área social abierta (sala + comedor + cocina), ocupa todo el ancho arriba.
-        FSHFProject social = room(catalog, 11.0, 5.0, PISO, MURO, "social");
+        FSHFProject social = room(catalog, 2 * COL + HALL, 4.5, PISO, MURO, "social");
         FSHFHome h = FSHFHome.of(social, "Sala, comedor y cocina");
         h.spaces.get(0).x = 0; h.spaces.get(0).z = 0;
 
-        // Suite (abajo-izquierda)
-        place(h, "Baño principal",      0.00, 5.15, room(catalog, 1.90, 3.10, PISO_BANO, MURO, "banoP"));
-        place(h, "Dormitorio principal",0.00, 8.40, room(catalog, 3.50, 5.30, PISO, MURO, "dormP"));
+        // Columna izquierda (suite): baño y dormitorio principal, ancho COL.
+        place(h, "Baño principal",      0.00, 4.65, room(catalog, COL, 2.50, PISO_BANO, MURO, "banoP"));
+        place(h, "Dormitorio principal",0.00, 7.30, room(catalog, COL, 6.05, PISO, MURO, "dormP"));
 
-        // Centro: pasillo y entrada
-        place(h, "Pasillo",             3.65, 5.15, room(catalog, 2.45, 5.00, PISO, MURO, "pasillo"));
-        place(h, "Entrada",             3.65, 10.30, room(catalog, 2.45, 3.40, PISO, MURO, "entrada"));
+        // Pasillo recto y centrado, con la entrada al final.
+        place(h, "Pasillo",             COL, 4.65, room(catalog, HALL, 6.30, PISO, MURO, "pasillo"));
+        place(h, "Entrada",             COL, 11.10, room(catalog, HALL, 2.25, PISO, MURO, "entrada"));
 
-        // Derecha: dormitorio 2, baño 2 y dormitorio 3
-        place(h, "Dormitorio 2",        6.25, 5.15, room(catalog, 4.75, 3.00, PISO, MURO, "dorm2"));
-        place(h, "Baño 2",              7.90, 8.30, room(catalog, 3.10, 1.80, PISO_BANO, MURO, "bano2"));
-        place(h, "Dormitorio 3",        6.25, 10.30, room(catalog, 4.75, 3.40, PISO, MURO, "dorm3"));
+        // Columna derecha (ancho COL): dormitorio 2 y 3 IGUALES, con el baño 2 en medio.
+        place(h, "Dormitorio 2",        RX, 4.65, room(catalog, COL, 3.30, PISO, MURO, "dorm2"));
+        place(h, "Baño 2",              RX, 8.10, room(catalog, COL, 1.80, PISO_BANO, MURO, "bano2"));
+        place(h, "Dormitorio 3",        RX, 10.05, room(catalog, COL, 3.30, PISO, MURO, "dorm3"));
         return h;
     }
 

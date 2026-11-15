@@ -3,7 +3,7 @@
   "version": 1,
   "room": {
     "width": 11.0,
-    "length": 5.0,
+    "length": 4.5,
     "height": 2.5,
     "wallThickness": 0.15
   },
@@ -67,7 +67,7 @@
       "castShadow": true,
       "x": 5.5,
       "y": 2.25,
-      "z": 2.5
+      "z": 2.25
     }
   ],
   "furniture": [
@@ -86,7 +86,7 @@
       "id": "sillon-2",
       "type": "sillon",
       "x": 1.8,
-      "z": 4.4,
+      "z": 3.9,
       "rotation": 180.0,
       "width": 2.0,
       "depth": 0.9,
@@ -97,7 +97,7 @@
       "id": "mesa-3",
       "type": "mesa",
       "x": 1.8,
-      "z": 2.5,
+      "z": 2.25,
       "rotation": 0.0,
       "width": 1.0,
       "depth": 0.5,
@@ -108,7 +108,7 @@
       "id": "mesa-4",
       "type": "mesa",
       "x": 5.5,
-      "z": 2.5,
+      "z": 2.25,
       "rotation": 0.0,
       "width": 1.6,
       "depth": 0.9,
@@ -130,7 +130,7 @@
       "id": "refrigeradora-6",
       "type": "refrigeradora",
       "x": 10.5,
-      "z": 4.3,
+      "z": 3.8,
       "rotation": 180.0,
       "width": 0.7,
       "depth": 0.7,
@@ -151,15 +151,15 @@
       "id": "ambiente-2",
       "name": "Baño principal",
       "x": 0.0,
-      "z": 5.15,
+      "z": 4.65,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 1.9,
-          "length": 3.1,
+          "width": 4.6,
+          "length": 2.5,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -198,7 +198,7 @@
             "id": "door-1",
             "type": "door",
             "wall": "sur",
-            "offset": 0.49999999999999994,
+            "offset": 1.8499999999999999,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
@@ -212,16 +212,16 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 0.95,
+            "x": 2.3,
             "y": 2.25,
-            "z": 1.55
+            "z": 1.25
           }
         ],
         "furniture": [
           {
             "id": "inodoro-1",
             "type": "inodoro",
-            "x": 1.5,
+            "x": 4.2,
             "z": 0.5,
             "rotation": 0.0,
             "width": 0.4,
@@ -247,15 +247,15 @@
       "id": "ambiente-3",
       "name": "Dormitorio principal",
       "x": 0.0,
-      "z": 8.4,
+      "z": 7.3,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 3.5,
-          "length": 5.3,
+          "width": 4.6,
+          "length": 6.05,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -294,7 +294,7 @@
             "id": "door-1",
             "type": "door",
             "wall": "sur",
-            "offset": 1.3,
+            "offset": 1.8499999999999999,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
@@ -303,7 +303,7 @@
             "id": "win-1",
             "type": "window",
             "wall": "norte",
-            "offset": 1.15,
+            "offset": 1.6999999999999997,
             "width": 1.2,
             "height": 1.1,
             "sill": 0.9
@@ -317,16 +317,16 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.75,
+            "x": 2.3,
             "y": 2.25,
-            "z": 2.65
+            "z": 3.025
           }
         ],
         "furniture": [
           {
             "id": "cama-1",
             "type": "cama",
-            "x": 1.75,
+            "x": 2.3,
             "z": 1.2,
             "rotation": 0.0,
             "width": 1.4,
@@ -337,8 +337,8 @@
           {
             "id": "closet-2",
             "type": "closet",
-            "x": 3.2,
-            "z": 4.3,
+            "x": 4.3,
+            "z": 5.05,
             "rotation": 270.0,
             "width": 1.2,
             "depth": 0.6,
@@ -349,7 +349,7 @@
             "id": "comoda-3",
             "type": "comoda",
             "x": 0.3,
-            "z": 4.7,
+            "z": 5.45,
             "rotation": 90.0,
             "width": 1.0,
             "depth": 0.45,
@@ -362,16 +362,16 @@
     {
       "id": "ambiente-4",
       "name": "Pasillo",
-      "x": 3.65,
-      "z": 5.15,
+      "x": 4.6,
+      "z": 4.65,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 2.45,
-          "length": 5.0,
+          "width": 1.8,
+          "length": 6.3,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -410,7 +410,7 @@
             "id": "door-1",
             "type": "door",
             "wall": "sur",
-            "offset": 0.7750000000000001,
+            "offset": 0.45,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
@@ -419,7 +419,7 @@
             "id": "win-1",
             "type": "window",
             "wall": "norte",
-            "offset": 0.6250000000000001,
+            "offset": 0.30000000000000004,
             "width": 1.2,
             "height": 1.1,
             "sill": 0.9
@@ -433,9 +433,9 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.225,
+            "x": 0.9,
             "y": 2.25,
-            "z": 2.5
+            "z": 3.15
           }
         ],
         "furniture": []
@@ -444,16 +444,16 @@
     {
       "id": "ambiente-5",
       "name": "Entrada",
-      "x": 3.65,
-      "z": 10.3,
+      "x": 4.6,
+      "z": 11.1,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 2.45,
-          "length": 3.4,
+          "width": 1.8,
+          "length": 2.25,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -492,7 +492,7 @@
             "id": "door-1",
             "type": "door",
             "wall": "sur",
-            "offset": 0.7750000000000001,
+            "offset": 0.45,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
@@ -501,7 +501,7 @@
             "id": "win-1",
             "type": "window",
             "wall": "norte",
-            "offset": 0.6250000000000001,
+            "offset": 0.30000000000000004,
             "width": 1.2,
             "height": 1.1,
             "sill": 0.9
@@ -515,9 +515,9 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.225,
+            "x": 0.9,
             "y": 2.25,
-            "z": 1.7
+            "z": 1.125
           }
         ],
         "furniture": []
@@ -526,16 +526,16 @@
     {
       "id": "ambiente-6",
       "name": "Dormitorio 2",
-      "x": 6.25,
-      "z": 5.15,
+      "x": 6.4,
+      "z": 4.65,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 4.75,
-          "length": 3.0,
+          "width": 4.6,
+          "length": 3.3,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -574,7 +574,7 @@
             "id": "door-1",
             "type": "door",
             "wall": "sur",
-            "offset": 1.925,
+            "offset": 1.8499999999999999,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
@@ -583,7 +583,7 @@
             "id": "win-1",
             "type": "window",
             "wall": "norte",
-            "offset": 1.775,
+            "offset": 1.6999999999999997,
             "width": 1.2,
             "height": 1.1,
             "sill": 0.9
@@ -597,16 +597,16 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 2.375,
+            "x": 2.3,
             "y": 2.25,
-            "z": 1.5
+            "z": 1.65
           }
         ],
         "furniture": [
           {
             "id": "cama-1",
             "type": "cama",
-            "x": 3.45,
+            "x": 3.3,
             "z": 1.1,
             "rotation": 0.0,
             "width": 1.4,
@@ -631,15 +631,15 @@
     {
       "id": "ambiente-7",
       "name": "Baño 2",
-      "x": 7.9,
-      "z": 8.3,
+      "x": 6.4,
+      "z": 8.1,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 3.1,
+          "width": 4.6,
           "length": 1.8,
           "height": 2.5,
           "wallThickness": 0.15
@@ -679,7 +679,7 @@
             "id": "door-1",
             "type": "door",
             "wall": "sur",
-            "offset": 1.1,
+            "offset": 1.8499999999999999,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
@@ -693,7 +693,7 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.55,
+            "x": 2.3,
             "y": 2.25,
             "z": 0.9
           }
@@ -702,7 +702,7 @@
           {
             "id": "inodoro-1",
             "type": "inodoro",
-            "x": 2.7,
+            "x": 4.2,
             "z": 0.5,
             "rotation": 0.0,
             "width": 0.4,
@@ -727,16 +727,16 @@
     {
       "id": "ambiente-8",
       "name": "Dormitorio 3",
-      "x": 6.25,
-      "z": 10.3,
+      "x": 6.4,
+      "z": 10.05,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 4.75,
-          "length": 3.4,
+          "width": 4.6,
+          "length": 3.3,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -775,7 +775,7 @@
             "id": "door-1",
             "type": "door",
             "wall": "sur",
-            "offset": 1.925,
+            "offset": 1.8499999999999999,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
@@ -784,7 +784,7 @@
             "id": "win-1",
             "type": "window",
             "wall": "norte",
-            "offset": 1.775,
+            "offset": 1.6999999999999997,
             "width": 1.2,
             "height": 1.1,
             "sill": 0.9
@@ -798,16 +798,16 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 2.375,
+            "x": 2.3,
             "y": 2.25,
-            "z": 1.7
+            "z": 1.65
           }
         ],
         "furniture": [
           {
             "id": "cama-1",
             "type": "cama",
-            "x": 2.38,
+            "x": 2.3,
             "z": 1.2,
             "rotation": 0.0,
             "width": 1.4,
@@ -819,7 +819,7 @@
             "id": "closet-2",
             "type": "closet",
             "x": 0.3,
-            "z": 2.4,
+            "z": 2.3,
             "rotation": 90.0,
             "width": 1.2,
             "depth": 0.6,

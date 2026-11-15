@@ -48,6 +48,30 @@ class FSHFExampleHouseTest {
         }
     }
 
+    @Test
+    void esSimetricaYElPasilloEsUniforme() {
+        FSHFHome h = FSHFExampleHouse.build(new FSHFCatalog());
+        var dorm2 = espacio(h, "Dormitorio 2");
+        var dorm3 = espacio(h, "Dormitorio 3");
+        var banoP = espacio(h, "Baño principal");
+        var pasillo = espacio(h, "Pasillo");
+        var social = espacio(h, "Sala, comedor y cocina");
+
+        // Los dos dormitorios laterales son del mismo tamaño.
+        assertEquals(dorm2.project.room.width(), dorm3.project.room.width(), 1e-6, "ancho dormitorios");
+        assertEquals(dorm2.project.room.length(), dorm3.project.room.length(), 1e-6, "largo dormitorios");
+        // Columna izquierda y derecha del mismo ancho.
+        assertEquals(banoP.project.room.width(), dorm2.project.room.width(), 1e-6, "columnas iguales");
+        // El pasillo está centrado respecto al ancho total.
+        double total = social.project.room.width();
+        double centro = (total - pasillo.project.room.width()) / 2;
+        assertEquals(centro, pasillo.x, 1e-6, "pasillo centrado");
+    }
+
+    private static FSHFHome.Space espacio(FSHFHome h, String nombre) {
+        return h.spaces.stream().filter(s -> s.name.equals(nombre)).findFirst().orElseThrow();
+    }
+
     /** Footprint interior del ambiente (sin contar los muros): [minX, minZ, maxX, maxZ]. */
     private static double[] footprint(FSHFHome.Space s) {
         return new double[] {s.x, s.z, s.x + s.project.room.width(), s.z + s.project.room.length()};
