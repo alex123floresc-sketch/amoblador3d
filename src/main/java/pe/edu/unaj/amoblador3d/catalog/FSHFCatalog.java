@@ -44,6 +44,26 @@ public final class FSHFCatalog {
         parametric("escalera-l", "Escalera en L", STAIRS, new Size(2.0, 2.6, 2.5), "#b08a5e", "Pasamanos", r(1.4, 4), r(1.4, 5), r(0.8, 6));
         parametric("escalera-caracol", "Escalera de caracol", STAIRS, new Size(1.6, 1.6, 2.5), "#4a4f55", "Peldaños", r(1.1, 2.6), r(1.1, 2.6), r(0.8, 6));
         parametric("baranda", "Baranda", STAIRS, new Size(1.5, 0.06, 0.9), "#4a4f55", "Pasamanos", r(0.3, 8), r(0.04, 0.2), r(0.6, 1.2));
+
+        // Muebles nativos añadidos para decorar con más variedad
+        parametric("ropero", "Ropero", BEDROOM, new Size(1.5, 0.6, 2.1), "#d9c6a5", "Puertas", r(0.8, 3), r(0.5, 0.75), r(1.8, 2.5));
+        parametric("mesa-centro", "Mesa de centro", LIVING, new Size(1.1, 0.6, 0.42), "#a0764f", "Tapa", r(0.6, 1.6), r(0.4, 0.9), r(0.3, 0.55));
+        parametric("sillon-1", "Sillón", LIVING, new Size(0.9, 0.9, 0.85), "#7c8a99", "Cojines", r(0.7, 1.2), r(0.7, 1.0), r(0.7, 1.0));
+        parametric("lampara-pie", "Lámpara de pie", LIVING, new Size(0.4, 0.4, 1.6), "#ece3c9", "Pantalla", r(0.3, 0.6), r(0.3, 0.6), r(1.2, 1.9));
+        parametric("tv", "Televisor", LIVING, new Size(1.2, 0.08, 0.7), "#222222", "Pantalla", r(0.6, 2.0), r(0.05, 0.12), r(0.4, 1.2));
+        parametric("aparador", "Aparador", DINING, new Size(1.6, 0.45, 0.85), "#a0764f", "Puertas", r(0.9, 2.4), r(0.35, 0.6), r(0.7, 1.1));
+        parametric("isla-cocina", "Isla de cocina", KITCHEN, new Size(1.6, 0.9, 0.9), "#f4f1ea", "Encimera", r(1.0, 2.6), r(0.6, 1.1), r(0.85, 1.0));
+        parametric("alacena", "Alacena", KITCHEN, new Size(1.2, 0.35, 0.7), "#eceae3", "Puertas", r(0.6, 2.4), r(0.3, 0.5), r(0.5, 0.9));
+        parametric("tina", "Tina", BATHROOM, new Size(1.6, 0.75, 0.55), "#ffffff", "Interior", r(1.2, 1.9), r(0.65, 0.85), r(0.45, 0.65));
+        parametric("ducha", "Ducha", BATHROOM, new Size(0.9, 0.9, 2.1), "#e9edf0", "Mampara", r(0.7, 1.4), r(0.7, 1.4), r(1.9, 2.3));
+        parametric("espejo-bano", "Espejo", BATHROOM, new Size(0.8, 0.05, 0.6), "#cfe0e6", "Marco", r(0.4, 1.4), r(0.03, 0.1), r(0.4, 1.0));
+        parametric("silla-oficina", "Silla de oficina", OFFICE, new Size(0.6, 0.6, 1.1), "#3b3b3b", "Asiento", r(0.5, 0.75), r(0.5, 0.75), r(0.9, 1.3));
+        parametric("estante", "Estante", OFFICE, new Size(0.9, 0.3, 1.8), "#a0764f", "Fondo", r(0.4, 2.4), r(0.2, 0.5), r(0.6, 2.4));
+        parametric("planta", "Planta", DECORATION, new Size(0.5, 0.5, 1.1), "#4f8f52", "Follaje", r(0.3, 1.0), r(0.3, 1.0), r(0.5, 2.0));
+        parametric("maceta", "Maceta", DECORATION, new Size(0.4, 0.4, 0.6), "#4f8f52", "Follaje", r(0.25, 0.8), r(0.25, 0.8), r(0.3, 1.2));
+        parametric("alfombra", "Alfombra", DECORATION, new Size(2.0, 1.4, 0.02), "#b4967e", "Borde", r(0.8, 3.5), r(0.6, 2.5), r(0.01, 0.05));
+        parametric("cuadro", "Cuadro", DECORATION, new Size(0.8, 0.04, 0.6), "#8a6a46", "Marco", r(0.3, 1.6), r(0.03, 0.08), r(0.3, 1.2));
+        parametric("cortina", "Cortina", DECORATION, new Size(1.5, 0.06, 2.0), "#d8d2c4", "Tela", r(0.6, 3.0), r(0.04, 0.12), r(1.2, 2.6));
     }
 
     public static boolean isStair(String type) {

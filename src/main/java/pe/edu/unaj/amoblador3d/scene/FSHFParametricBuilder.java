@@ -72,6 +72,19 @@ final class FSHFParametricBuilder {
             case "escalera-l" -> lStair(f.width, f.depth, f.height, color);
             case "escalera-caracol" -> spiralStair(f.width, f.depth, f.height, color);
             case "baranda" -> railing(f.width, f.depth, f.height, color);
+            case "ropero", "alacena" -> closet(f.width, f.depth, f.height, color);
+            case "mesa-centro" -> table(f.width, f.depth, f.height, color);
+            case "sillon-1" -> sofa(f.width, f.depth, f.height, color);
+            case "aparador" -> drawers(f.width, f.depth, f.height, color, 2, f.width >= 1.2 ? 3 : 2);
+            case "isla-cocina" -> kitchen(f.width, f.depth, f.height, color);
+            case "silla-oficina" -> chair(f.width, f.depth, f.height, color);
+            case "estante" -> bookshelf(f.width, f.depth, f.height, color);
+            case "planta", "maceta" -> plant(f.width, f.depth, f.height, color);
+            case "lampara-pie" -> floorLamp(f.width, f.depth, f.height, color);
+            case "tv", "espejo-bano", "cuadro", "cortina" -> panel(f.width, f.depth, f.height, color);
+            case "alfombra" -> rug(f.width, f.depth, f.height, color);
+            case "tina" -> bathtub(f.width, f.depth, f.height, color);
+            case "ducha" -> shower(f.width, f.depth, f.height, color);
             default -> null;
         };
     }
@@ -106,6 +119,58 @@ final class FSHFParametricBuilder {
         c.setTranslateZ(z);
         c.setMaterial(m);
         g.getChildren().add(c);
+    }
+
+    // ---- Formas de los muebles nativos añadidos ----
+
+    /** Panel vertical: televisor, espejo, cuadro, cortina. */
+    private static Group panel(double w, double d, double h, Style color) {
+        Group g = new Group();
+        box(g, color.mat(), w, h, d, 0, h / 2, 0);
+        return g;
+    }
+
+    /** Alfombra: lámina plana sobre el piso. */
+    private static Group rug(double w, double d, double h, Style color) {
+        Group g = new Group();
+        box(g, color.mat(), w, h, d, 0, h / 2, 0);
+        return g;
+    }
+
+    /** Planta en maceta: maceta (llena el footprint) y follaje (color principal). */
+    private static Group plant(double w, double d, double h, Style color) {
+        Group g = new Group();
+        double potH = Math.min(h * 0.35, 0.4);
+        box(g, color.accent("#9c6b4a"), w, potH, d, 0, potH / 2, 0);
+        double folH = h - potH;
+        cylinder(g, color.mat(), Math.min(w, d) / 2, folH, 0, potH + folH / 2, 0);
+        return g;
+    }
+
+    /** Lámpara de pie: base, poste y pantalla (pantalla = color principal, llena el footprint). */
+    private static Group floorLamp(double w, double d, double h, Style color) {
+        Group g = new Group();
+        cylinder(g, FSHFMaterials.METAL, Math.min(w, d) * 0.22, 0.03, 0, 0.015, 0);
+        cylinder(g, FSHFMaterials.METAL, 0.025, h * 0.78, 0, h * 0.41, 0);
+        box(g, color.mat(), w, h * 0.22, d, 0, h - h * 0.11, 0);
+        return g;
+    }
+
+    /** Tina de baño (cuerpo = color principal). */
+    private static Group bathtub(double w, double d, double h, Style color) {
+        Group g = new Group();
+        box(g, color.mat(), w, h, d, 0, h / 2, 0);
+        box(g, FSHFMaterials.of("#e7f0f5"), w - 0.14, 0.05, d - 0.14, 0, h - 0.025, 0);
+        return g;
+    }
+
+    /** Ducha: base (color principal) y mamparas de vidrio. */
+    private static Group shower(double w, double d, double h, Style color) {
+        Group g = new Group();
+        box(g, color.mat(), w, 0.05, d, 0, 0.025, 0);
+        box(g, FSHFMaterials.GLASS, w, h, 0.03, 0, h / 2, d / 2 - 0.015);
+        box(g, FSHFMaterials.GLASS, 0.03, h, d, w / 2 - 0.015, h / 2, 0);
+        return g;
     }
 
     private static Group bed(double w, double d, double h, Style color) {

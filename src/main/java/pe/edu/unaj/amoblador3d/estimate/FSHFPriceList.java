@@ -73,6 +73,24 @@ public final class FSHFPriceList {
         furniture("escalera-l", 5200);
         furniture("escalera-caracol", 4800);
         furniture("baranda", 300);
+        furniture("ropero", 1400);
+        furniture("mesa-centro", 350);
+        furniture("sillon-1", 800);
+        furniture("lampara-pie", 150);
+        furniture("tv", 1600);
+        furniture("aparador", 950);
+        furniture("isla-cocina", 2200);
+        furniture("alacena", 700);
+        furniture("tina", 1300);
+        furniture("ducha", 900);
+        furniture("espejo-bano", 180);
+        furniture("silla-oficina", 350);
+        furniture("estante", 380);
+        furniture("planta", 80);
+        furniture("maceta", 60);
+        furniture("alfombra", 250);
+        furniture("cuadro", 120);
+        furniture("cortina", 200);
         DEFAULTS.put(BASEBOARD, 12.0);
     }
 

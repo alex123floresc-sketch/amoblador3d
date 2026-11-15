@@ -15,7 +15,7 @@ class FSHFCatalogTest {
         assertEquals(List.of("comoda"), c.search(FSHFCatalog.BEDROOM, "COMODA").stream().map(FSHFCatalogEntry::id).toList());
         assertEquals(List.of("lavatorio"), c.search(FSHFCatalog.BATHROOM, "lavat").stream().map(FSHFCatalogEntry::id).toList());
         assertTrue(c.search(FSHFCatalog.KITCHEN, "cama").isEmpty());
-        assertEquals(4, c.search(FSHFCatalog.BEDROOM, "").size());
+        assertEquals(5, c.search(FSHFCatalog.BEDROOM, "").size());
     }
 
     @Test
