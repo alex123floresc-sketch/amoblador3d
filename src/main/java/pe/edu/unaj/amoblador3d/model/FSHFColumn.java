@@ -7,6 +7,7 @@ package pe.edu.unaj.amoblador3d.model;
 public final class FSHFColumn {
     public enum Kind {
         COLUMN("column", "Columna", 0.3, 0.3),
+        MACHON("machon", "Machón", 0.4, 0.25),
         WALL("wall", "Muro interno", 1.5, 0.12),
         NOTCH("notch", "Recorte en L", 1.2, 1.0);
 

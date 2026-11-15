@@ -69,7 +69,7 @@ final class FSHFWelcomeDialog {
                     result[0] = new Choice(Kind.TEMPLATE, null);
                     stage.close();
                 }),
-                card("🏠", "Casa de ejemplo", "Sala, dormitorio, cocina y baño listos para recorrer y cambiar", () -> {
+                card("🏠", "Casa de ejemplo", "Casa de dos pisos con varios ambientes, lista para recorrer y cambiar", () -> {
                     result[0] = new Choice(Kind.EXAMPLE, null);
                     stage.close();
                 }),
