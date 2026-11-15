@@ -86,7 +86,10 @@ public final class FSHFHomeView {
 
         javafx.scene.AmbientLight groundLight = new javafx.scene.AmbientLight(Color.gray(0.85));
         groundLight.getScope().add(ground);
-        Group world = new Group(ground, groundLight, spacesGroup);
+        // Luz ambiental global y suave: evita que las caras exteriores de los muros
+        // (la fachada) queden en negro, sin oscurecer el interior ni aplanar el relieve.
+        javafx.scene.AmbientLight fachadaLight = new javafx.scene.AmbientLight(Color.gray(0.22));
+        Group world = new Group(ground, groundLight, fachadaLight, spacesGroup);
         world.getTransforms().add(new Rotate(180, Rotate.X_AXIS));
         subScene = new SubScene(new Group(world, cam.camera), 100, 100, true, SceneAntialiasing.BALANCED);
         subScene.setFill(Color.TRANSPARENT);
