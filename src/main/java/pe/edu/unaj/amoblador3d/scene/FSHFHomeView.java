@@ -59,6 +59,8 @@ public final class FSHFHomeView {
     private final Group spacesGroup = new Group();
     private final Box ground = new Box(1, 0.06, 1);
     private final Group exteriorGroup = new Group();
+    private final Group roofGroup = new Group();
+    private boolean roofVisible = true;
     private final Canvas canvas = new Canvas();
 
     private FSHFHome home = new FSHFHome();
@@ -89,10 +91,10 @@ public final class FSHFHomeView {
         groundLight.getScope().add(ground);
         // Iluminación general del exterior: una ambiental amplia para que nada quede
         // en negro, más un "sol" direccional que da luz y relieve a la fachada y el jardín.
-        javafx.scene.AmbientLight fachadaLight = new javafx.scene.AmbientLight(Color.gray(0.45));
-        javafx.scene.DirectionalLight sol = new javafx.scene.DirectionalLight(Color.rgb(225, 220, 205));
+        javafx.scene.AmbientLight fachadaLight = new javafx.scene.AmbientLight(Color.gray(0.40));
+        javafx.scene.DirectionalLight sol = new javafx.scene.DirectionalLight(Color.rgb(105, 102, 92));
         sol.setDirection(new javafx.geometry.Point3D(-0.45, -1.0, -0.35).normalize());
-        Group world = new Group(ground, groundLight, fachadaLight, sol, exteriorGroup, spacesGroup);
+        Group world = new Group(ground, groundLight, fachadaLight, sol, exteriorGroup, spacesGroup, roofGroup);
         world.getTransforms().add(new Rotate(180, Rotate.X_AXIS));
         subScene = new SubScene(new Group(world, cam.camera), 100, 100, true, SceneAntialiasing.BALANCED);
         subScene.setFill(Color.TRANSPARENT);
@@ -265,6 +267,33 @@ public final class FSHFHomeView {
         ground.setTranslateY(-0.05);
         ground.setMaterial(FSHFMaterials.of("#d8dadd")); // piso de patio claro
         buildExterior(b);
+        buildRoof(b);
+    }
+
+    /** Techo plano moderno sobre toda la casa (se muestra/oculta con el botón Techo). */
+    private void buildRoof(double[] b) {
+        roofGroup.getChildren().clear();
+        double hgt = home.spaces.isEmpty() ? 2.5 : home.levelHeight(level);
+        double over = 0.25;  // alero
+        Box slab = new Box(b[2] - b[0] + 2 * over, 0.22, b[3] - b[1] + 2 * over);
+        slab.setMaterial(FSHFMaterials.of("#6b6f73"));
+        slab.setTranslateX((b[0] + b[2]) / 2);
+        slab.setTranslateZ((b[1] + b[3]) / 2);
+        slab.setTranslateY(hgt + 0.11);
+        slab.setMouseTransparent(true);
+        roofGroup.getChildren().add(slab);
+        roofGroup.setVisible(roofVisible);
+    }
+
+    /** Muestra u oculta el techo (casa cerrada = exterior, sin techo = interior). */
+    public void setRoofVisible(boolean visible) {
+        roofVisible = visible;
+        roofGroup.setVisible(visible);
+        render();
+    }
+
+    public boolean isRoofVisible() {
+        return roofVisible;
     }
 
     /** Césped, deck de madera y árboles alrededor de la casa (vista de exteriores). */

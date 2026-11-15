@@ -532,7 +532,12 @@ public final class FSHFMainWindow {
             else view.zoom(1.25);
         });
         Button center = toolButton("⤢", "Encuadrar (Ctrl+0)", this::frameView);
-        VBox controls = new VBox(4, zoomIn, zoomOut, center);
+        Button roof = toolButton("⌂", "Techo: casa cerrada con fachada / ocultarlo para ver el interior",
+                () -> {
+                    homeView.setRoofVisible(!homeView.isRoofVisible());
+                    notify(homeView.isRoofVisible() ? "Techo visible: fachada de la casa" : "Techo oculto: interior visible");
+                });
+        VBox controls = new VBox(4, zoomIn, zoomOut, center, roof);
         controls.getStyleClass().add("view-controls");
         controls.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         StackPane.setAlignment(controls, Pos.BOTTOM_RIGHT);
