@@ -58,6 +58,7 @@ public final class FSHFHomeView {
     private final FSHFViewCamera cam = new FSHFViewCamera();
     private final Group spacesGroup = new Group();
     private final Box ground = new Box(1, 0.06, 1);
+    private final Group exteriorGroup = new Group();
     private final Canvas canvas = new Canvas();
 
     private FSHFHome home = new FSHFHome();
@@ -89,7 +90,7 @@ public final class FSHFHomeView {
         // Luz ambiental global y suave: evita que las caras exteriores de los muros
         // (la fachada) queden en negro, sin oscurecer el interior ni aplanar el relieve.
         javafx.scene.AmbientLight fachadaLight = new javafx.scene.AmbientLight(Color.gray(0.22));
-        Group world = new Group(ground, groundLight, fachadaLight, spacesGroup);
+        Group world = new Group(ground, groundLight, fachadaLight, exteriorGroup, spacesGroup);
         world.getTransforms().add(new Rotate(180, Rotate.X_AXIS));
         subScene = new SubScene(new Group(world, cam.camera), 100, 100, true, SceneAntialiasing.BALANCED);
         subScene.setFill(Color.TRANSPARENT);
@@ -253,12 +254,62 @@ public final class FSHFHomeView {
 
     private void updateGround() {
         double[] b = bounds();
-        double m = 0.6;
+        double m = 0.8;
+        // El "ground" pasa a ser el PATIO pavimentado alrededor de la casa.
         ground.setWidth(b[2] - b[0] + 2 * m);
         ground.setDepth(b[3] - b[1] + 2 * m);
         ground.setTranslateX((b[0] + b[2]) / 2);
         ground.setTranslateZ((b[1] + b[3]) / 2);
         ground.setTranslateY(-0.05);
+        ground.setMaterial(FSHFMaterials.of("#d8dadd")); // piso de patio claro
+        buildExterior(b);
+    }
+
+    /** Césped, deck de madera y árboles alrededor de la casa (vista de exteriores). */
+    private void buildExterior(double[] b) {
+        exteriorGroup.getChildren().clear();
+        double cx = (b[0] + b[2]) / 2, cz = (b[1] + b[3]) / 2;
+        double w = b[2] - b[0], d = b[3] - b[1];
+        double yard = 3.5;
+
+        // Césped: un plano verde amplio, por debajo del patio.
+        Box grass = new Box(w + 2 * yard, 0.04, d + 2 * yard);
+        grass.setMaterial(FSHFMaterials.of("#6f9f5b"));
+        grass.setTranslateX(cx);
+        grass.setTranslateZ(cz);
+        grass.setTranslateY(-0.09);
+        grass.setMouseTransparent(true);
+        exteriorGroup.getChildren().add(grass);
+
+        // Deck de madera al frente (lado de mayor Z, donde está la entrada).
+        Box deck = new Box(Math.min(w * 0.5, 4.0), 0.06, 1.6);
+        deck.setMaterial(FSHFMaterials.of("#b98a52"));
+        deck.setTranslateX(cx);
+        deck.setTranslateZ(b[3] + 1.0);
+        deck.setTranslateY(-0.045);
+        deck.setMouseTransparent(true);
+        exteriorGroup.getChildren().add(deck);
+
+        // Árboles en las esquinas del jardín.
+        double ox = w / 2 + 1.6, oz = d / 2 + 1.6;
+        for (double[] p : new double[][] {{cx - ox, cz - oz}, {cx + ox, cz - oz}, {cx - ox, cz + oz}, {cx + ox, cz + oz}}) {
+            exteriorGroup.getChildren().add(tree(p[0], p[1]));
+        }
+    }
+
+    /** Árbol simple: tronco (cilindro) y copa (esfera). */
+    private static Group tree(double x, double z) {
+        javafx.scene.shape.Cylinder trunk = new javafx.scene.shape.Cylinder(0.08, 1.4);
+        trunk.setMaterial(FSHFMaterials.of("#7a5a3a"));
+        trunk.setTranslateY(0.7);
+        javafx.scene.shape.Sphere crown = new javafx.scene.shape.Sphere(0.65);
+        crown.setMaterial(FSHFMaterials.of("#5f9a4e"));
+        crown.setTranslateY(1.7);
+        Group t = new Group(trunk, crown);
+        t.setTranslateX(x);
+        t.setTranslateZ(z);
+        t.setMouseTransparent(true);
+        return t;
     }
 
     private void resize() {
