@@ -94,9 +94,9 @@ public final class FSHFHomeView {
         groundLight.getScope().add(ground);
         // Iluminación natural de exterior: relleno frío del cielo (azulado y suave)
         // más un "sol" cálido y direccional, ambos de baja intensidad para que no lave.
-        javafx.scene.AmbientLight fachadaLight = new javafx.scene.AmbientLight(Color.rgb(78, 86, 100));
-        javafx.scene.DirectionalLight sol = new javafx.scene.DirectionalLight(Color.rgb(120, 112, 92));
-        sol.setDirection(new javafx.geometry.Point3D(-0.4, -1.0, -0.45).normalize());
+        javafx.scene.AmbientLight fachadaLight = new javafx.scene.AmbientLight(Color.rgb(76, 84, 98));
+        javafx.scene.DirectionalLight sol = new javafx.scene.DirectionalLight(Color.rgb(134, 122, 96));
+        sol.setDirection(new javafx.geometry.Point3D(-0.35, -1.0, -0.5).normalize());
         Group world = new Group(ground, groundLight, fachadaLight, sol, exteriorGroup, spacesGroup, roofGroup);
         world.getTransforms().add(new Rotate(180, Rotate.X_AXIS));
         subScene = new SubScene(new Group(world, cam.camera), 100, 100, true, SceneAntialiasing.BALANCED);
@@ -215,15 +215,29 @@ public final class FSHFHomeView {
         n.turn().setAngle(-s.rotation);
     }
 
+    private final java.util.Set<Integer> hiddenLevels = new java.util.HashSet<>();
+
     private void updateLevels() {
         boolean plan = cam.mode == FSHFViewCamera.Mode.PLAN;
-        // En 3D se muestran TODOS los pisos apilados (maqueta de casa completa);
-        // en planta, solo el piso actual. La edición se mantiene en el piso activo.
+        // En 3D se muestran todos los pisos apilados (maqueta), salvo los que el
+        // usuario oculte; en planta, solo el piso actual. La edición sigue en el activo.
         for (SpaceNode n : nodes) {
             int l = n.space().level;
-            n.group().setVisible(plan ? l == level : true);
+            n.group().setVisible(plan ? l == level : !hiddenLevels.contains(l));
             n.group().setMouseTransparent(l != level);
         }
+    }
+
+    /** Muestra u oculta un piso en la vista 3D (como el botón del techo). */
+    public void setLevelHidden(int l, boolean hidden) {
+        if (hidden) hiddenLevels.add(l); else hiddenLevels.remove(l);
+        updateLevels();
+        buildRoof(bounds());
+        render();
+    }
+
+    public boolean isLevelHidden(int l) {
+        return hiddenLevels.contains(l);
     }
 
     private static void hidePlinth(Group g) {
@@ -284,8 +298,11 @@ public final class FSHFHomeView {
     /** Techo plano moderno sobre toda la casa (se muestra/oculta con el botón Techo). */
     private void buildRoof(double[] b) {
         roofGroup.getChildren().clear();
-        // Siempre encima del piso más alto (en 3D se ven todos los pisos juntos).
-        int topLevel = Math.max(0, home.levels() - 1);
+        // Encima del piso visible más alto (si se oculta el de arriba, el techo baja).
+        int topLevel = 0;
+        for (int k = home.levels() - 1; k >= 0; k--) {
+            if (!hiddenLevels.contains(k)) { topLevel = k; break; }
+        }
         double top = home.spaces.isEmpty() ? 2.5 : home.elevation(topLevel) + home.levelHeight(topLevel);
         double over = 0.25;  // alero
         Box slab = new Box(b[2] - b[0] + 2 * over, 0.22, b[3] - b[1] + 2 * over);

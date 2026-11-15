@@ -159,6 +159,7 @@ public final class FSHFMainWindow {
     private final FSHFCatalogPanel catalogPanel;
     private final ListView<Object> items = new ListView<>();
     private final Button floorButton = new Button("Piso");
+    private final VBox floorToggles = new VBox(4);
     private final Button ceilingButton = new Button("Techo"), baseboardButton = new Button("Zócalo");
     private final java.util.Map<FSHFWallSide, Button> wallButtons = new java.util.EnumMap<>(FSHFWallSide.class);
     private FSHFToast toast;
@@ -537,7 +538,7 @@ public final class FSHFMainWindow {
                     homeView.setRoofVisible(!homeView.isRoofVisible());
                     notify(homeView.isRoofVisible() ? "Techo visible: fachada de la casa" : "Techo oculto: interior visible");
                 });
-        VBox controls = new VBox(4, zoomIn, zoomOut, center, roof);
+        VBox controls = new VBox(4, floorToggles, zoomIn, zoomOut, center, roof);
         controls.getStyleClass().add("view-controls");
         controls.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         StackPane.setAlignment(controls, Pos.BOTTOM_RIGHT);
@@ -704,11 +705,30 @@ public final class FSHFMainWindow {
             properties.show(editor());
             status.setText(defaultStatus());
         }
+        updateFloorToggles();
         refreshSpaces();
+    }
+
+    /** Botones para mostrar u ocultar cada piso en la vista 3D de la casa completa. */
+    private void updateFloorToggles() {
+        floorToggles.getChildren().clear();
+        int n = currentHome().levels();
+        if (!houseMode || n <= 1) return;
+        for (int l = n - 1; l >= 0; l--) {       // de arriba hacia abajo
+            final int level = l;
+            ToggleButton b = new ToggleButton("P" + (l + 1));
+            b.setSelected(!homeView.isLevelHidden(l));
+            b.getStyleClass().add("view-toggle");
+            b.setFocusTraversable(false);
+            b.setTooltip(new Tooltip("Mostrar u ocultar el piso " + (l + 1)));
+            b.setOnAction(e -> homeView.setLevelHidden(level, !b.isSelected()));
+            floorToggles.getChildren().add(b);
+        }
     }
 
     private void spaceMoved() {
         homeView.show(currentHome());
+        updateFloorToggles();
         history.commit();
         properties.refresh();
     }
