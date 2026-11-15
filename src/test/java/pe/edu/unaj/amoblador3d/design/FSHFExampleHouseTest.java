@@ -49,23 +49,22 @@ class FSHFExampleHouseTest {
     }
 
     @Test
-    void esSimetricaYElPasilloEsUniforme() {
+    void lasColumnasSonConsistentesYElPasilloUniforme() {
         FSHFHome h = FSHFExampleHouse.build(new FSHFCatalog());
-        var dorm2 = espacio(h, "Dormitorio 2");
-        var dorm3 = espacio(h, "Dormitorio 3");
-        var banoP = espacio(h, "Baño principal");
-        var pasillo = espacio(h, "Pasillo");
-        var social = espacio(h, "Sala, comedor y cocina");
+        // Columna izquierda: baño y dormitorio principal con el mismo ancho.
+        assertEquals(ancho(h, "Baño principal"), ancho(h, "Dormitorio principal"), 1e-6, "columna izquierda");
+        // Centro: pasillo y entrada con el mismo ancho (pasillo recto y uniforme).
+        assertEquals(ancho(h, "Pasillo"), ancho(h, "Entrada"), 1e-6, "pasillo uniforme");
+        // Columna derecha: dormitorio 2, baño 2 y dormitorio 3 con el mismo ancho.
+        assertEquals(ancho(h, "Dormitorio 2"), ancho(h, "Baño 2"), 1e-6, "columna derecha");
+        assertEquals(ancho(h, "Dormitorio 2"), ancho(h, "Dormitorio 3"), 1e-6, "columna derecha");
+        // Los tres tramos (x) están alineados: izq | pasillo | der sin solaparse ni dejar hueco.
+        assertTrue(espacio(h, "Pasillo").x > espacio(h, "Baño principal").x, "pasillo a la derecha de la suite");
+        assertTrue(espacio(h, "Dormitorio 2").x > espacio(h, "Pasillo").x, "dormitorios a la derecha del pasillo");
+    }
 
-        // Los dos dormitorios laterales son del mismo tamaño.
-        assertEquals(dorm2.project.room.width(), dorm3.project.room.width(), 1e-6, "ancho dormitorios");
-        assertEquals(dorm2.project.room.length(), dorm3.project.room.length(), 1e-6, "largo dormitorios");
-        // Columna izquierda y derecha del mismo ancho.
-        assertEquals(banoP.project.room.width(), dorm2.project.room.width(), 1e-6, "columnas iguales");
-        // El pasillo está centrado respecto al ancho total.
-        double total = social.project.room.width();
-        double centro = (total - pasillo.project.room.width()) / 2;
-        assertEquals(centro, pasillo.x, 1e-6, "pasillo centrado");
+    private static double ancho(FSHFHome h, String nombre) {
+        return espacio(h, nombre).project.room.width();
     }
 
     private static FSHFHome.Space espacio(FSHFHome h, String nombre) {

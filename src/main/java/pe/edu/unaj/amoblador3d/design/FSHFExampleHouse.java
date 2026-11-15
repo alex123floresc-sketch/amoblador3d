@@ -31,35 +31,39 @@ public final class FSHFExampleHouse {
     private static final String PISO_BANO = "#dde6ea"; // piso de baño
     private static final String MURO = "#f2f1ec";      // pared hueso
 
-    // Rejilla simétrica: columna izquierda y derecha del MISMO ancho, con el
-    // pasillo recto y centrado entre ellas.
-    private static final double COL = 4.60;   // ancho de cada columna lateral
-    private static final double HALL = 1.80;  // ancho del pasillo (uniforme)
-    private static final double RX = COL + HALL;  // inicio de la columna derecha = 6.40
+    // Rejilla a escala del plano (terreno 10.0 × 12.7 m), tilado completo:
+    // columnas X en 0 · 3.2 · 5.6 · 10.0 ; filas Z en 0 · 4.7 · 7.6 · 9.3 · 12.7.
+    // Cada celda se separa T/2 de la siguiente, así los muros compartidos quedan
+    // alineados y no sobran espacios fuera del pasillo.
+    private static final double M = T / 2;  // media junta para el muro compartido
 
     public static FSHFHome build(FSHFCatalog catalog) {
-        // Área social abierta (sala + comedor + cocina), ocupa todo el ancho arriba.
-        FSHFProject social = room(catalog, 2 * COL + HALL, 4.5, PISO, MURO, "social");
+        // Área social abierta (sala + comedor + cocina), todo el ancho arriba.
+        FSHFProject social = cell(catalog, 0.0, 10.0, 0.0, 4.7, PISO, MURO, "social");
         FSHFHome h = FSHFHome.of(social, "Sala, comedor y cocina");
-        h.spaces.get(0).x = 0; h.spaces.get(0).z = 0;
+        h.spaces.get(0).x = round(M); h.spaces.get(0).z = round(M);
 
-        // Columna izquierda (suite): baño y dormitorio principal, ancho COL.
-        place(h, "Baño principal",      0.00, 4.65, room(catalog, COL, 2.50, PISO_BANO, MURO, "banoP"));
-        place(h, "Dormitorio principal",0.00, 7.30, room(catalog, COL, 6.05, PISO, MURO, "dormP"));
-
-        // Pasillo recto y centrado, con la entrada al final.
-        place(h, "Pasillo",             COL, 4.65, room(catalog, HALL, 6.30, PISO, MURO, "pasillo"));
-        place(h, "Entrada",             COL, 11.10, room(catalog, HALL, 2.25, PISO, MURO, "entrada"));
-
-        // Columna derecha (ancho COL): dormitorio 2 y 3 IGUALES, con el baño 2 en medio.
-        place(h, "Dormitorio 2",        RX, 4.65, room(catalog, COL, 3.30, PISO, MURO, "dorm2"));
-        place(h, "Baño 2",              RX, 8.10, room(catalog, COL, 1.80, PISO_BANO, MURO, "bano2"));
-        place(h, "Dormitorio 3",        RX, 10.05, room(catalog, COL, 3.30, PISO, MURO, "dorm3"));
+        // Columna izquierda (suite)
+        place(h, "Baño principal",       cell(catalog, 0.0, 3.2, 4.7, 7.6, PISO_BANO, MURO, "banoP"), 0.0, 4.7);
+        place(h, "Dormitorio principal", cell(catalog, 0.0, 3.2, 7.6, 12.7, PISO, MURO, "dormP"), 0.0, 7.6);
+        // Centro: pasillo recto y entrada
+        place(h, "Pasillo",              cell(catalog, 3.2, 5.6, 4.7, 9.4, PISO, MURO, "pasillo"), 3.2, 4.7);
+        place(h, "Entrada",              cell(catalog, 3.2, 5.6, 9.4, 12.7, PISO, MURO, "entrada"), 3.2, 9.4);
+        // Columna derecha
+        place(h, "Dormitorio 2",         cell(catalog, 5.6, 10.0, 4.7, 7.6, PISO, MURO, "dorm2"), 5.6, 4.7);
+        place(h, "Baño 2",               cell(catalog, 5.6, 10.0, 7.6, 9.3, PISO_BANO, MURO, "bano2"), 5.6, 7.6);
+        place(h, "Dormitorio 3",         cell(catalog, 5.6, 10.0, 9.3, 12.7, PISO, MURO, "dorm3"), 5.6, 9.3);
         return h;
     }
 
-    private static void place(FSHFHome h, String name, double x, double z, FSHFProject p) {
-        h.spaces.add(new FSHFHome.Space(h.nextId(), name, round(x), round(z), p, 0, 0));
+    /** Crea el ambiente de una celda del plano [x0,x1]×[z0,z1], dejando T/2 para los muros. */
+    private static FSHFProject cell(FSHFCatalog catalog, double x0, double x1, double z0, double z1,
+                                    String floorColor, String wallColor, String kind) {
+        return room(catalog, x1 - x0 - T, z1 - z0 - T, floorColor, wallColor, kind);
+    }
+
+    private static void place(FSHFHome h, String name, FSHFProject p, double cellX0, double cellZ0) {
+        h.spaces.add(new FSHFHome.Space(h.nextId(), name, round(cellX0 + M), round(cellZ0 + M), p, 0, 0));
     }
 
     /** Crea un ambiente con medidas, acabados, una puerta, una ventana, luz y muebles. */
