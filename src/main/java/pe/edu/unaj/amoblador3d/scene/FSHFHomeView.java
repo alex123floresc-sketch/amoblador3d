@@ -155,6 +155,7 @@ public final class FSHFHomeView {
         level = Math.max(0, l);
         if (selected != null && selected.level != level) selected = null;
         updateLevels();
+        buildRoof(bounds());   // el techo sube al piso que se está viendo
         render();
     }
 
@@ -273,13 +274,14 @@ public final class FSHFHomeView {
     /** Techo plano moderno sobre toda la casa (se muestra/oculta con el botón Techo). */
     private void buildRoof(double[] b) {
         roofGroup.getChildren().clear();
-        double hgt = home.spaces.isEmpty() ? 2.5 : home.levelHeight(level);
+        // Arriba de todo el apilado visible (maqueta de casa completa).
+        double top = home.spaces.isEmpty() ? 2.5 : home.elevation(level) + home.levelHeight(level);
         double over = 0.25;  // alero
         Box slab = new Box(b[2] - b[0] + 2 * over, 0.22, b[3] - b[1] + 2 * over);
         slab.setMaterial(FSHFMaterials.of("#6b6f73"));
         slab.setTranslateX((b[0] + b[2]) / 2);
         slab.setTranslateZ((b[1] + b[3]) / 2);
-        slab.setTranslateY(hgt + 0.11);
+        slab.setTranslateY(top + 0.11);
         slab.setMouseTransparent(true);
         roofGroup.getChildren().add(slab);
         roofGroup.setVisible(roofVisible);
