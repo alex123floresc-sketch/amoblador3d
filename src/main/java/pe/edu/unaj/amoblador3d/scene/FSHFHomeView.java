@@ -89,11 +89,11 @@ public final class FSHFHomeView {
 
         javafx.scene.AmbientLight groundLight = new javafx.scene.AmbientLight(Color.gray(0.85));
         groundLight.getScope().add(ground);
-        // Iluminación general del exterior: una ambiental amplia para que nada quede
-        // en negro, más un "sol" direccional que da luz y relieve a la fachada y el jardín.
-        javafx.scene.AmbientLight fachadaLight = new javafx.scene.AmbientLight(Color.gray(0.40));
-        javafx.scene.DirectionalLight sol = new javafx.scene.DirectionalLight(Color.rgb(105, 102, 92));
-        sol.setDirection(new javafx.geometry.Point3D(-0.45, -1.0, -0.35).normalize());
+        // Iluminación natural de exterior: relleno frío del cielo (azulado y suave)
+        // más un "sol" cálido y direccional, ambos de baja intensidad para que no lave.
+        javafx.scene.AmbientLight fachadaLight = new javafx.scene.AmbientLight(Color.rgb(78, 86, 100));
+        javafx.scene.DirectionalLight sol = new javafx.scene.DirectionalLight(Color.rgb(120, 112, 92));
+        sol.setDirection(new javafx.geometry.Point3D(-0.4, -1.0, -0.45).normalize());
         Group world = new Group(ground, groundLight, fachadaLight, sol, exteriorGroup, spacesGroup, roofGroup);
         world.getTransforms().add(new Rotate(180, Rotate.X_AXIS));
         subScene = new SubScene(new Group(world, cam.camera), 100, 100, true, SceneAntialiasing.BALANCED);
