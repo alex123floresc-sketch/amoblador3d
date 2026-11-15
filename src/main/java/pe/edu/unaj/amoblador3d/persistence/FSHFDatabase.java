@@ -238,7 +238,7 @@ public final class FSHFDatabase implements AutoCloseable {
             version = rs.next() ? rs.getInt(1) : 0;
         }
         if (version > SCHEMA_VERSION) {
-            throw new SQLException("La base de datos fue creada con una versión más nueva de Amoblador3D.");
+            throw new SQLException("La base de datos fue creada con una versión más nueva de Space Cat.");
         }
         for (int v = version; v < SCHEMA_VERSION; v++) {
             String[] step = STEPS[v];

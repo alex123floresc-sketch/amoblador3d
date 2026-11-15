@@ -33,7 +33,7 @@ public record FSHFProjectReport(String name, FSHFProject project, FSHFEstimate e
         try (PDDocument doc = new PDDocument()) {
             PDDocumentInformation info = doc.getDocumentInformation();
             info.setTitle(name);
-            info.setCreator("Amoblador3D");
+            info.setCreator("Space Cat");
             try (FSHFPdfLayout pdf = new FSHFPdfLayout(doc)) {
                 pdf.title(name, "Informe de diseño · " + LocalDateTime.now().format(DATE));
                 room(pdf);
@@ -42,7 +42,7 @@ public record FSHFProjectReport(String name, FSHFProject project, FSHFEstimate e
                 openings(pdf);
                 furniture(pdf);
                 budget(pdf);
-                pdf.footer("Amoblador3D · " + name);
+                pdf.footer("Space Cat · " + name);
             }
             doc.save(file.toFile());
         }

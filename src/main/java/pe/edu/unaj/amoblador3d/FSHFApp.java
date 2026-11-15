@@ -25,7 +25,7 @@ import pe.edu.unaj.amoblador3d.ui.FSHFMainWindow;
 import pe.edu.unaj.amoblador3d.util.FSHFAppLog;
 
 /**
- * Aplicación JavaFX de Amoblador3D. Al iniciar prepara el registro de errores, abre la
+ * Aplicación JavaFX de Space Cat. Al iniciar prepara el registro de errores, abre la
  * base de datos y muestra la ventana principal; al cerrar libera la conexión y el
  * registro, y muestra un aviso si ocurre un error inesperado.
  */
@@ -42,7 +42,7 @@ public final class FSHFApp extends Application {
     public void start(Stage stage) {
         FSHFAppLog.init(FSHFAppPaths.logsDir());
         FSHFAppLog.catchUncaught(FSHFApp::showUnexpectedError);
-        LOG.info(() -> "Inicio de Amoblador3D " + version() + " | Java " + Runtime.version()
+        LOG.info(() -> "Inicio de Space Cat " + version() + " | Java " + Runtime.version()
                 + " | " + System.getProperty("os.name") + " " + System.getProperty("os.arch")
                 + " | datos: " + FSHFAppPaths.dataDir());
         try {

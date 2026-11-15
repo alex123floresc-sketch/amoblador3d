@@ -22,14 +22,14 @@ Copy-Item 'target\amoblador3d.jar' $in
 $version = ([xml](Get-Content 'pom.xml')).project.version
 $modules = 'java.base,java.desktop,java.sql,java.logging,jdk.jfr,jdk.unsupported,jdk.localedata,jdk.charsets'
 $common = @(
-    '--name', 'Amoblador3D',
+    '--name', 'Space Cat',
     '--app-version', $version,
     '--vendor', 'FSHF',
     '--description', 'Diseñador de interiores 3D con medidas reales',
     '--input', $in,
     '--main-jar', 'amoblador3d.jar',
     '--main-class', 'pe.edu.unaj.amoblador3d.FSHFLauncher',
-    '--icon', (Join-Path $root 'packaging\amoblador3d.ico'),
+    '--icon', (Join-Path $root 'packaging\spacecat.ico'),
     '--add-modules', $modules,
     '--java-options', '--enable-native-access=ALL-UNNAMED',
     '--dest', $out
@@ -39,7 +39,7 @@ $wix = (Get-Command wix.exe -ErrorAction SilentlyContinue) -or (Get-Command cand
 if ($wix) {
     Write-Host '2/3 Creando el instalador .exe (WiX)...' -ForegroundColor Cyan
     jpackage @common --type exe --win-menu --win-shortcut --win-dir-chooser --win-per-user-install `
-        --win-menu-group 'Amoblador3D'
+        --win-menu-group 'Space Cat'
     if ($LASTEXITCODE -ne 0) { throw 'jpackage no pudo crear el instalador.' }
     Write-Host "3/3 Listo: $out\Amoblador3D-$version.exe" -ForegroundColor Green
 } else {

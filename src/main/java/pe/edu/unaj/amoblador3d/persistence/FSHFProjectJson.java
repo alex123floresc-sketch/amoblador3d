@@ -28,7 +28,9 @@ import pe.edu.unaj.amoblador3d.model.FSHFWallSide;
  * los diseños propios que usan.
  */
 public final class FSHFProjectJson {
-    public static final String APP = "Amoblador3D";
+    public static final String APP = "Space Cat";
+    /** Nombre anterior del producto; se sigue aceptando al abrir proyectos guardados con él. */
+    public static final String LEGACY_APP = "Amoblador3D";
     public static final int VERSION = 2;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -233,12 +235,13 @@ public final class FSHFProjectJson {
         JsonObject root;
         try {
             JsonElement el = JsonParser.parseString(text);
-            if (!el.isJsonObject()) throw new FSHFProjectFormatException("El archivo no es un proyecto de Amoblador3D.");
+            if (!el.isJsonObject()) throw new FSHFProjectFormatException("El archivo no es un proyecto de Space Cat.");
             root = el.getAsJsonObject();
         } catch (JsonParseException e) {
             throw new FSHFProjectFormatException("El archivo no es un JSON válido.");
         }
-        if (!APP.equals(str(root, "app"))) throw new FSHFProjectFormatException("El archivo no es un proyecto de Amoblador3D.");
+        String app = str(root, "app");
+        if (!APP.equals(app) && !LEGACY_APP.equals(app)) throw new FSHFProjectFormatException("El archivo no es un proyecto de Space Cat.");
         double version = num(root, "version", 1);
         if (version > VERSION) {
             throw new FSHFProjectFormatException("El proyecto fue creado con una versión más nueva de la aplicación.");

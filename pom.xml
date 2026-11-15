@@ -7,7 +7,7 @@
   <groupId>pe.edu.unaj</groupId>
   <artifactId>amoblador3d</artifactId>
   <version>2.0.0</version>
-  <name>Amoblador3D</name>
+  <name>Space Cat</name>
   <description>Diseñador de interiores 3D con medidas reales (JavaFX + SQLite)</description>
 
   <properties>
@@ -76,7 +76,7 @@
               <rules>
                 <requireJavaVersion>
                   <version>[21,)</version>
-                  <message>Amoblador3D necesita el JDK 21 o superior (https://adoptium.net).</message>
+                  <message>Space Cat necesita el JDK 21 o superior (https://adoptium.net).</message>
                 </requireJavaVersion>
                 <requireMavenVersion>
                   <version>[3.6.3,)</version>

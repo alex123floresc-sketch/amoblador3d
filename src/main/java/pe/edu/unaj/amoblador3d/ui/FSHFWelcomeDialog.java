@@ -50,7 +50,7 @@ final class FSHFWelcomeDialog {
         Stage stage = new Stage();
         stage.initOwner(owner);
         stage.initModality(Modality.WINDOW_MODAL);
-        stage.setTitle("Bienvenido a Amoblador3D");
+        stage.setTitle("Bienvenido a Space Cat");
         Choice[] result = {null};
 
         Label title = new Label("¿Qué quieres hacer hoy?");

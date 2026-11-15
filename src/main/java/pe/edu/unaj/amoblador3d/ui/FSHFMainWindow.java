@@ -115,10 +115,10 @@ import pe.edu.unaj.amoblador3d.util.FSHFUnits;
  */
 public final class FSHFMainWindow {
     public static final String STYLESHEET = FSHFMainWindow.class.getResource("/ui/app.css").toExternalForm();
-    private static final String APP_NAME = "Amoblador3D";
+    private static final String APP_NAME = "Space Cat";
     private static final String UNTITLED = "Sin título";
     private static final FileChooser.ExtensionFilter PROJECT_FILES =
-            new FileChooser.ExtensionFilter("Proyecto Amoblador3D (*.amob3d)", "*.amob3d");
+            new FileChooser.ExtensionFilter("Proyecto Space Cat (*.amob3d)", "*.amob3d");
 
     private final Stage stage;
     private final FSHFCatalog catalog;
@@ -365,7 +365,7 @@ public final class FSHFMainWindow {
                 item("Pantalla de bienvenida…", null, this::showWelcome),
                 item("Atajos de teclado", "F1", this::showShortcuts),
                 item("Abrir registro de errores", null, this::openLogsFolder),
-                item("Acerca de Amoblador3D", null, () -> FSHFDialogs.info(stage, "Acerca de", APP_NAME,
+                item("Acerca de Space Cat", null, () -> FSHFDialogs.info(stage, "Acerca de", APP_NAME,
                         "Diseñador de interiores 3D con medidas reales.\nVersión " + FSHFApp.version()
                                 + " · Java " + Runtime.version().feature() + " · JavaFX + SQLite.\nDatos en: "
                                 + userModels.root().getParent())));
@@ -1610,7 +1610,7 @@ public final class FSHFMainWindow {
         if (forwardToTextField(TextInputControl::paste)) return;
         List<FSHFFurniture> items = FSHFProjectJson.readClipboard(javafx.scene.input.Clipboard.getSystemClipboard().getString());
         if (items == null) {
-            notify("El portapapeles no tiene muebles copiados de Amoblador3D.", FSHFToast.Kind.ERROR);
+            notify("El portapapeles no tiene muebles copiados de Space Cat.", FSHFToast.Kind.ERROR);
             return;
         }
         handle(design.paste(items), pasted -> {
@@ -1746,7 +1746,7 @@ public final class FSHFMainWindow {
             String when = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
                     .format(copy.savedAt().atZone(java.time.ZoneId.systemDefault()));
             boolean restore = FSHFDialogs.confirm(stage, "Hay cambios sin guardar de la última vez",
-                    "Amoblador3D se cerró sin guardar \"" + copy.name() + "\" (copia automática del " + when + ").\n"
+                    "Space Cat se cerró sin guardar \"" + copy.name() + "\" (copia automática del " + when + ").\n"
                             + "¿Quieres recuperarlos? Si eliges Cancelar, la copia se descarta.", "Recuperar");
             if (!restore) {
                 clearRecovery();
