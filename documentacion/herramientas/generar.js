@@ -316,6 +316,9 @@ const logoTam = (alto, anchoMax = 567) => {
 };
 const LOGO_ALT = { name: 'Logo del equipo', title: 'Logo del equipo', description: 'Logotipo del equipo FSHF' };
 // Logo de la aplicación (el gato de Space Cat), a la derecha del encabezado.
+// Modo clientes (CLIENTE=1): sin integrantes, equipo, fechas ni página de control; la protagonista es la aplicación.
+const CLIENTE = process.env.CLIENTE === '1';
+const APP_VERSION = (/<artifactId>amoblador3d<\/artifactId>\s*<version>([^<]+)</.exec(fs.readFileSync(path.join(__dirname, '..', '..', 'pom.xml'), 'utf8')) || [])[1] || '';
 const GATO = fs.readFileSync(path.join(RECURSOS, 'logo_spacecat.png'));
 const GATO_ALT = { name: 'Logo de Space Cat', title: 'Logo de Space Cat', description: 'Logotipo de la aplicación Space Cat' };
 const gatoTam = (alto) => ({ width: Math.round(alto * GATO.readUInt32BE(16) / GATO.readUInt32BE(20)), height: alto });
@@ -352,6 +355,15 @@ function cover(info) {
   ] });
   const datos = [`Código ${info.codigo}`, info.version && `Versión ${info.version}`, info.fecha && fechaLarga(info.fecha)]
     .filter(Boolean).join('   ·   ');
+  if (CLIENTE) return [
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 1400, after: 600 },
+      children: [new ImageRun({ type: 'png', data: GATO, transformation: gatoTam(190), altText: GATO_ALT })] }),
+    c('SPACE CAT', { bold: true, size: 56, line: 360, after: 120, spacing: 60 }),
+    c('Diseño de interiores y casas en 3D con medidas reales', { italics: true, size: 24, color: GRAY, after: 900 }),
+    c(info.titulo.toUpperCase(), { bold: true, size: 36, line: 360, after: 200 }),
+    c(`Versión ${APP_VERSION} para Windows`, { size: 22, color: GRAY, after: 0 }),
+    new Paragraph({ children: [new PageBreak()] }),
+  ];
   return [
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600, after: 720 },
       children: [new ImageRun({ type: 'png', data: LOGO, transformation: logoTam(91), altText: LOGO_ALT })] }),
@@ -447,7 +459,7 @@ function sections(children, docTitle) {
   const header = () => new Header({ children: [
     new Paragraph({ spacing: { line: 240, before: 0, after: 0 }, tabStops: [{ type: TabStopType.RIGHT, position: CONTENT_W }],
       border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: BLACK, space: 4 } },
-      children: [new ImageRun({ type: 'png', data: LOGO, transformation: logoTam(38), altText: LOGO_ALT }),
+      children: [...(CLIENTE ? [] : [new ImageRun({ type: 'png', data: LOGO, transformation: logoTam(38), altText: LOGO_ALT })]),
         new TextRun({ text: '	' }),
         new TextRun({ text: 'Space Cat  ', bold: true, font: FONT, size: 20 }),
         new ImageRun({ type: 'png', data: GATO, transformation: gatoTam(38), altText: GATO_ALT })] }),
@@ -536,7 +548,7 @@ async function convert(file) {
   }
 
   const doc = new Document({
-    creator: META.integrantes.join('; '), title, description: 'Documentación del proyecto Space Cat',
+    creator: CLIENTE ? 'Space Cat' : META.integrantes.join('; '), title, description: 'Documentación del proyecto Space Cat',
     features: { updateFields: true },
     styles: {
       default: { document: { run: { font: FONT, size: 24 }, paragraph: { spacing: { line: isReport ? 480 : 360 } } } },
@@ -558,9 +570,9 @@ async function convert(file) {
         alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: INDENT * (l + 1), hanging: 360 } } } })) },
       ...numberingConfigs,
     ] },
-    sections: sections([...cover(info), ...(isReport ? [] : controlPage(info, conv)), ...toc(),
+    sections: sections([...cover(info), ...(isReport || CLIENTE ? [] : controlPage(info, conv)), ...toc(),
       ...captionIndex('Tabla', conv.index.Tabla), ...captionIndex('Figura', conv.index.Figura), ...conv.body],
-    `${info.codigo} · ${title}`),
+    CLIENTE ? `Space Cat ${APP_VERSION} · ${title}` : `${info.codigo} · ${title}`),
   });
   const outName = base + '.docx';
   const c = conv.counts();
