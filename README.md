@@ -23,8 +23,8 @@ solo no abre nada, porque no sabe qué hacer.
 
 En Linux/macOS usa `./mvnw` en lugar de `.\mvnw.cmd`.
 
-Guía completa paso a paso (instalar Java, IDEs, bases de datos y problemas frecuentes):
-**[GUIA_EJECUCION.md](GUIA_EJECUCION.md)**.
+Enlaces del proyecto (repositorios, páginas web y descargas):
+**[ENLACES_DEL_PROYECTO.md](ENLACES_DEL_PROYECTO.md)**.
 
 Documentación completa del proyecto, en Word: **[documentacion/doc 2/](documentacion/doc%202)**.
 Empieza por `00_Guia_de_la_Documentacion.docx`, que explica qué contiene cada documento:
@@ -206,7 +206,7 @@ Los proyectos y los modelos importados se guardan en `%APPDATA%\Amoblador3D`
 
 En `database/` están los scripts de la base de datos: `amoblador3d_sqlite.sql` (el esquema que
 usa la aplicación, con un proyecto de ejemplo) y `amoblador3d_postgresql.sql` (la misma base en
-PostgreSQL, con vistas de consulta). Cómo cargarlos: [GUIA_EJECUCION.md](GUIA_EJECUCION.md#bases-de-datos).
+PostgreSQL, con vistas de consulta). Cómo cargarlos: ver el *Manual de instalación* (documento 06).
 
 ## Estructura del código
 
