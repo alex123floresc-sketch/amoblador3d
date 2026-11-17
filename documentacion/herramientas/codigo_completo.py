@@ -1,4 +1,4 @@
-"""Genera el código fuente COMPLETO de Amoblador3D: el nombre de cada archivo y, debajo, su código.
+"""Genera el código fuente COMPLETO de Space Cat: el nombre de cada archivo y, debajo, su código.
 
     python codigo_completo.py <carpeta_salida>
     node generar.js <carpeta_salida> <carpeta_salida>
@@ -39,10 +39,10 @@ def main():
     archivos = java + otros
     lineas = sum(len(leer(p).splitlines()) for p in archivos)
     miles = f'{lineas:,}'.replace(',', ' ')
-    md = ['---', 'codigo: AMB3D-CDF-09-A', 'proyecto: Amoblador3D 2.0.0', '---', '',
+    md = ['---', 'codigo: AMB3D-CDF-09-A', 'proyecto: Space Cat 2.1.0', '---', '',
           '# Código fuente completo', '',
           '## Presentación', '',
-          f'Este anexo reúne el código fuente completo de Amoblador3D 2.0.0, desarrollado por el equipo FSHF: '
+          f'Este anexo reúne el código fuente completo de Space Cat 2.1.0, desarrollado por el equipo FSHF: '
           f'{len(java)} archivos Java y {len(otros)} archivos de configuración, estilos, base de datos y '
           f'empaquetado, en total {miles} líneas.', '',
           'Cada archivo aparece con su ruta dentro del proyecto como título y, debajo, su código completo. El '
@@ -53,7 +53,7 @@ def main():
         md += [f'## {rel}', '', bloque(leer(p), LENGUAJE.get(p.suffix, 'text'))]
     md += ['## Historial del documento', '', '<!-- Tabla: Historial de cambios de este documento -->',
            '| Versión | Fecha | Cambios | Responsable |', '|---|---|---|---|',
-           f'| 1.0 | {date.today().isoformat()} | Código fuente completo de la versión 2.0.0 | Equipo FSHF |', '']
+           f'| 1.0 | {date.today().isoformat()} | Código fuente completo de la versión 2.1.0 | Equipo FSHF |', '']
     SALIDA.mkdir(parents=True, exist_ok=True)
     destino = SALIDA / '10_Codigo_Fuente_Completo.md'
     destino.write_text('\n'.join(md), encoding='utf-8')

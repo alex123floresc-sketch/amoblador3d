@@ -39,7 +39,7 @@ CORTO = {'persistence': 'Base de datos y archivos', 'scene': 'Vista 3D, planta y
 # (archivo relativo a BASE, firma que identifica el método o None para el archivo completo, título, explicación)
 FRAGMENTOS = [
     ('FSHFLauncher.java', None, 'Punto de entrada del programa',
-     'Es la clase que ejecuta Java al abrir Amoblador3D. Su único trabajo es lanzar la aplicación JavaFX '
+     'Es la clase que ejecuta Java al abrir Space Cat. Su único trabajo es lanzar la aplicación JavaFX '
      '`FSHFApp`, que prepara el registro de errores, abre la base de datos y muestra la ventana principal.'),
     ('model/FSHFFootprint.java', 'public boolean overlaps(', 'Detección de choques entre muebles',
      'Cada mueble ocupa en planta un rectángulo que puede estar girado. Para saber si dos muebles se '
@@ -51,7 +51,7 @@ FRAGMENTOS = [
      'manos (dos en la pintura), suma el desperdicio (10 % en cerámico, madera y papel tapiz), divide entre '
      'el rendimiento (35 m² por galón de pintura) y redondea hacia arriba a la unidad de venta.'),
     ('persistence/FSHFDatabase.java', 'private void migrate(', 'Actualización de la base de datos',
-     'Cada versión de Amoblador3D puede necesitar cambios en las tablas. Esta función lee la versión del '
+     'Cada versión de Space Cat puede necesitar cambios en las tablas. Esta función lee la versión del '
      'esquema guardada en el archivo de la base de datos y aplica, uno por uno y dentro de una transacción, '
      'los pasos que faltan. Así los proyectos del usuario se conservan al actualizar la aplicación.'),
     ('persistence/FSHFRecovery.java', 'public void write(', 'Autoguardado del trabajo sin guardar',
@@ -139,10 +139,10 @@ def main():
     archivos = sorted(JAVA.rglob('*.java'))
     total = sum(lineas(f) for f in archivos)
     md = [
-        '---', 'codigo: AMB3D-CDF-09', f'proyecto: Amoblador3D {VERSION}', '---', '',
+        '---', 'codigo: AMB3D-CDF-09', f'proyecto: Space Cat {VERSION}', '---', '',
         '# Código fuente', '',
         '## 1. Introducción', '',
-        f'Este documento presenta el código fuente de **Amoblador3D {VERSION}**, la aplicación de escritorio '
+        f'Este documento presenta el código fuente de **Space Cat {VERSION}**, la aplicación de escritorio '
         'del equipo FSHF para diseñar y amoblar ambientes en 3D con medidas reales y estimar su presupuesto. '
         'Explica cómo está organizado el proyecto y reproduce, tal como están en el programa, los fragmentos '
         'de código más representativos.', '',

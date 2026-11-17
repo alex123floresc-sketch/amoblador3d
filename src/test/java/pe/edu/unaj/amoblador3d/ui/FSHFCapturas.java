@@ -31,6 +31,10 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Polygon;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -108,6 +112,26 @@ public final class FSHFCapturas extends Application {
         later(() -> menu("Planta 2D"));
         later(() -> shoot(stage, "03_casa_completa_planta"));
 
+        // Novedades de la versión 2.1.0: fachada y exteriores, pisos y techo
+        later(() -> menu("Vista 3D"));
+        later(() -> callouts(stage, "22_casa_fachada_exteriores", List.of(
+                new Callout(floor(2), 0, 0.5, "Botón P2: muestra u oculta el piso 2", -360, -40),
+                new Callout(floor(1), 0, 0.5, "Botón P1: muestra u oculta el piso 1", -360, 30),
+                new Callout(button(stage, "⌂"), 0, 0.5, "Botón Techo", -230, 60),
+                new Callout(visible(stage, ".house-toggle"), 0.5, 1, "Casa completa", 40, 90))));
+        later(() -> {
+            ((ButtonBase) button(stage, "⌂")).fire();
+            ((ToggleButton) floor(2)).fire();
+        });
+        later(() -> callouts(stage, "23_casa_interior_por_piso", List.of(
+                new Callout(floor(2), 0, 0.5, "P2 apagado: el piso 2 está oculto", -400, -40),
+                new Callout(floor(1), 0, 0.5, "P1 encendido: se ve el piso 1", -360, 30),
+                new Callout(button(stage, "⌂"), 0, 0.5, "Techo oculto", -230, 60))));
+        later(() -> {
+            ((ButtonBase) button(stage, "⌂")).fire();
+            ((ToggleButton) floor(2)).fire();
+        });
+
         later(() -> menu("Casa completa"));
         later(() -> menu("Vista 3D"));
         later(this::selectFirstFurniture);
@@ -115,6 +139,13 @@ public final class FSHFCapturas extends Application {
             shoot(stage, "04_ambiente_3d_mueble_seleccionado");
             annotateMain("04a_ventana_principal_partes");
         });
+        later(() -> ((ButtonBase) chip("Baño")).fire());
+        later(() -> callouts(stage, "24_catalogo_muebles_nuevos", List.of(
+                new Callout(chip("Baño"), 0.5, 1, "Categoría Baño", 120, 70),
+                new Callout(card("Tina"), 0.5, 0, "Tina (mueble nuevo)", 370, -32),
+                new Callout(card("Ducha"), 1, 0.5, "Ducha (mueble nuevo)", 150, 40),
+                new Callout(card("Espejo"), 1, 0.5, "Espejo (mueble nuevo)", 300, 30))));
+        later(() -> ((ButtonBase) chip("Todos")).fire());
         later(() -> menu("Planta 2D"));
         later(() -> shoot(stage, "05_planta_con_cotas"));
         later(() -> menu("Recorrido"));
@@ -416,6 +447,73 @@ public final class FSHFCapturas extends Application {
                 .orElseThrow(() -> new IllegalStateException("No se encontró «" + text + "»"));
     }
 
+    private Node floor(int level) {
+        return stage.getScene().getRoot().lookupAll(".view-toggle").stream()
+                .filter(n -> n.isVisible() && n instanceof ToggleButton t && ("P" + level).equals(t.getText())).findFirst()
+                .orElseThrow(() -> new IllegalStateException("No se encontró el botón P" + level));
+    }
+
+    private Node chip(String startsWith) {
+        return stage.getScene().getRoot().lookupAll(".chip").stream()
+                .filter(n -> n.isVisible() && n instanceof ToggleButton t && t.getText().startsWith(startsWith)).findFirst()
+                .orElseThrow(() -> new IllegalStateException("No se encontró la categoría " + startsWith));
+    }
+
+    private Node card(String name) {
+        return stage.getScene().getRoot().lookupAll(".catalog-card").stream()
+                .filter(n -> n.isVisible() && n instanceof Parent p && p.lookupAll(".label").stream()
+                        .anyMatch(x -> x instanceof Labeled l && name.equals(l.getText())))
+                .findFirst().orElseThrow(() -> new IllegalStateException("No se encontró la tarjeta " + name));
+    }
+
+    /** Señala un elemento con una flecha roja que sale de un rótulo con su nombre. */
+    private record Callout(Node node, double fx, double fy, String text, double dx, double dy) {
+    }
+
+    private static void callouts(Window w, String name, List<Callout> items) {
+        WritableImage base = w.getScene().snapshot(null);
+        Pane layer = new Pane(new ImageView(base));
+        Paint red = Paint.valueOf("#d32f2f");
+        for (Callout c : items) {
+            Bounds b = c.node().localToScene(c.node().getBoundsInLocal());
+            double px = b.getMinX() + c.fx() * b.getWidth(), py = b.getMinY() + c.fy() * b.getHeight();
+            Text t = new Text(c.text());
+            t.setFont(Font.font("Segoe UI", FontWeight.BOLD, 17));
+            t.setFill(Paint.valueOf("#1d2125"));
+            double tw = t.getLayoutBounds().getWidth() + 22, th = t.getLayoutBounds().getHeight() + 12;
+            double lx = Math.max(4, Math.min(base.getWidth() - tw - 4, px + c.dx() - tw / 2));
+            double ly = Math.max(4, Math.min(base.getHeight() - th - 4, py + c.dy() - th / 2));
+            double sx = Math.max(lx, Math.min(lx + tw, px)), sy = Math.max(ly, Math.min(ly + th, py));
+            if (sx > lx && sx < lx + tw && sy > ly && sy < ly + th) sy = ly + th;
+            Line line = new Line(sx, sy, px, py);
+            line.setStroke(red);
+            line.setStrokeWidth(3.5);
+            double a = Math.atan2(py - sy, px - sx), len = 16;
+            Polygon head = new Polygon(px, py,
+                    px - len * Math.cos(a - 0.45), py - len * Math.sin(a - 0.45),
+                    px - len * Math.cos(a + 0.45), py - len * Math.sin(a + 0.45));
+            head.setFill(red);
+            Rectangle box = new Rectangle(tw, th, Paint.valueOf("#ffffff"));
+            box.setStroke(red);
+            box.setStrokeWidth(2.5);
+            box.setArcWidth(8);
+            box.setArcHeight(8);
+            StackPane label = new StackPane(box, t);
+            label.relocate(lx, ly);
+            layer.getChildren().addAll(line, head, label);
+        }
+        layer.setPrefSize(base.getWidth(), base.getHeight());
+        layer.resize(base.getWidth(), base.getHeight());
+        layer.applyCss();
+        layer.layout();
+        try {
+            Files.write(out.resolve(name + ".png"), FSHFPng.encode(layer.snapshot(null, null)));
+            System.out.println("  " + name + ".png  (" + items.size() + " flechas)");
+        } catch (Exception e) {
+            throw new IllegalStateException("No se pudo guardar " + name, e);
+        }
+    }
+
     private static void annotate(Window w, String name, List<Mark> marks) {
         WritableImage base = w.getScene().snapshot(null);
         Pane layer = new Pane(new ImageView(base));
@@ -482,7 +580,7 @@ public final class FSHFCapturas extends Application {
                 topRight(visible(stage, ".house-toggle")),
                 topRight(visible(stage, ".space-tab")),
                 topRight(visible(stage, ".space-add")),
-                at(labeled(stage, "Sala"), 0, 0.5, -16, 0),
+                at(labeled(stage, "P1 · Sala"), 0, 0.5, -16, 0),
                 at(visible(stage, ".home-total"), 0, 0.5, -14, 0),
                 topRight(button(stage, "Ambiente vacío"))));
     }

@@ -169,7 +169,7 @@ function makeConverter(opts) {
     body.push(new Paragraph({ spacing: { after: 240, line: lineSpacing }, children: [
       new TextRun({ text: 'Nota.', italics: true, font: FONT }),
       new TextRun({ text: img.href.startsWith('wireframes/') ? ' Boceto de baja fidelidad (wireframe). Elaboración propia.'
-        : ' Captura de pantalla de Amoblador3D 2.0.0. Elaboración propia.', font: FONT })] }));
+        : notaCaptura(img.href), font: FONT })] }));
   }
 
   function code(t) {
@@ -213,7 +213,7 @@ function makeConverter(opts) {
     if (listing) {
       body.push(new Paragraph({ spacing: { after: 240, line: lineSpacing }, children: [
         new TextRun({ text: 'Nota.', italics: true, font: FONT }),
-        new TextRun({ text: ' Fragmento del código fuente de Amoblador3D 2.0.0. El número de la izquierda es el número de línea'
+        new TextRun({ text: ' Fragmento del código fuente de Space Cat 2.1.0. El número de la izquierda es el número de línea'
           + ' dentro del archivo indicado en el título. Elaboración propia.', font: FONT })] }));
     }
   }
@@ -284,7 +284,7 @@ function makeConverter(opts) {
 }
 
 const META = {
-  proyecto: 'Amoblador3D: aplicación de escritorio para el diseño de interiores en 3D con medidas reales y estimación de presupuesto',
+  proyecto: 'Space Cat: aplicación de escritorio para el diseño de interiores en 3D con medidas reales y estimación de presupuesto',
   integrantes: ['Flores Calcina, Alexander Edson', 'Sandia Condori, George James', 'Huanca Tiña, Erick Reison', 'Flores Ccori, Brayan'],
   codigos: ['', '', '', ''],
   lugar: 'JULIACA – PERÚ',
@@ -315,6 +315,22 @@ const logoTam = (alto, anchoMax = 567) => {
   return { width: w, height: h };
 };
 const LOGO_ALT = { name: 'Logo del equipo', title: 'Logo del equipo', description: 'Logotipo del equipo FSHF' };
+// Logo de la aplicación (el gato de Space Cat), a la derecha del encabezado.
+const GATO = fs.readFileSync(path.join(RECURSOS, 'logo_spacecat.png'));
+const GATO_ALT = { name: 'Logo de Space Cat', title: 'Logo de Space Cat', description: 'Logotipo de la aplicación Space Cat' };
+const gatoTam = (alto) => ({ width: Math.round(alto * GATO.readUInt32BE(16) / GATO.readUInt32BE(20)), height: alto });
+// Estado de cada captura (capturas/estado.json): "igual" (sin cambios, se conserva), "actualizada" o "nueva".
+let ESTADO = {};
+try { ESTADO = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'capturas', 'estado.json'), 'utf8')); } catch { }
+const FECHA_CAPTURAS = ESTADO._fecha || null;
+function notaCaptura(href) {
+  const e = ESTADO[path.basename(href)];
+  const f = FECHA_CAPTURAS ? fechaLarga(FECHA_CAPTURAS) : null;
+  if (e === 'igual') return ` Captura de pantalla de Space Cat 2.1.0, sin cambios respecto a la versión anterior; revisada el ${f}. Elaboración propia.`;
+  if (e === 'nueva') return ` Captura de pantalla de Space Cat 2.1.0 (función nueva), tomada el ${f}. Elaboración propia.`;
+  if (e === 'actualizada') return ` Captura de pantalla de Space Cat 2.1.0, actualizada el ${f}. Elaboración propia.`;
+  return ' Captura de pantalla de Space Cat 2.1.0. Elaboración propia.';
+}
 
 function cover(info) {
   const c = (txt, o = {}) => new Paragraph({ alignment: AlignmentType.CENTER,
@@ -429,7 +445,12 @@ function sections(children, docTitle) {
   const hp = (children, last) => new Paragraph({ spacing: { line: 240, before: 0, after: 0 },
     border: last ? { bottom: { style: BorderStyle.SINGLE, size: 4, color: BLACK, space: 4 } } : undefined, children });
   const header = () => new Header({ children: [
-    hp([new ImageRun({ type: 'png', data: LOGO, transformation: logoTam(38), altText: LOGO_ALT })], true),
+    new Paragraph({ spacing: { line: 240, before: 0, after: 0 }, tabStops: [{ type: TabStopType.RIGHT, position: CONTENT_W }],
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: BLACK, space: 4 } },
+      children: [new ImageRun({ type: 'png', data: LOGO, transformation: logoTam(38), altText: LOGO_ALT }),
+        new TextRun({ text: '	' }),
+        new TextRun({ text: 'Space Cat  ', bold: true, font: FONT, size: 20 }),
+        new ImageRun({ type: 'png', data: GATO, transformation: gatoTam(38), altText: GATO_ALT })] }),
   ] });
   const fr = (o) => new TextRun({ font: FONT, size: 18, color: GRAY, ...o });
   const footer = () => new Footer({ children: [new Paragraph({
@@ -515,7 +536,7 @@ async function convert(file) {
   }
 
   const doc = new Document({
-    creator: META.integrantes.join('; '), title, description: 'Documentación del proyecto Amoblador3D',
+    creator: META.integrantes.join('; '), title, description: 'Documentación del proyecto Space Cat',
     features: { updateFields: true },
     styles: {
       default: { document: { run: { font: FONT, size: 24 }, paragraph: { spacing: { line: isReport ? 480 : 360 } } } },

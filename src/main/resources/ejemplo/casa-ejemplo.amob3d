@@ -2,8 +2,8 @@
   "app": "Space Cat",
   "version": 1,
   "room": {
-    "width": 8.85,
-    "length": 5.35,
+    "width": 8.7,
+    "length": 4.7,
     "height": 2.5,
     "wallThickness": 0.15
   },
@@ -39,19 +39,28 @@
   },
   "openings": [
     {
-      "id": "door-1",
-      "type": "door",
-      "wall": "sur",
-      "offset": 3.9749999999999996,
-      "width": 0.9,
-      "height": 2.1,
-      "sill": 0.0
-    },
-    {
       "id": "win-1",
       "type": "window",
       "wall": "norte",
-      "offset": 3.8249999999999997,
+      "offset": 0.85,
+      "width": 1.6,
+      "height": 1.1,
+      "sill": 0.9
+    },
+    {
+      "id": "win-2",
+      "type": "window",
+      "wall": "norte",
+      "offset": 6.25,
+      "width": 1.6,
+      "height": 1.1,
+      "sill": 0.9
+    },
+    {
+      "id": "win-3",
+      "type": "window",
+      "wall": "este",
+      "offset": 3.4,
       "width": 1.2,
       "height": 1.1,
       "sill": 0.9
@@ -65,61 +74,50 @@
       "color": "#ffe2b8",
       "intensity": 6.0,
       "castShadow": true,
-      "x": 4.425,
+      "x": 4.35,
       "y": 2.25,
-      "z": 2.675
+      "z": 2.35
     }
   ],
   "furniture": [
     {
       "id": "rack-tv-1",
       "type": "rack-tv",
-      "x": 1.7,
-      "z": 0.35,
-      "rotation": 0.0,
+      "x": 0.25,
+      "z": 2.35,
+      "rotation": 90.0,
       "width": 1.6,
       "depth": 0.45,
       "height": 1.25,
       "color": "#3b3b3b"
     },
     {
-      "id": "tv-2",
-      "type": "tv",
-      "x": 1.7,
-      "z": 0.15,
-      "rotation": 0.0,
-      "width": 1.2,
-      "depth": 0.08,
-      "height": 0.7,
-      "color": "#222222"
-    },
-    {
-      "id": "sillon-3",
-      "type": "sillon",
-      "x": 1.7,
-      "z": 4.65,
-      "rotation": 180.0,
-      "width": 2.0,
-      "depth": 0.9,
-      "height": 0.85,
-      "color": "#6f7f8f"
-    },
-    {
-      "id": "mesa-centro-4",
+      "id": "mesa-centro-2",
       "type": "mesa-centro",
-      "x": 1.7,
-      "z": 2.68,
-      "rotation": 0.0,
+      "x": 1.6,
+      "z": 2.35,
+      "rotation": 90.0,
       "width": 1.1,
       "depth": 0.6,
       "height": 0.42,
       "color": "#a0764f"
     },
     {
-      "id": "lampara-pie-5",
+      "id": "sillon-3",
+      "type": "sillon",
+      "x": 2.9,
+      "z": 2.35,
+      "rotation": 270.0,
+      "width": 2.0,
+      "depth": 0.9,
+      "height": 0.85,
+      "color": "#6f7f8f"
+    },
+    {
+      "id": "lampara-pie-4",
       "type": "lampara-pie",
-      "x": 0.4,
-      "z": 4.95,
+      "x": 0.3,
+      "z": 4.35,
       "rotation": 0.0,
       "width": 0.4,
       "depth": 0.4,
@@ -127,10 +125,21 @@
       "color": "#ece3c9"
     },
     {
+      "id": "planta-5",
+      "type": "planta",
+      "x": 0.3,
+      "z": 0.3,
+      "rotation": 0.0,
+      "width": 0.5,
+      "depth": 0.5,
+      "height": 1.1,
+      "color": "#4f8f52"
+    },
+    {
       "id": "mesa-6",
       "type": "mesa",
-      "x": 4.43,
-      "z": 2.68,
+      "x": 4.6,
+      "z": 2.35,
       "rotation": 0.0,
       "width": 1.6,
       "depth": 0.9,
@@ -138,10 +147,54 @@
       "color": "#a0764f"
     },
     {
-      "id": "cocina-7",
+      "id": "silla-7",
+      "type": "silla",
+      "x": 4.2,
+      "z": 1.6,
+      "rotation": 0.0,
+      "width": 0.45,
+      "depth": 0.5,
+      "height": 0.9,
+      "color": "#6d4c33"
+    },
+    {
+      "id": "silla-8",
+      "type": "silla",
+      "x": 5.0,
+      "z": 1.6,
+      "rotation": 0.0,
+      "width": 0.45,
+      "depth": 0.5,
+      "height": 0.9,
+      "color": "#6d4c33"
+    },
+    {
+      "id": "silla-9",
+      "type": "silla",
+      "x": 4.2,
+      "z": 3.1,
+      "rotation": 180.0,
+      "width": 0.45,
+      "depth": 0.5,
+      "height": 0.9,
+      "color": "#6d4c33"
+    },
+    {
+      "id": "silla-10",
+      "type": "silla",
+      "x": 5.0,
+      "z": 3.1,
+      "rotation": 180.0,
+      "width": 0.45,
+      "depth": 0.5,
+      "height": 0.9,
+      "color": "#6d4c33"
+    },
+    {
+      "id": "cocina-11",
       "type": "cocina",
-      "x": 8.45,
-      "z": 1.2,
+      "x": 8.4,
+      "z": 1.4,
       "rotation": 90.0,
       "width": 1.8,
       "depth": 0.6,
@@ -149,33 +202,33 @@
       "color": "#f4f1ea"
     },
     {
-      "id": "refrigeradora-8",
+      "id": "refrigeradora-12",
       "type": "refrigeradora",
       "x": 8.35,
-      "z": 4.65,
-      "rotation": 180.0,
+      "z": 2.7,
+      "rotation": 90.0,
       "width": 0.7,
       "depth": 0.7,
       "height": 1.8,
       "color": "#d9dcdf"
     },
     {
-      "id": "planta-9",
-      "type": "planta",
-      "x": 0.45,
-      "z": 0.45,
-      "rotation": 0.0,
-      "width": 0.5,
-      "depth": 0.5,
-      "height": 1.1,
-      "color": "#4f8f52"
+      "id": "isla-cocina-13",
+      "type": "isla-cocina",
+      "x": 6.8,
+      "z": 2.35,
+      "rotation": 90.0,
+      "width": 1.6,
+      "depth": 0.9,
+      "height": 0.9,
+      "color": "#f4f1ea"
     }
   ],
   "space": {
     "id": "ambiente-1",
     "name": "Sala, comedor y cocina",
-    "x": 0.08,
-    "z": 0.08,
+    "x": 0.15,
+    "z": 0.15,
     "rotation": 0,
     "level": 0
   },
@@ -183,16 +236,16 @@
     {
       "id": "ambiente-2",
       "name": "Baño de visita",
-      "x": 0.08,
-      "z": 5.58,
+      "x": 0.15,
+      "z": 5.15,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 3.35,
-          "length": 3.85,
+          "width": 3.3,
+          "length": 3.7,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -230,11 +283,20 @@
           {
             "id": "door-1",
             "type": "door",
-            "wall": "sur",
-            "offset": 1.225,
-            "width": 0.9,
+            "wall": "norte",
+            "offset": 2.3,
+            "width": 0.8,
             "height": 2.1,
             "sill": 0.0
+          },
+          {
+            "id": "win-2",
+            "type": "window",
+            "wall": "oeste",
+            "offset": 1.35,
+            "width": 0.6,
+            "height": 0.6,
+            "sill": 1.5
           }
         ],
         "ambient": 0.6,
@@ -245,18 +307,18 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.675,
+            "x": 1.65,
             "y": 2.25,
-            "z": 1.925
+            "z": 1.85
           }
         ],
         "furniture": [
           {
             "id": "inodoro-1",
             "type": "inodoro",
-            "x": 2.95,
-            "z": 0.5,
-            "rotation": 0.0,
+            "x": 0.6,
+            "z": 3.34,
+            "rotation": 180.0,
             "width": 0.4,
             "depth": 0.7,
             "height": 0.75,
@@ -265,24 +327,24 @@
           {
             "id": "lavatorio-2",
             "type": "lavatorio",
-            "x": 0.5,
-            "z": 0.5,
-            "rotation": 0.0,
+            "x": 1.5,
+            "z": 3.47,
+            "rotation": 180.0,
             "width": 0.55,
             "depth": 0.45,
             "height": 0.85,
             "color": "#ffffff"
           },
           {
-            "id": "espejo-bano-3",
-            "type": "espejo-bano",
-            "x": 0.5,
-            "z": 0.1,
+            "id": "planta-3",
+            "type": "planta",
+            "x": 0.35,
+            "z": 0.35,
             "rotation": 0.0,
-            "width": 0.8,
-            "depth": 0.05,
-            "height": 0.6,
-            "color": "#cfe0e6"
+            "width": 0.5,
+            "depth": 0.5,
+            "height": 1.1,
+            "color": "#4f8f52"
           }
         ]
       }
@@ -290,16 +352,16 @@
     {
       "id": "ambiente-3",
       "name": "Escalera",
-      "x": 3.58,
-      "z": 5.58,
+      "x": 3.75,
+      "z": 5.15,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 1.85,
-          "length": 3.85,
+          "width": 1.5,
+          "length": 3.7,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -336,21 +398,12 @@
         "openings": [
           {
             "id": "door-1",
-            "type": "door",
-            "wall": "sur",
-            "offset": 0.47500000000000003,
-            "width": 0.9,
+            "type": "passage",
+            "wall": "norte",
+            "offset": 0.3,
+            "width": 0.8,
             "height": 2.1,
             "sill": 0.0
-          },
-          {
-            "id": "win-1",
-            "type": "window",
-            "wall": "norte",
-            "offset": 0.32500000000000007,
-            "width": 1.2,
-            "height": 1.1,
-            "sill": 0.9
           }
         ],
         "ambient": 0.6,
@@ -361,20 +414,20 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 0.925,
+            "x": 0.75,
             "y": 2.25,
-            "z": 1.925
+            "z": 1.85
           }
         ],
         "furniture": [
           {
             "id": "escalera-1",
             "type": "escalera",
-            "x": 0.93,
-            "z": 1.93,
+            "x": 0.75,
+            "z": 2.25,
             "rotation": 0.0,
             "width": 0.9,
-            "depth": 3.6,
+            "depth": 2.8,
             "height": 2.5,
             "color": "#b08a5e"
           }
@@ -384,16 +437,16 @@
     {
       "id": "ambiente-4",
       "name": "Entrada",
-      "x": 5.58,
-      "z": 5.58,
+      "x": 5.55,
+      "z": 5.15,
       "rotation": 0,
       "level": 0,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 3.35,
-          "length": 3.85,
+          "width": 3.3,
+          "length": 3.7,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -430,21 +483,21 @@
         "openings": [
           {
             "id": "door-1",
-            "type": "door",
-            "wall": "sur",
-            "offset": 1.225,
+            "type": "passage",
+            "wall": "norte",
+            "offset": 1.2,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
           },
           {
-            "id": "win-1",
-            "type": "window",
-            "wall": "norte",
-            "offset": 1.0750000000000002,
-            "width": 1.2,
-            "height": 1.1,
-            "sill": 0.9
+            "id": "door-2",
+            "type": "entry",
+            "wall": "sur",
+            "offset": 1.15,
+            "width": 1.0,
+            "height": 2.2,
+            "sill": 0.0
           }
         ],
         "ambient": 0.6,
@@ -455,33 +508,44 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.675,
+            "x": 1.65,
             "y": 2.25,
-            "z": 1.925
+            "z": 1.85
           }
         ],
         "furniture": [
           {
-            "id": "planta-1",
+            "id": "aparador-1",
+            "type": "aparador",
+            "x": 0.25,
+            "z": 1.85,
+            "rotation": 90.0,
+            "width": 1.6,
+            "depth": 0.45,
+            "height": 0.85,
+            "color": "#a0764f"
+          },
+          {
+            "id": "cuadro-2",
+            "type": "cuadro",
+            "x": 3.28,
+            "z": 1.85,
+            "rotation": 270.0,
+            "width": 0.8,
+            "depth": 0.04,
+            "height": 0.6,
+            "color": "#8a6a46"
+          },
+          {
+            "id": "planta-3",
             "type": "planta",
-            "x": 0.45,
-            "z": 0.45,
+            "x": 2.95,
+            "z": 3.35,
             "rotation": 0.0,
             "width": 0.5,
             "depth": 0.5,
             "height": 1.1,
             "color": "#4f8f52"
-          },
-          {
-            "id": "cuadro-2",
-            "type": "cuadro",
-            "x": 1.68,
-            "z": 0.08,
-            "rotation": 0.0,
-            "width": 0.8,
-            "depth": 0.04,
-            "height": 0.6,
-            "color": "#8a6a46"
           }
         ]
       }
@@ -489,16 +553,16 @@
     {
       "id": "ambiente-5",
       "name": "Dormitorio principal",
-      "x": 0.08,
-      "z": 0.08,
+      "x": 0.15,
+      "z": 0.15,
       "rotation": 0,
       "level": 1,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 3.35,
-          "length": 5.35,
+          "width": 3.3,
+          "length": 3.3,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -536,17 +600,17 @@
           {
             "id": "door-1",
             "type": "door",
-            "wall": "sur",
-            "offset": 1.225,
+            "wall": "este",
+            "offset": 2.2,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
           },
           {
-            "id": "win-1",
+            "id": "win-2",
             "type": "window",
-            "wall": "norte",
-            "offset": 1.0750000000000002,
+            "wall": "oeste",
+            "offset": 1.05,
             "width": 1.2,
             "height": 1.1,
             "sill": 0.9
@@ -560,17 +624,17 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.675,
+            "x": 1.65,
             "y": 2.25,
-            "z": 2.675
+            "z": 1.65
           }
         ],
         "furniture": [
           {
             "id": "cama-1",
             "type": "cama",
-            "x": 1.68,
-            "z": 1.3,
+            "x": 1.4,
+            "z": 1.0,
             "rotation": 0.0,
             "width": 1.4,
             "depth": 1.9,
@@ -578,37 +642,37 @@
             "color": "#8b6b4a"
           },
           {
-            "id": "ropero-2",
+            "id": "mesa-noche-2",
+            "type": "mesa-noche",
+            "x": 0.4,
+            "z": 0.25,
+            "rotation": 0.0,
+            "width": 0.45,
+            "depth": 0.4,
+            "height": 0.55,
+            "color": "#8b6b4a"
+          },
+          {
+            "id": "mesa-noche-3",
+            "type": "mesa-noche",
+            "x": 2.4,
+            "z": 0.25,
+            "rotation": 0.0,
+            "width": 0.45,
+            "depth": 0.4,
+            "height": 0.55,
+            "color": "#8b6b4a"
+          },
+          {
+            "id": "ropero-4",
             "type": "ropero",
-            "x": 3.0,
-            "z": 4.35,
-            "rotation": 270.0,
+            "x": 1.2,
+            "z": 3.0,
+            "rotation": 180.0,
             "width": 1.5,
             "depth": 0.6,
             "height": 2.1,
             "color": "#d9c6a5"
-          },
-          {
-            "id": "comoda-3",
-            "type": "comoda",
-            "x": 0.35,
-            "z": 4.75,
-            "rotation": 90.0,
-            "width": 1.0,
-            "depth": 0.45,
-            "height": 0.85,
-            "color": "#d9c6a5"
-          },
-          {
-            "id": "lampara-pie-4",
-            "type": "lampara-pie",
-            "x": 0.35,
-            "z": 0.4,
-            "rotation": 0.0,
-            "width": 0.4,
-            "depth": 0.4,
-            "height": 1.6,
-            "color": "#ece3c9"
           }
         ]
       }
@@ -616,16 +680,16 @@
     {
       "id": "ambiente-6",
       "name": "Baño principal",
-      "x": 0.08,
-      "z": 5.58,
+      "x": 0.15,
+      "z": 3.75,
       "rotation": 0,
       "level": 1,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 3.35,
-          "length": 3.85,
+          "width": 3.3,
+          "length": 1.5,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -663,11 +727,20 @@
           {
             "id": "door-1",
             "type": "door",
-            "wall": "sur",
-            "offset": 1.225,
-            "width": 0.9,
+            "wall": "este",
+            "offset": 0.3,
+            "width": 0.8,
             "height": 2.1,
             "sill": 0.0
+          },
+          {
+            "id": "win-2",
+            "type": "window",
+            "wall": "oeste",
+            "offset": 0.45,
+            "width": 0.6,
+            "height": 0.6,
+            "sill": 1.5
           }
         ],
         "ambient": 0.6,
@@ -678,39 +751,17 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.675,
+            "x": 1.65,
             "y": 2.25,
-            "z": 1.925
+            "z": 0.75
           }
         ],
         "furniture": [
           {
-            "id": "inodoro-1",
-            "type": "inodoro",
-            "x": 2.95,
-            "z": 0.5,
-            "rotation": 0.0,
-            "width": 0.4,
-            "depth": 0.7,
-            "height": 0.75,
-            "color": "#ffffff"
-          },
-          {
-            "id": "lavatorio-2",
-            "type": "lavatorio",
-            "x": 0.5,
-            "z": 0.5,
-            "rotation": 0.0,
-            "width": 0.55,
-            "depth": 0.45,
-            "height": 0.85,
-            "color": "#ffffff"
-          },
-          {
-            "id": "tina-3",
+            "id": "tina-1",
             "type": "tina",
-            "x": 1.68,
-            "z": 3.35,
+            "x": 0.85,
+            "z": 1.12,
             "rotation": 0.0,
             "width": 1.6,
             "depth": 0.75,
@@ -718,32 +769,43 @@
             "color": "#ffffff"
           },
           {
-            "id": "espejo-bano-4",
-            "type": "espejo-bano",
-            "x": 0.5,
-            "z": 0.1,
+            "id": "lavatorio-2",
+            "type": "lavatorio",
+            "x": 1.0,
+            "z": 0.23,
             "rotation": 0.0,
-            "width": 0.8,
-            "depth": 0.05,
-            "height": 0.6,
-            "color": "#cfe0e6"
+            "width": 0.55,
+            "depth": 0.45,
+            "height": 0.85,
+            "color": "#ffffff"
+          },
+          {
+            "id": "inodoro-3",
+            "type": "inodoro",
+            "x": 2.0,
+            "z": 0.36,
+            "rotation": 0.0,
+            "width": 0.4,
+            "depth": 0.7,
+            "height": 0.75,
+            "color": "#ffffff"
           }
         ]
       }
     },
     {
       "id": "ambiente-7",
-      "name": "Pasillo",
-      "x": 3.58,
-      "z": 0.08,
+      "name": "Estudio",
+      "x": 0.15,
+      "z": 5.55,
       "rotation": 0,
       "level": 1,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 1.85,
-          "length": 9.35,
+          "width": 3.3,
+          "length": 3.3,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -781,17 +843,17 @@
           {
             "id": "door-1",
             "type": "door",
-            "wall": "sur",
-            "offset": 0.47500000000000003,
+            "wall": "este",
+            "offset": 0.2,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
           },
           {
-            "id": "win-1",
+            "id": "win-2",
             "type": "window",
-            "wall": "norte",
-            "offset": 0.32500000000000007,
+            "wall": "oeste",
+            "offset": 1.05,
             "width": 1.2,
             "height": 1.1,
             "sill": 0.9
@@ -805,27 +867,156 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 0.925,
+            "x": 1.65,
             "y": 2.25,
-            "z": 4.675
+            "z": 1.65
+          }
+        ],
+        "furniture": [
+          {
+            "id": "escritorio-1",
+            "type": "escritorio",
+            "x": 0.31,
+            "z": 1.65,
+            "rotation": 270.0,
+            "width": 1.2,
+            "depth": 0.6,
+            "height": 0.75,
+            "color": "#d9c6a5"
+          },
+          {
+            "id": "silla-oficina-2",
+            "type": "silla-oficina",
+            "x": 1.0,
+            "z": 1.65,
+            "rotation": 90.0,
+            "width": 0.6,
+            "depth": 0.6,
+            "height": 1.1,
+            "color": "#3b3b3b"
+          },
+          {
+            "id": "estante-3",
+            "type": "estante",
+            "x": 1.6,
+            "z": 0.16,
+            "rotation": 0.0,
+            "width": 0.9,
+            "depth": 0.3,
+            "height": 1.8,
+            "color": "#a0764f"
+          },
+          {
+            "id": "sillon-1-4",
+            "type": "sillon-1",
+            "x": 2.6,
+            "z": 2.7,
+            "rotation": 0.0,
+            "width": 0.9,
+            "depth": 0.9,
+            "height": 0.85,
+            "color": "#7c8a99"
+          },
+          {
+            "id": "planta-5",
+            "type": "planta",
+            "x": 0.35,
+            "z": 2.95,
+            "rotation": 0.0,
+            "width": 0.5,
+            "depth": 0.5,
+            "height": 1.1,
+            "color": "#4f8f52"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ambiente-8",
+      "name": "Pasillo",
+      "x": 3.75,
+      "z": 0.15,
+      "rotation": 0,
+      "level": 1,
+      "project": {
+        "app": "Space Cat",
+        "version": 1,
+        "room": {
+          "width": 1.5,
+          "length": 8.7,
+          "height": 2.5,
+          "wallThickness": 0.15
+        },
+        "surfaces": {
+          "piso": {
+            "material": "porcelanato",
+            "color": "#e9ebee"
+          },
+          "pared-norte": {
+            "material": "pintura",
+            "color": "#f2f1ec"
+          },
+          "pared-sur": {
+            "material": "pintura",
+            "color": "#f2f1ec"
+          },
+          "pared-este": {
+            "material": "pintura",
+            "color": "#f2f1ec"
+          },
+          "pared-oeste": {
+            "material": "pintura",
+            "color": "#f2f1ec"
+          },
+          "techo": {
+            "material": "pintura",
+            "color": "#fafafa"
+          }
+        },
+        "baseboard": {
+          "height": 0.08,
+          "color": "#f7f5f0"
+        },
+        "openings": [
+          {
+            "id": "win-1",
+            "type": "window",
+            "wall": "norte",
+            "offset": 0.3,
+            "width": 0.9,
+            "height": 1.1,
+            "sill": 0.9
+          }
+        ],
+        "ambient": 0.6,
+        "lights": [
+          {
+            "id": "point-1",
+            "type": "point",
+            "color": "#ffe2b8",
+            "intensity": 6.0,
+            "castShadow": true,
+            "x": 0.75,
+            "y": 2.25,
+            "z": 4.35
           }
         ],
         "furniture": []
       }
     },
     {
-      "id": "ambiente-8",
+      "id": "ambiente-9",
       "name": "Dormitorio 2",
-      "x": 5.58,
-      "z": 0.08,
+      "x": 5.55,
+      "z": 0.15,
       "rotation": 0,
       "level": 1,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 3.35,
-          "length": 3.35,
+          "width": 3.3,
+          "length": 3.3,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -863,17 +1054,17 @@
           {
             "id": "door-1",
             "type": "door",
-            "wall": "sur",
-            "offset": 1.225,
+            "wall": "oeste",
+            "offset": 2.2,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
           },
           {
-            "id": "win-1",
+            "id": "win-2",
             "type": "window",
-            "wall": "norte",
-            "offset": 1.0750000000000002,
+            "wall": "este",
+            "offset": 1.05,
             "width": 1.2,
             "height": 1.1,
             "sill": 0.9
@@ -887,17 +1078,17 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.675,
+            "x": 1.65,
             "y": 2.25,
-            "z": 1.675
+            "z": 1.65
           }
         ],
         "furniture": [
           {
             "id": "cama-1",
             "type": "cama",
-            "x": 2.15,
-            "z": 1.2,
+            "x": 1.9,
+            "z": 1.0,
             "rotation": 0.0,
             "width": 1.4,
             "depth": 1.9,
@@ -905,22 +1096,44 @@
             "color": "#8b6b4a"
           },
           {
-            "id": "escritorio-2",
+            "id": "mesa-noche-2",
+            "type": "mesa-noche",
+            "x": 0.9,
+            "z": 0.25,
+            "rotation": 0.0,
+            "width": 0.45,
+            "depth": 0.4,
+            "height": 0.55,
+            "color": "#8b6b4a"
+          },
+          {
+            "id": "mesa-noche-3",
+            "type": "mesa-noche",
+            "x": 2.9,
+            "z": 0.25,
+            "rotation": 0.0,
+            "width": 0.45,
+            "depth": 0.4,
+            "height": 0.55,
+            "color": "#8b6b4a"
+          },
+          {
+            "id": "escritorio-4",
             "type": "escritorio",
-            "x": 0.35,
-            "z": 0.6,
-            "rotation": 90.0,
+            "x": 2.2,
+            "z": 3.0,
+            "rotation": 180.0,
             "width": 1.2,
             "depth": 0.6,
             "height": 0.75,
             "color": "#d9c6a5"
           },
           {
-            "id": "silla-oficina-3",
+            "id": "silla-oficina-5",
             "type": "silla-oficina",
-            "x": 0.8,
-            "z": 0.9,
-            "rotation": 0.0,
+            "x": 2.2,
+            "z": 2.3,
+            "rotation": 180.0,
             "width": 0.6,
             "depth": 0.6,
             "height": 1.1,
@@ -930,18 +1143,18 @@
       }
     },
     {
-      "id": "ambiente-9",
+      "id": "ambiente-10",
       "name": "Baño 2",
-      "x": 5.58,
-      "z": 3.58,
+      "x": 5.55,
+      "z": 3.75,
       "rotation": 0,
       "level": 1,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 3.35,
-          "length": 2.0500000000000003,
+          "width": 3.3,
+          "length": 1.5,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -979,11 +1192,20 @@
           {
             "id": "door-1",
             "type": "door",
-            "wall": "sur",
-            "offset": 1.225,
-            "width": 0.9,
+            "wall": "oeste",
+            "offset": 0.3,
+            "width": 0.8,
             "height": 2.1,
             "sill": 0.0
+          },
+          {
+            "id": "win-2",
+            "type": "window",
+            "wall": "este",
+            "offset": 0.45,
+            "width": 0.6,
+            "height": 0.6,
+            "sill": 1.5
           }
         ],
         "ambient": 0.6,
@@ -994,28 +1216,28 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.675,
+            "x": 1.65,
             "y": 2.25,
-            "z": 1.0250000000000001
+            "z": 0.75
           }
         ],
         "furniture": [
           {
-            "id": "inodoro-1",
-            "type": "inodoro",
-            "x": 2.95,
-            "z": 0.5,
+            "id": "ducha-1",
+            "type": "ducha",
+            "x": 2.8,
+            "z": 1.0,
             "rotation": 0.0,
-            "width": 0.4,
-            "depth": 0.7,
-            "height": 0.75,
-            "color": "#ffffff"
+            "width": 0.9,
+            "depth": 0.9,
+            "height": 2.1,
+            "color": "#e9edf0"
           },
           {
             "id": "lavatorio-2",
             "type": "lavatorio",
-            "x": 0.5,
-            "z": 0.5,
+            "x": 2.3,
+            "z": 0.23,
             "rotation": 0.0,
             "width": 0.55,
             "depth": 0.45,
@@ -1023,32 +1245,32 @@
             "color": "#ffffff"
           },
           {
-            "id": "ducha-3",
-            "type": "ducha",
-            "x": 1.68,
-            "z": 1.45,
+            "id": "inodoro-3",
+            "type": "inodoro",
+            "x": 1.3,
+            "z": 0.36,
             "rotation": 0.0,
-            "width": 0.9,
-            "depth": 0.9,
-            "height": 2.1,
-            "color": "#e9edf0"
+            "width": 0.4,
+            "depth": 0.7,
+            "height": 0.75,
+            "color": "#ffffff"
           }
         ]
       }
     },
     {
-      "id": "ambiente-10",
+      "id": "ambiente-11",
       "name": "Dormitorio 3",
-      "x": 5.58,
-      "z": 5.78,
+      "x": 5.55,
+      "z": 5.55,
       "rotation": 0,
       "level": 1,
       "project": {
         "app": "Space Cat",
         "version": 1,
         "room": {
-          "width": 3.35,
-          "length": 3.65,
+          "width": 3.3,
+          "length": 3.3,
           "height": 2.5,
           "wallThickness": 0.15
         },
@@ -1086,17 +1308,17 @@
           {
             "id": "door-1",
             "type": "door",
-            "wall": "sur",
-            "offset": 1.225,
+            "wall": "oeste",
+            "offset": 0.2,
             "width": 0.9,
             "height": 2.1,
             "sill": 0.0
           },
           {
-            "id": "win-1",
+            "id": "win-2",
             "type": "window",
-            "wall": "norte",
-            "offset": 1.0750000000000002,
+            "wall": "este",
+            "offset": 1.05,
             "width": 1.2,
             "height": 1.1,
             "sill": 0.9
@@ -1110,44 +1332,55 @@
             "color": "#ffe2b8",
             "intensity": 6.0,
             "castShadow": true,
-            "x": 1.675,
+            "x": 1.65,
             "y": 2.25,
-            "z": 1.825
+            "z": 1.65
           }
         ],
         "furniture": [
           {
             "id": "cama-1",
             "type": "cama",
-            "x": 1.68,
-            "z": 1.2,
-            "rotation": 0.0,
+            "x": 1.9,
+            "z": 2.3,
+            "rotation": 180.0,
             "width": 1.4,
             "depth": 1.9,
             "height": 0.9,
             "color": "#8b6b4a"
           },
           {
-            "id": "closet-2",
-            "type": "closet",
-            "x": 0.35,
-            "z": 2.65,
-            "rotation": 90.0,
-            "width": 1.2,
-            "depth": 0.6,
-            "height": 2.0,
-            "color": "#e8e2d6"
-          },
-          {
-            "id": "mesa-noche-3",
+            "id": "mesa-noche-2",
             "type": "mesa-noche",
-            "x": 2.95,
-            "z": 0.4,
-            "rotation": 0.0,
+            "x": 0.9,
+            "z": 3.05,
+            "rotation": 180.0,
             "width": 0.45,
             "depth": 0.4,
             "height": 0.55,
             "color": "#8b6b4a"
+          },
+          {
+            "id": "mesa-noche-3",
+            "type": "mesa-noche",
+            "x": 2.9,
+            "z": 3.05,
+            "rotation": 180.0,
+            "width": 0.45,
+            "depth": 0.4,
+            "height": 0.55,
+            "color": "#8b6b4a"
+          },
+          {
+            "id": "closet-4",
+            "type": "closet",
+            "x": 2.1,
+            "z": 0.31,
+            "rotation": 0.0,
+            "width": 1.2,
+            "depth": 0.6,
+            "height": 2.0,
+            "color": "#e8e2d6"
           }
         ]
       }

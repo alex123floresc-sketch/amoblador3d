@@ -35,21 +35,28 @@ $common = @(
     '--dest', $out
 )
 
+$wixDir = Join-Path $env:USERPROFILE 'tools\wix314'
+if (-not (Get-Command candle.exe -ErrorAction SilentlyContinue) -and (Test-Path (Join-Path $wixDir 'candle.exe'))) {
+    $env:PATH = "$wixDir;$env:PATH"
+}
 $wix = (Get-Command wix.exe -ErrorAction SilentlyContinue) -or (Get-Command candle.exe -ErrorAction SilentlyContinue)
+
+Write-Host '2/3 Creando la versión portátil (carpeta + .zip)...' -ForegroundColor Cyan
+jpackage @common --type app-image
+if ($LASTEXITCODE -ne 0) { throw 'jpackage no pudo crear la aplicación.' }
+$zip = Join-Path $out "SpaceCat-$version-windows.zip"
+Compress-Archive -Path (Join-Path $out 'Space Cat') -DestinationPath $zip
+Copy-Item (Join-Path $root "target\amoblador3d.jar") (Join-Path $out "SpaceCat-$version.jar")
+
 if ($wix) {
-    Write-Host '2/3 Creando el instalador .exe (WiX)...' -ForegroundColor Cyan
+    Write-Host '3/3 Creando el instalador .exe (WiX)...' -ForegroundColor Cyan
     jpackage @common --type exe --win-menu --win-shortcut --win-dir-chooser --win-per-user-install `
         --win-menu-group 'Space Cat'
     if ($LASTEXITCODE -ne 0) { throw 'jpackage no pudo crear el instalador.' }
-    Write-Host "3/3 Listo: $out\Amoblador3D-$version.exe" -ForegroundColor Green
+    Move-Item (Join-Path $out "Space Cat-$version.exe") (Join-Path $out "SpaceCat-$version.exe") -Force
 } else {
-    Write-Host '2/3 WiX no está instalado: se crea la versión portátil (carpeta + .zip)...' -ForegroundColor Yellow
-    jpackage @common --type app-image
-    if ($LASTEXITCODE -ne 0) { throw 'jpackage no pudo crear la aplicación.' }
-    $zip = Join-Path $out "Amoblador3D-$version-windows.zip"
-    Compress-Archive -Path (Join-Path $out 'Amoblador3D') -DestinationPath $zip
-    Write-Host "3/3 Listo:" -ForegroundColor Green
-    Write-Host "    Aplicación: $out\Amoblador3D\Amoblador3D.exe"
-    Write-Host "    Para compartir: $zip"
+    Write-Host '3/3 WiX no está instalado: no se crea el .exe (solo la versión portátil).' -ForegroundColor Yellow
 }
+Write-Host "Listo en $out :" -ForegroundColor Green
+Get-ChildItem $out -File | ForEach-Object { Write-Host ("    {0}  ({1:N1} MB)" -f $_.Name, ($_.Length / 1MB)) }
 Remove-Item -Recurse -Force $in
