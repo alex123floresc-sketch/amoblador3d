@@ -55,8 +55,12 @@ public final class FSHFThumbnails {
                 return img;
             }
             case MODEL -> {
-                models.load(e.model()).thenAccept(data -> Platform.runLater(() -> {
-                    Image img = render(models.fit(data, s.width(), s.depth(), s.height(), e.modelRotation(), null, null), s);
+                models.load(e.model()).whenComplete((data, error) -> Platform.runLater(() -> {
+                    // Si el modelo no se pudo cargar, se muestra la misma caja de "falta" que en la escena.
+                    Group g = error == null
+                            ? models.fit(data, s.width(), s.depth(), s.height(), e.modelRotation(), null, null)
+                            : FSHFParametricBuilder.missing(f);
+                    Image img = render(g, s);
                     cache.put(key, img);
                     onReady.accept(img);
                 }));

@@ -1,4 +1,4 @@
-# Amoblador3D
+# Space Cat
 
 Diseñador de interiores 3D con medidas reales, hecho en **Java 21 + JavaFX + SQLite**.
 
@@ -11,7 +11,7 @@ Solo necesitas Java 21 o superior. Maven no hace falta instalarlo: el proyecto t
 **Maven Wrapper** (`mvnw`), que lo descarga la primera vez.
 
 **Lo más fácil (Windows):** doble clic en **`Ejecutar-Amoblador3D.cmd`**. En IntelliJ, elige la
-configuración **Amoblador3D** (arriba a la derecha) y pulsa ▶. Ojo: un doble clic en `mvnw.cmd`
+configuración **Space Cat** (arriba a la derecha) y pulsa ▶. Ojo: un doble clic en `mvnw.cmd`
 solo no abre nada, porque no sabe qué hacer.
 
 | Comando | Qué hace |
@@ -181,7 +181,7 @@ Es JSON legible (el mismo de la versión Electron, más `surfaces`):
 
 ```json
 {
-  "app": "Amoblador3D", "version": 1,
+  "app": "Space Cat", "version": 1,
   "room": { "width": 4, "length": 3.5, "height": 2.5, "wallThickness": 0.15 },
   "surfaces": { "piso": { "material": "madera", "color": "#b07d4f" },
                 "pared-norte": { "material": "ladrillo", "color": "#a4553a" } },
@@ -201,8 +201,9 @@ Z hacia el sur, Y hacia arriba.
 
 ## Datos
 
-Los proyectos y los modelos importados se guardan en `%APPDATA%\Amoblador3D`
-(se puede cambiar con `-Damoblador.home=C:\otra\carpeta`).
+Los proyectos y los modelos importados se guardan en `%APPDATA%\Space Cat`
+(se puede cambiar con `-Dspacecat.home=C:\otra\carpeta`). Si existe la carpeta antigua
+`%APPDATA%\Amoblador3D`, sus datos se trasladan solos la primera vez.
 
 En `database/` están los scripts de la base de datos: `amoblador3d_sqlite.sql` (el esquema que
 usa la aplicación, con un proyecto de ejemplo) y `amoblador3d_postgresql.sql` (la misma base en
