@@ -1,5 +1,17 @@
 # Space Cat
 
+## Páginas web del proyecto
+
+| Página | Enlace |
+|---|---|
+| Web de clientes (usuarios) | <https://alex123floresc-sketch.github.io/Space_Cat/> |
+| Web del docente | <https://alex123floresc-sketch.github.io/amoblador3d_web/> |
+| Manual de usuario (PDF) | <https://alex123floresc-sketch.github.io/Space_Cat/descargas/Space_Cat_Manual_de_Usuario.pdf> |
+| Manual de instalación (PDF) | <https://alex123floresc-sketch.github.io/Space_Cat/descargas/Space_Cat_Manual_de_Instalacion.pdf> |
+| Descargar la aplicación | <https://github.com/alex123floresc-sketch/amoblador3d/releases/latest> |
+
+Todos los enlaces del proyecto están en [ENLACES_DEL_PROYECTO.md](ENLACES_DEL_PROYECTO.md).
+
 Diseñador de interiores 3D con medidas reales, hecho en **Java 21 + JavaFX + SQLite**.
 
 Defines las medidas de la habitación, colocas puertas, ventanas, luces y muebles, eliges el
