@@ -13,3 +13,23 @@ release/
 documentacion/*.md
 
 documentacion/respaldo-md/
+
+# Archivos que ya no se usan: se guardan solo en la PC, fuera del repo
+packaging/amoblador3d.ico
+documentacion/herramientas/recursos/fshf_simbolo.png
+documentacion/herramientas/recursos/fshf_logo_blanco.png
+documentacion/herramientas/recursos/fshf_simbolo_blanco.png
+documentacion/herramientas/cambiar_logo.py
+documentacion/herramientas/wireframes.js
+documentacion/herramientas/wireframes/
+documentacion/wireframes/
+documentacion/capturas/10_disenador_de_muebles.png
+documentacion/capturas/20_repositorio_github.png
+documentacion/capturas/21_web_descargas.png
+documentacion/doc 2/00_*.docx
+documentacion/doc 2/01_*.docx
+documentacion/doc 2/02_*.docx
+documentacion/doc 2/03_*.docx
+documentacion/doc 2/04_*.docx
+documentacion/doc 2/07_*.docx
+documentacion/doc 2/08_*.docx
