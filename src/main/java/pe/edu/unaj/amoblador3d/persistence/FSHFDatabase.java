@@ -14,7 +14,7 @@ import java.sql.Statement;
  * versiones sin perder datos y ejecuta operaciones dentro de transacciones.
  */
 public final class FSHFDatabase implements AutoCloseable {
-    static final int SCHEMA_VERSION = 9;
+    static final int SCHEMA_VERSION = 10;
 
     private static final String[] SCHEMA_V1 = {
         """
@@ -191,8 +191,30 @@ public final class FSHFDatabase implements AutoCloseable {
         "ALTER TABLE opening_v9 RENAME TO opening",
     };
 
+    // v10: room_column acepta también el machón ('machon').
+    private static final String[] SCHEMA_V10 = {
+        """
+        CREATE TABLE room_column_v10 (
+            project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+            position   INTEGER NOT NULL,
+            id         TEXT    NOT NULL,
+            kind       TEXT    NOT NULL CHECK (kind IN ('column', 'machon', 'wall', 'notch')),
+            corner     TEXT    CHECK (corner IN ('noroeste', 'noreste', 'suroeste', 'sureste')),
+            x          REAL    NOT NULL,
+            z          REAL    NOT NULL,
+            width      REAL    NOT NULL CHECK (width > 0),
+            depth      REAL    NOT NULL CHECK (depth > 0),
+            material   TEXT    NOT NULL,
+            color      TEXT    NOT NULL,
+            PRIMARY KEY (project_id, id)
+        )""",
+        "INSERT INTO room_column_v10 SELECT project_id, position, id, kind, corner, x, z, width, depth, material, color FROM room_column",
+        "DROP TABLE room_column",
+        "ALTER TABLE room_column_v10 RENAME TO room_column",
+    };
+
     private static final String[][] STEPS = {SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7,
-        SCHEMA_V8, SCHEMA_V9};
+        SCHEMA_V8, SCHEMA_V9, SCHEMA_V10};
 
     private final Connection connection;
 

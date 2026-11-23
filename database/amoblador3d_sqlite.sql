@@ -102,7 +102,7 @@ CREATE TABLE room_column (
     project_id INTEGER NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position   INTEGER NOT NULL,
     id         TEXT    NOT NULL,
-    kind       TEXT    NOT NULL CHECK (kind IN ('column', 'wall', 'notch')),
+    kind       TEXT    NOT NULL CHECK (kind IN ('column', 'machon', 'wall', 'notch')),
     corner     TEXT    CHECK (corner IN ('noroeste', 'noreste', 'suroeste', 'sureste')),
     x          REAL    NOT NULL,
     z          REAL    NOT NULL,
@@ -137,7 +137,7 @@ CREATE TABLE home_space (
     PRIMARY KEY (project_id, position)
 );
 
-PRAGMA user_version = 9;
+PRAGMA user_version = 10;
 
 INSERT INTO project (id, name, width, length, height, wall_thickness, ambient, created_at, updated_at)
 VALUES (1, 'Dormitorio de ejemplo', 4.0, 3.5, 2.5, 0.15, 0.6, '2026-10-25T12:00:00Z', '2026-10-25T12:00:00Z');

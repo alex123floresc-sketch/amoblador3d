@@ -18,6 +18,7 @@ import pe.edu.unaj.amoblador3d.catalog.FSHFCatalog;
 import pe.edu.unaj.amoblador3d.design.FSHFDesign;
 import pe.edu.unaj.amoblador3d.estimate.FSHFPriceList;
 import pe.edu.unaj.amoblador3d.model.FSHFCameraView;
+import pe.edu.unaj.amoblador3d.model.FSHFColumn;
 import pe.edu.unaj.amoblador3d.model.FSHFLightType;
 import pe.edu.unaj.amoblador3d.model.FSHFProject;
 import pe.edu.unaj.amoblador3d.model.FSHFSurface;
@@ -166,6 +167,25 @@ class FSHFPersistenceTest {
             FSHFProjectRepository repo = new FSHFProjectRepository(db);
             long id = repo.save(null, "Con bloqueo", p, null);
             assertTrue(repo.load(id).furniture.get(0).locked);
+        }
+    }
+
+    @Test
+    void todosLosTiposDeColumnaSeGuardanEnLaBase() throws Exception {
+        FSHFProject p = sample();
+        p.columns.clear();
+        int i = 0;
+        for (FSHFColumn.Kind kind : FSHFColumn.Kind.values()) {
+            FSHFColumn c = new FSHFColumn("col-" + i, kind, 0.5 + i * 0.5, 0.5, kind.defaultWidth(), kind.defaultDepth());
+            if (kind == FSHFColumn.Kind.NOTCH) c.corner = FSHFColumn.Corner.SURESTE;
+            p.columns.add(c);
+            i++;
+        }
+        try (FSHFDatabase db = new FSHFDatabase(dir.resolve("columnas.db"))) {
+            FSHFProjectRepository repo = new FSHFProjectRepository(db);
+            long id = repo.save(null, "Con machón", p, null);
+            List<FSHFColumn.Kind> kinds = repo.load(id).columns.stream().map(c -> c.kind).toList();
+            assertEquals(List.of(FSHFColumn.Kind.values()), kinds);
         }
     }
 

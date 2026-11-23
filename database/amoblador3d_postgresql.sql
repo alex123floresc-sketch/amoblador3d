@@ -153,7 +153,7 @@ CREATE TABLE room_column (
     project_id BIGINT           NOT NULL REFERENCES project(id) ON DELETE CASCADE,
     position   INTEGER          NOT NULL,
     id         VARCHAR(60)      NOT NULL,
-    kind       VARCHAR(6)       NOT NULL CHECK (kind IN ('column', 'wall', 'notch')),
+    kind       VARCHAR(6)       NOT NULL CHECK (kind IN ('column', 'machon', 'wall', 'notch')),
     corner     VARCHAR(9)       CHECK (corner IN ('noroeste', 'noreste', 'suroeste', 'sureste')),
     x          DOUBLE PRECISION NOT NULL,
     z          DOUBLE PRECISION NOT NULL,
