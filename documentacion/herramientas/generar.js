@@ -551,7 +551,7 @@ async function convert(file) {
     creator: CLIENTE ? 'Space Cat' : META.integrantes.join('; '), title, description: 'Documentación del proyecto Space Cat',
     features: { updateFields: true },
     styles: {
-      default: { document: { run: { font: FONT, size: 24 }, paragraph: { spacing: { line: isReport ? 480 : 360 } } } },
+      default: { document: { run: { font: FONT, size: 24 }, paragraph: { spacing: { line: isReport ? 480 : 360, lineRule: 'auto' } } } },
       paragraphStyles: [
         headingStyle('Heading1', 'Heading 1', 26, { center: true, before: 360, outline: 0 }),
         headingStyle('Heading2', 'Heading 2', 24, { before: 240, outline: 1 }),
