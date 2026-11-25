@@ -65,6 +65,17 @@ class FSHFRoomShapeTest {
     }
 
     @Test
+    void elMachonSeAgregaPegadoAUnMuro() {
+        FSHFRoomDims r = design.room();
+        for (int i = 0; i < 3; i++) {
+            FSHFColumn m = design.addColumn(FSHFColumn.Kind.MACHON).value();
+            assertEquals(FSHFColumn.Kind.MACHON, m.kind);
+            double gap = Math.min(Math.min(m.minX(), m.minZ()), Math.min(r.width() - m.maxX(), r.length() - m.maxZ()));
+            assertEquals(0, gap, 1e-9, "el machón " + (i + 1) + " queda pegado a un muro");
+        }
+    }
+
+    @Test
     void unaColumnaNoTapaVentanasNiPuertas() {
         FSHFColumn col = design.addColumn(FSHFColumn.Kind.COLUMN).value();
         assertTrue(design.changeColumn(col, moved(col, 2, 0.15)).contains("Ventana"), "pegada a la pared norte, frente a la ventana");

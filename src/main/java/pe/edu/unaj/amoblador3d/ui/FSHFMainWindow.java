@@ -1147,6 +1147,7 @@ public final class FSHFMainWindow {
         hint.setWrapText(true);
         return new VBox(8,
                 row(smallButton("+ Columna", "Columna de 30 x 30 cm", () -> addColumn(FSHFColumn.Kind.COLUMN)),
+                        smallButton("+ Machón", "Machón de 40 x 25 cm pegado a un muro", () -> addColumn(FSHFColumn.Kind.MACHON)),
                         smallButton("+ Muro interno", "Tabique de 1.5 m x 12 cm", () -> addColumn(FSHFColumn.Kind.WALL))),
                 smallButton("Habitación en L…", "Quitar una esquina de la habitación", this::addNotch),
                 hint);

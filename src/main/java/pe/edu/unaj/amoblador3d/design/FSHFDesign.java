@@ -957,8 +957,25 @@ public final class FSHFDesign {
         FSHFRoomDims r = project.room;
         List<double[]> candidates = new ArrayList<>();
         int nx = (int) Math.floor(r.width() * 10 + 1e-9), nz = (int) Math.floor(r.length() * 10 + 1e-9);
-        for (int i = 0; i <= nx; i++) {
-            for (int j = 0; j <= nz; j++) candidates.add(new double[] {round(i * 0.1), round(j * 0.1)});
+        if (kind == FSHFColumn.Kind.MACHON) {
+            // El machón confina un muro: solo se prueban posiciones pegadas a una de las cuatro paredes.
+            double hw = c.width / 2, hd = c.depth / 2;
+            for (int i = 0; i <= nx; i++) {
+                double x = round(i * 0.1);
+                if (x - hw < -1e-9 || x + hw > r.width() + 1e-9) continue;
+                candidates.add(new double[] {x, hd});
+                candidates.add(new double[] {x, r.length() - hd});
+            }
+            for (int j = 0; j <= nz; j++) {
+                double z = round(j * 0.1);
+                if (z - hd < -1e-9 || z + hd > r.length() + 1e-9) continue;
+                candidates.add(new double[] {hw, z});
+                candidates.add(new double[] {r.width() - hw, z});
+            }
+        } else {
+            for (int i = 0; i <= nx; i++) {
+                for (int j = 0; j <= nz; j++) candidates.add(new double[] {round(i * 0.1), round(j * 0.1)});
+            }
         }
         candidates.sort(Comparator.comparingDouble(p -> Math.hypot(p[0] - r.width() / 2, p[1] - r.length() / 2)));
         FSHFColumn test = c.copy();
@@ -973,7 +990,11 @@ public final class FSHFDesign {
                 return FSHFOutcome.ok(c);
             }
         }
-        return FSHFOutcome.fail("No hay espacio libre para " + (kind == FSHFColumn.Kind.WALL ? "un muro interno" : "una columna") + " ("
+        return FSHFOutcome.fail("No hay espacio libre para " + switch (kind) {
+                    case WALL -> "un muro interno";
+                    case MACHON -> "un machón junto a los muros";
+                    default -> "una columna";
+                } + " ("
                 + FSHFUnits.number(c.width) + " x " + FSHFUnits.number(c.depth) + " m).");
     }
 
