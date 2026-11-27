@@ -318,8 +318,6 @@ const LOGO_ALT = { name: 'Logo del equipo', title: 'Logo del equipo', descriptio
 // Logo de la aplicación (el gato de Space Cat), a la derecha del encabezado.
 // Modo clientes (CLIENTE=1): sin integrantes, equipo, fechas ni página de control; la protagonista es la aplicación.
 const CLIENTE = process.env.CLIENTE === '1';
-// SIN_PORTADA=1: sin carátula ni índices (general, de tablas y de figuras); el documento empieza en el contenido.
-const SIN_PORTADA = process.env.SIN_PORTADA === '1';
 const APP_VERSION = (/<artifactId>amoblador3d<\/artifactId>\s*<version>([^<]+)</.exec(fs.readFileSync(path.join(__dirname, '..', '..', 'pom.xml'), 'utf8')) || [])[1] || '';
 const GATO = fs.readFileSync(path.join(RECURSOS, 'logo_spacecat.png'));
 const GATO_ALT = { name: 'Logo de Space Cat', title: 'Logo de Space Cat', description: 'Logotipo de la aplicación Space Cat' };
@@ -483,7 +481,7 @@ function sections(children, docTitle) {
   const landscape = { page: { size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE }, margin } };
   const out = [];
 
-  const sec = (props, kids) => out.length === 0 && !SIN_PORTADA
+  const sec = (props, kids) => out.length === 0
     ? { properties: { ...props, page: { ...props.page, borders: coverBorders }, titlePage: true }, headers: { default: header(), first: empty(Header) },
       footers: { default: footer(), first: empty(Footer) }, children: kids }
     : { properties: props, headers: { default: header() }, footers: { default: footer() }, children: kids };
@@ -573,8 +571,8 @@ async function convert(file) {
         alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: INDENT * (l + 1), hanging: 360 } } } })) },
       ...numberingConfigs,
     ] },
-    sections: sections([...(SIN_PORTADA ? [] : [...cover(info), ...(isReport || CLIENTE ? [] : controlPage(info, conv)), ...toc(),
-      ...captionIndex('Tabla', conv.index.Tabla), ...captionIndex('Figura', conv.index.Figura)]), ...conv.body],
+    sections: sections([...cover(info), ...(isReport || CLIENTE ? [] : controlPage(info, conv)), ...toc(),
+      ...captionIndex('Tabla', conv.index.Tabla), ...captionIndex('Figura', conv.index.Figura), ...conv.body],
     CLIENTE ? `Space Cat ${APP_VERSION} · ${title}` : `${info.codigo} · ${title}`),
   });
   const outName = base + '.docx';
