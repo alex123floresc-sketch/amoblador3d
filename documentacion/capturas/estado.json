@@ -32,7 +32,7 @@
  "20_repositorio_github.png": "igual",
  "21_web_descargas.png": "igual",
  "30_descarga_instalador.png": "actualizada",
- "31_windows_protegio_su_pc.png": "igual",
+ "31_windows_protegio_su_pc.png": "actualizada",
  "32_asistente_bienvenida.png": "igual",
  "33_carpeta_de_destino.png": "igual",
  "34_listo_para_instalar.png": "igual",
@@ -76,5 +76,9 @@
  "u26_sin_guardar.png": "actualizada",
  "u27_atajos.png": "actualizada",
  "u28_acerca.png": "actualizada",
- "u29_importar_modelo.png": "actualizada"
+ "u29_importar_modelo.png": "actualizada",
+ "_fechas": {
+  "31_windows_protegio_su_pc.png": "2026-11-26",
+  "u28_acerca.png": "2026-11-26"
+ }
 }

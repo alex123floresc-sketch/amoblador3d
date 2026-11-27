@@ -213,7 +213,7 @@ function makeConverter(opts) {
     if (listing) {
       body.push(new Paragraph({ spacing: { after: 240, line: lineSpacing }, children: [
         new TextRun({ text: 'Nota.', italics: true, font: FONT }),
-        new TextRun({ text: ' Fragmento del código fuente de Space Cat 2.1.0. El número de la izquierda es el número de línea'
+        new TextRun({ text: ` Fragmento del código fuente de Space Cat ${APP_VERSION}. El número de la izquierda es el número de línea`
           + ' dentro del archivo indicado en el título. Elaboración propia.', font: FONT })] }));
     }
   }
@@ -328,11 +328,12 @@ try { ESTADO = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'capturas',
 const FECHA_CAPTURAS = ESTADO._fecha || null;
 function notaCaptura(href) {
   const e = ESTADO[path.basename(href)];
-  const f = FECHA_CAPTURAS ? fechaLarga(FECHA_CAPTURAS) : null;
-  if (e === 'igual') return ` Captura de pantalla de Space Cat 2.1.0, sin cambios respecto a la versión anterior; revisada el ${f}. Elaboración propia.`;
-  if (e === 'nueva') return ` Captura de pantalla de Space Cat 2.1.0 (función nueva), tomada el ${f}. Elaboración propia.`;
-  if (e === 'actualizada') return ` Captura de pantalla de Space Cat 2.1.0, actualizada el ${f}. Elaboración propia.`;
-  return ' Captura de pantalla de Space Cat 2.1.0. Elaboración propia.';
+  const fd = (ESTADO._fechas || {})[path.basename(href)] || FECHA_CAPTURAS;
+  const f = fd ? fechaLarga(fd) : null;
+  if (e === 'igual') return ` Captura de pantalla de Space Cat ${APP_VERSION}, sin cambios respecto a la versión anterior; revisada el ${f}. Elaboración propia.`;
+  if (e === 'nueva') return ` Captura de pantalla de Space Cat ${APP_VERSION} (función nueva), tomada el ${f}. Elaboración propia.`;
+  if (e === 'actualizada') return ` Captura de pantalla de Space Cat ${APP_VERSION}, actualizada el ${f}. Elaboración propia.`;
+  return ` Captura de pantalla de Space Cat ${APP_VERSION}. Elaboración propia.`;
 }
 
 function cover(info) {
