@@ -21,15 +21,15 @@ están publicadas con **GitHub Pages** y se pueden abrir desde cualquier navegad
 - **Qué contiene:** el código fuente completo en Java 21 + JavaFX (vista 3D), la base de datos
   SQLite (y su versión en PostgreSQL en `database/`), las pruebas automáticas y los scripts para
   crear el instalador de Windows (`packaging/`).
-- **Versión actual:** 2.1.0 — <https://github.com/alex123floresc-sketch/amoblador3d/releases/tag/v2.1.0>
+- **Versión actual:** 2.2.0 — <https://github.com/alex123floresc-sketch/amoblador3d/releases/tag/v2.2.0>
 
-Descargas directas de la versión 2.1.0:
+Descargas directas de la versión 2.2.0:
 
 | Archivo | Para qué | Tamaño |
 |---|---|---|
-| [SpaceCat-2.1.0.exe](https://github.com/alex123floresc-sketch/amoblador3d/releases/download/v2.1.0/SpaceCat-2.1.0.exe) | Instalador para Windows 10/11. Trae su propio Java y crea accesos directos. **Recomendado.** | 61 MB |
-| [SpaceCat-2.1.0-windows.zip](https://github.com/alex123floresc-sketch/amoblador3d/releases/download/v2.1.0/SpaceCat-2.1.0-windows.zip) | Versión portátil: se descomprime y se abre, sin instalar. | 60 MB |
-| [SpaceCat-2.1.0.jar](https://github.com/alex123floresc-sketch/amoblador3d/releases/download/v2.1.0/SpaceCat-2.1.0.jar) | Para quien ya tiene Java 21 o superior instalado. | 25 MB |
+| [SpaceCat-2.2.0.exe](https://github.com/alex123floresc-sketch/amoblador3d/releases/download/v2.2.0/SpaceCat-2.2.0.exe) | Instalador para Windows 10/11. Trae su propio Java y crea accesos directos. **Recomendado.** | 61 MB |
+| [SpaceCat-2.2.0-windows.zip](https://github.com/alex123floresc-sketch/amoblador3d/releases/download/v2.2.0/SpaceCat-2.2.0-windows.zip) | Versión portátil: se descomprime y se abre, sin instalar. | 60 MB |
+| [SpaceCat-2.2.0.jar](https://github.com/alex123floresc-sketch/amoblador3d/releases/download/v2.2.0/SpaceCat-2.2.0.jar) | Para quien ya tiene Java 21 o superior instalado. | 25 MB |
 
 Para ejecutarlo desde el código fuente:
 

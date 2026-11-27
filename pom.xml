@@ -6,7 +6,7 @@
 
   <groupId>pe.edu.unaj</groupId>
   <artifactId>amoblador3d</artifactId>
-  <version>2.1.0</version>
+  <version>2.2.0</version>
   <name>Space Cat</name>
   <description>Diseñador de interiores 3D con medidas reales (JavaFX + SQLite)</description>
 
