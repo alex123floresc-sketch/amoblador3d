@@ -365,6 +365,17 @@ function cover(info) {
     c(`Versión ${APP_VERSION} para Windows`, { size: 22, color: GRAY, after: 0 }),
     new Paragraph({ children: [new PageBreak()] }),
   ];
+  // Manuales de usuario e instalación: carátula simple, solo logo, manual, proyecto y equipo.
+  if (info.n === '05' || info.n === '06') return [
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 1400, after: 900 },
+      children: [new ImageRun({ type: 'png', data: LOGO, transformation: logoTam(91), altText: LOGO_ALT })] }),
+    c(info.titulo.toUpperCase(), { bold: true, size: 36, line: 360, after: 0 }),
+    c('PROYECTO', { bold: true, size: 18, color: GRAY, before: 720, after: 80, spacing: 40 }),
+    c(info.proyecto, { bold: true, size: 26, line: 320, after: 0 }),
+    c('EQUIPO', { bold: true, size: 18, color: GRAY, before: 720, after: 80, spacing: 40 }),
+    c(META.equipo, { bold: true, size: 26, after: 0 }),
+    new Paragraph({ children: [new PageBreak()] }),
+  ];
   return [
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600, after: 720 },
       children: [new ImageRun({ type: 'png', data: LOGO, transformation: logoTam(91), altText: LOGO_ALT })] }),
