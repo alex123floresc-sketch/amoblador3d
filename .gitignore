@@ -33,3 +33,6 @@ documentacion/doc 2/03_*.docx
 documentacion/doc 2/04_*.docx
 documentacion/doc 2/07_*.docx
 documentacion/doc 2/08_*.docx
+
+# Carpetas temporales de capturas
+_capturas_tmp/

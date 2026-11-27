@@ -38,20 +38,14 @@ En Linux/macOS usa `./mvnw` en lugar de `.\mvnw.cmd`.
 Enlaces del proyecto (repositorios, páginas web y descargas):
 **[ENLACES_DEL_PROYECTO.md](ENLACES_DEL_PROYECTO.md)**.
 
-Documentación completa del proyecto, en Word: **[documentacion/doc 2/](documentacion/doc%202)**.
-Empieza por `00_Guia_de_la_Documentacion.docx`, que explica qué contiene cada documento:
+Documentación en Word en **[documentacion/doc 2/](documentacion/doc%202)**; los mismos documentos en
+PDF están en la [web del docente](https://alex123floresc-sketch.github.io/amoblador3d_web/):
 
-| N.° | Documento |
-|---|---|
-| 00 | Guía de la documentación del proyecto (índice y normas de redacción) |
-| 01 | Acta de constitución y plan de gestión del proyecto |
-| 02 | Especificación de requisitos de software y casos de uso |
-| 03 | Documento de diseño de software (arquitectura y base de datos) |
-| 04 | Plan y reporte de pruebas de software |
-| 05 | Manual de usuario |
-| 06 | Manual de instalación y despliegue |
-| 07 | Manual técnico del desarrollador y registro de versiones |
-| 08 | Informe final del proyecto |
+| N.° | Documento | Word |
+|---|---|---|
+| 05 | Manual de usuario | [05_Manual_de_Usuario.docx](documentacion/doc%202/05_Manual_de_Usuario.docx) |
+| 06 | Manual de instalación y despliegue | [06_Manual_de_Instalacion.docx](documentacion/doc%202/06_Manual_de_Instalacion.docx) |
+| 09 | Código fuente | [09_Codigo_Fuente.docx](documentacion/doc%202/09_Codigo_Fuente.docx) |
 
 ## Funciones
 
@@ -62,12 +56,16 @@ Empieza por `00_Guia_de_la_Documentacion.docx`, que explica qué contiene cada d
 - **Paredes, piso y techo**: 11 materiales (pintura, ladrillo, piedra, madera, cerámico, mármol,
   porcelanato, alfombra...) con texturas a escala real y cualquier color. El techo se ve en el
   recorrido. Zócalo con alto (o sin zócalo) y color a elección.
-- **Columnas, muros internos y habitación en L** (pestaña *Ambiente*): bloques del piso al techo
+- **Columnas, machones, muros internos y habitación en L** (pestaña *Ambiente*; **+ Machón** lo
+  agrega pegado a un muro): bloques del piso al techo
   con su propio acabado. Los muebles no los atraviesan, no tapan ventanas ni puertas, el imán se
   pega a ellos y el metrado los descuenta del piso y suma sus caras a la pintura.
-- **Muebles**: 18 paramétricos (cama, mesa de noche, cómoda, closet, sofá, mueble de TV, librero,
+- **Muebles**: 36 paramétricos (cama, mesa de noche, cómoda, closet, sofá, mueble de TV, librero,
   mesa, silla, mueble de cocina, refrigeradora, inodoro, lavatorio, escritorio, escalera recta, en L
-  y de caracol, y baranda; las escaleras llegan solas al techo), tus propios
+  y de caracol, y baranda; las escaleras llegan solas al techo), 18 más desde la versión 2.1.0
+  (ropero, alacena, mesa de centro, sillón individual, aparador, isla de cocina, silla de oficina,
+  estante, planta, maceta, lámpara de pie, televisor, espejo de baño, cuadro, cortina, alfombra,
+  tina y ducha), tus propios
   diseños y modelos 3D `.glb/.gltf` (incluidos o importados), agrupados por categoría y con
   buscador. No chocan entre sí, con las paredes ni con el paso de las puertas.
 - **Casa con varios ambientes**: un proyecto puede tener sala, dormitorios, cocina, baño… Arriba
